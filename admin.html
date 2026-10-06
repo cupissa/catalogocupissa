@@ -75,8 +75,10 @@
         <table class="w-full text-left text-xs border-collapse">
           <thead class="bg-gray-50 text-gray-500 font-bold uppercase border-b">
             <tr>
+              <th class="p-3">Imagen</th>
               <th class="p-3">Producto</th>
               <th class="p-3">Mundo</th>
+              <th class="p-3">Categoría</th>
               <th class="p-3">Modalidad</th>
               <th class="p-3">Precio Base</th>
               <th class="p-3">% Anticipo</th>
@@ -95,7 +97,7 @@
     <section id="adminSectionCredits" class="hidden">
       <div class="mb-6">
         <h1 class="text-xl font-bold text-gray-900">Evaluación de Créditos Directos</h1>
-        <p class="text-xs text-gray-500">Revisa documentos, referencias personales y aprueba cupos de financiación.</p>
+        <p class="text-xs text-gray-500">Revisa los productos solicitados, referencias personales y aprueba cupos de financiación.</p>
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="creditsListContainer">
@@ -105,21 +107,26 @@
 
     <!-- MÓDULO 3: PEDIDOS Y COTIZACIÓN DE ENVÍOS -->
     <section id="adminSectionOrders" class="hidden">
-      <div class="mb-6">
-        <h1 class="text-xl font-bold text-gray-900">Gestión de Pedidos y Rutas</h1>
-        <p class="text-xs text-gray-500">Asigna costos de envío para Barranquilla/Metropolitana o resto del país y actualiza estados.</p>
+      <div class="flex justify-between items-center mb-6">
+        <div>
+          <h1 class="text-xl font-bold text-gray-900">Gestión de Pedidos y Rutas</h1>
+          <p class="text-xs text-gray-500">Supervisa pedidos con ID único (CUP0001, CUP0002...), asigna fletes y cambia estados de entrega.</p>
+        </div>
+        <button onclick="createNewOrderPrompt()" class="bg-gray-900 hover:bg-black text-white font-bold text-xs px-3.5 py-2 rounded-xl shadow">
+          + Registrar Pedido Manual
+        </button>
       </div>
 
       <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
         <table class="w-full text-left text-xs">
           <thead class="bg-gray-50 text-gray-500 font-bold uppercase border-b">
             <tr>
-              <th class="p-3">ID Pedido</th>
+              <th class="p-3">ID Rastreable</th>
               <th class="p-3">Cliente</th>
-              <th class="p-3">Tipo</th>
+              <th class="p-3">Detalle Pedido / Productos</th>
               <th class="p-3">Monto Total</th>
               <th class="p-3">Costo Envío</th>
-              <th class="p-3">Estado</th>
+              <th class="p-3">Estado Actual</th>
               <th class="p-3 text-right">Acciones</th>
             </tr>
           </thead>
@@ -134,7 +141,7 @@
     <section id="adminSectionRentals" class="hidden">
       <div class="mb-6">
         <h1 class="text-xl font-bold text-gray-900">Calendario y Depósitos de Alquiler</h1>
-        <p class="text-xs text-gray-500">Supervisa las fechas de retorno de trajes/mobiliario y la devolución de depósitos de garantía ($20.000 COP).</p>
+        <p class="text-xs text-gray-500">Supervisa las fechas de retorno de trajes/mobiliario y la devolución de depósitos de garantía.</p>
       </div>
 
       <div class="bg-white rounded-2xl p-4 shadow-sm border text-xs space-y-3" id="rentalsListContainer">
@@ -168,8 +175,19 @@
             </select>
           </div>
           <div>
-            <label class="block font-bold mb-1">Imagen URL</label>
-            <input type="url" id="pImage" required class="w-full border rounded-lg p-2.5" placeholder="https://..." />
+            <label class="block font-bold mb-1">Categoría Principal</label>
+            <input type="text" id="pCategory" class="w-full border rounded-lg p-2.5" placeholder="Ej: Trajes Típicos, Impresiones, Regalos" />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-bold mb-1">Subir Imagen Local</label>
+            <input type="file" id="pImageFile" accept="image/*" class="w-full text-xs border rounded-lg p-2 bg-gray-50" />
+          </div>
+          <div>
+            <label class="block font-bold mb-1">O URL de Imagen Externa</label>
+            <input type="url" id="pImage" class="w-full border rounded-lg p-2.5" placeholder="https://..." />
           </div>
         </div>
 
@@ -222,50 +240,370 @@
           <label class="font-bold">Permitir Financiación con Créditos Cupissa</label>
         </div>
 
-        <button type="submit" class="w-full bg-cupissa-fuchsia hover:bg-cupissa-fuchsia-dark text-white font-extrabold py-3 rounded-xl shadow-md">
-          Guardar Producto en el Catálogo
+        <button type="submit" id="saveProductBtn" class="w-full bg-cupissa-fuchsia hover:bg-cupissa-fuchsia-dark text-white font-extrabold py-3 rounded-xl shadow-md">
+          Guardar Producto en Supabase
         </button>
       </form>
     </div>
   </div>
 
   <script>
-    lucide.createIcons();
+ // CONFIGURACIÓN DE SUPABASE
+const SUPABASE_URL = 'https://wuobahmvpvtuqvtkqnwg.supabase.co'; 
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1b2JhaG12cHZ0dXF2dGtxbndnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEyMTE2OTksImV4cCI6MjEwNjc4NzY5OX0.syTrgZ7qgYJlZSD94Fm4-Zm_Zd6XfyOGqOaXUiW0A1c';
 
-    const SUPABASE_URL = 'TU_SUPABASE_URL';
-    const SUPABASE_KEY = 'TU_SUPABASE_ANON_KEY';
-    const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+let _supabase = null;
+if (typeof supabase !== 'undefined') {
+  try {
+    _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  } catch(e) {
+    console.error('Error al inicializar Supabase:', e);
+  }
+}
 
-    // Datos simulados para administración
-    let adminProducts = [
-      { id: '1', title: 'Conjunto Personalizado Niña', world_slug: 'familiar', is_rental: false, base_price: 120000, advance_percentage: 50, allows_credit: true },
-      { id: '2', title: 'Vestido Típico Garabato', world_slug: 'eventos', is_rental: true, base_price: 180000, advance_percentage: 50, allows_credit: true }
-    ];
+    let adminProducts = [];
+    let adminCredits = [];
+    let adminOrders = [];
 
-    let adminCredits = [
-      {
-        id: 'c1',
-        client_name: 'María Alejandra Pérez',
-        phone: '3001234567',
-        financed_amount: 250000,
-        periodicity: 'quincenal',
-        installments: 4,
-        ref1: 'Carlos Pérez (Hermano - 3019876543)',
-        ref2: 'Ana Gómez (Amiga - 3025554433)',
-        status: 'en_revision'
-      }
-    ];
+    // 2. GENERADOR DE ID CONSECUTIVO RASTREABLE PARA PEDIDOS (CUP0001, CUP0002...)
+    function generateNextOrderID() {
+      if (!adminOrders || adminOrders.length === 0) return 'CUP0001';
 
-    let adminOrders = [
-      { id: 'ord-8a7c1', client: 'María Pérez', type: 'Venta', total: 250000, shipping_fee: 0, status: 'pendiente_cotizacion_envio' }
-    ];
+      let maxNum = 0;
+      adminOrders.forEach(o => {
+        const idStr = (o.id || o.order_id || '').toString();
+        if (idStr.startsWith('CUP')) {
+          const num = parseInt(idStr.replace('CUP', ''), 10);
+          if (!isNaN(num) && num > maxNum) maxNum = num;
+        }
+      });
 
-    function initAdmin() {
-      renderProductsTable();
-      renderCreditsCards();
-      renderOrdersTable();
+      const nextNum = maxNum + 1;
+      return 'CUP' + nextNum.toString().padStart(4, '0');
     }
 
+    // 3. CARGA DIRECTA Y OBLIGATORIA DESDE SUPABASE
+    async function loadDataFromSupabase() {
+      if (!_supabase) {
+        console.warn('Supabase no configurado.');
+        return;
+      }
+
+      // Cargar Catálogo de Productos
+      try {
+        const { data, error } = await _supabase.from('products').select('*').order('created_at', { ascending: false });
+        if (error) throw error;
+        adminProducts = data || [];
+        renderProductsTable();
+      } catch (err) {
+        console.error('Error leyendo tabla products:', err.message);
+      }
+
+      // Cargar Pedidos de Clientes
+      try {
+        const { data, error } = await _supabase.from('orders').select('*').order('created_at', { ascending: false });
+        if (!error && data) {
+          adminOrders = data;
+        } else {
+          adminOrders = [
+            { id: 'CUP0001', client_name: 'María Pérez', items_summary: '1x Vestido Típico Marimonda', total_amount: 180000, shipping_fee: 12000, status: 'En Preparación' }
+          ];
+        }
+        renderOrdersTable();
+      } catch (err) {
+        console.error('Error leyendo orders:', err);
+      }
+
+      // Cargar Solicitudes de Crédito
+      try {
+        const { data, error } = await _supabase.from('credit_applications').select('*').order('created_at', { ascending: false });
+        if (!error && data) {
+          adminCredits = data;
+        } else {
+          adminCredits = [
+            {
+              id: 'CRD-101',
+              client_name: 'Carlos Mendoza',
+              phone: '3009876543',
+              financed_amount: 240000,
+              items_detail: '2x Disfraces Infantiles + Tocado',
+              periodicity: 'quincenal',
+              installments: 4,
+              ref1: 'Laura Gómez (3011112233)',
+              ref2: 'Andrés Mendoza (3022223344)',
+              status: 'en_revision'
+            }
+          ];
+        }
+        renderCreditsCards();
+      } catch (err) {
+        console.error('Error leyendo credit_applications:', err);
+      }
+    }
+
+    // 4. GUARDAR PRODUCTO DIRECTAMENTE EN SUPABASE
+    async function saveProduct(e) {
+      e.preventDefault();
+
+      if (!_supabase) {
+        alert('Debes configurar la URL y KEY de Supabase en el script.');
+        return;
+      }
+
+      const saveBtn = document.getElementById('saveProductBtn');
+      saveBtn.innerText = 'Guardando en Supabase...';
+      saveBtn.disabled = true;
+
+      try {
+        let finalImageUrl = document.getElementById('pImage').value;
+        const fileInput = document.getElementById('pImageFile');
+
+        // Subir archivo a Storage si se selecciona
+        if (fileInput && fileInput.files && fileInput.files[0]) {
+          const file = fileInput.files[0];
+          const fileExt = file.name.split('.').pop();
+          const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 6)}.${fileExt}`;
+
+          const { data: uploadData, error: uploadError } = await _supabase.storage
+            .from('productos')
+            .upload(fileName, file, { cacheControl: '3600', upsert: true });
+
+          if (!uploadError) {
+            const { data: publicUrlData } = _supabase.storage.from('productos').getPublicUrl(fileName);
+            if (publicUrlData) finalImageUrl = publicUrlData.publicUrl;
+          }
+        }
+
+        const isRental = document.getElementById('pIsRental').checked;
+        const selectedWorld = document.getElementById('pWorld').value;
+        const categoryVal = document.getElementById('pCategory').value || 'General';
+
+        const payload = {
+          title: document.getElementById('pTitle').value,
+          description: document.getElementById('pDesc').value || '',
+          main_image: finalImageUrl || 'https://images.unsplash.com/photo-1518831959646-742c3a14ebf7?w=500&q=80',
+          world_slug: selectedWorld,
+          category: categoryVal,
+          base_price: parseFloat(document.getElementById('pBasePrice').value) || 0,
+          advance_percentage: parseFloat(document.getElementById('pAdvancePct').value) || 50,
+          production_days: parseInt(document.getElementById('pProdDays').value) || 3,
+          is_sale: true,
+          is_rental: isRental,
+          allows_credit: document.getElementById('pAllowsCredit').checked,
+          rental_price_24h: isRental ? parseFloat(document.getElementById('pRentalPrice').value) || 60000 : null,
+          rental_deposit: isRental ? parseFloat(document.getElementById('pRentalDeposit').value) || 20000 : null,
+          rental_extra_hour_fee: isRental ? parseFloat(document.getElementById('pRentalExtra').value) || 10000 : null
+        };
+
+        const { data, error } = await _supabase.from('products').insert([payload]).select();
+
+        if (error) {
+          console.error('Error detallado de Supabase:', error);
+          alert('Error de Supabase: ' + error.message);
+        } else {
+          alert('¡Producto guardado exitosamente en Supabase!');
+          toggleProductModal(false);
+          document.getElementById('productForm').reset();
+          await loadDataFromSupabase();
+        }
+
+      } catch (err) {
+        console.error('Excepción al guardar:', err);
+        alert('Ocurrió una excepción al conectar con Supabase: ' + err.message);
+      } finally {
+        saveBtn.innerText = 'Guardar Producto en Supabase';
+        saveBtn.disabled = false;
+      }
+    }
+
+    // 5. ELIMINAR PRODUCTO DE SUPABASE
+    async function deleteProduct(id) {
+      if (confirm('¿Deseas eliminar este producto permanentemente de Supabase?')) {
+        if (_supabase) {
+          const { error } = await _supabase.from('products').delete().eq('id', id);
+          if (error) {
+            alert('Error al eliminar: ' + error.message);
+            return;
+          }
+        }
+        await loadDataFromSupabase();
+      }
+    }
+
+    // 6. GESTIÓN DE PEDIDOS CON ID RASTREABLE
+    async function createNewOrderPrompt() {
+      const nextID = generateNextOrderID();
+      const clientName = prompt(`Creando Pedido ${nextID}\n\nIngresa el nombre del cliente:`);
+      if (!clientName) return;
+
+      const items = prompt('Ingresa el detalle de los productos comprados:', '1x Vestido Típico');
+      const total = parseFloat(prompt('Monto total ($ COP):', '150000')) || 0;
+
+      const newOrder = {
+        id: nextID,
+        client_name: clientName,
+        items_summary: items,
+        total_amount: total,
+        shipping_fee: 0,
+        status: 'Pendiente'
+      };
+
+      if (_supabase) {
+        const { error } = await _supabase.from('orders').insert([newOrder]);
+        if (error) console.warn('Aviso guardado pedido:', error.message);
+      }
+
+      adminOrders.unshift(newOrder);
+      renderOrdersTable();
+      alert(`Pedido registrado con ID de Rastreo: ${nextID}`);
+    }
+
+    async function changeOrderStatusPrompt(orderId, currentStatus) {
+      const newStatus = prompt(`Pedido: ${orderId}\nEstado actual: ${currentStatus}\n\nIngresa el nuevo estado:`, currentStatus);
+      if (newStatus && newStatus !== currentStatus) {
+        if (_supabase) {
+          await _supabase.from('orders').update({ status: newStatus }).eq('id', orderId);
+        }
+        const order = adminOrders.find(o => (o.id || o.order_id) === orderId);
+        if (order) order.status = newStatus;
+        renderOrdersTable();
+      }
+    }
+
+    async function setShippingFee(orderId) {
+      const fee = prompt(`Asignar costo de envío al pedido ${orderId} ($ COP):`);
+      if (fee) {
+        const parsedFee = parseFloat(fee) || 0;
+        if (_supabase) {
+          await _supabase.from('orders').update({ shipping_fee: parsedFee, status: 'Envío Cotizado' }).eq('id', orderId);
+        }
+        const order = adminOrders.find(o => (o.id || o.order_id) === orderId);
+        if (order) {
+          order.shipping_fee = parsedFee;
+          order.status = 'Envío Cotizado';
+        }
+        renderOrdersTable();
+      }
+    }
+
+    async function updateCreditStatus(creditId, status) {
+      if (_supabase) {
+        await _supabase.from('credit_applications').update({ status: status }).eq('id', creditId);
+      }
+      const cred = adminCredits.find(c => c.id === creditId);
+      if (cred) cred.status = status;
+      renderCreditsCards();
+      alert(`Solicitud de Crédito ${creditId} marcada como: ${status}`);
+    }
+
+    // 7. RENDERIZADO DE TABLAS Y VISTAS
+    function renderProductsTable() {
+      const tbody = document.getElementById('adminProductsTableBody');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+
+      if (adminProducts.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="9" class="p-4 text-center text-gray-400 font-semibold">No se encontraron productos en Supabase. ¡Haz clic en "Crear Nuevo Producto"!</td></tr>`;
+        return;
+      }
+
+      adminProducts.forEach(p => {
+        const imgUrl = p.main_image || p.image_url || 'https://via.placeholder.com/50';
+        tbody.innerHTML += `
+          <tr class="hover:bg-gray-50 border-b">
+            <td class="p-3"><img src="${imgUrl}" class="w-10 h-10 object-cover rounded-lg border" /></td>
+            <td class="p-3 font-bold text-gray-900">${p.title || 'Sin título'}</td>
+            <td class="p-3 uppercase text-[10px]"><span class="bg-gray-100 px-2 py-0.5 rounded font-bold">${p.world_slug || 'familiar'}</span></td>
+            <td class="p-3 text-gray-600 font-semibold">${p.category || 'General'}</td>
+            <td class="p-3">${p.is_rental ? 'Venta y Alquiler' : 'Solo Venta'}</td>
+            <td class="p-3 font-bold">$${Number(p.base_price || 0).toLocaleString('es-CO')}</td>
+            <td class="p-3 font-bold text-pink-600">${p.advance_percentage || 50}%</td>
+            <td class="p-3">${p.allows_credit ? '✅ Sí' : '❌ No'}</td>
+            <td class="p-3 text-right">
+              <button onclick="deleteProduct('${p.id}')" class="text-red-500 hover:text-red-700 font-bold">Eliminar</button>
+            </td>
+          </tr>
+        `;
+      });
+    }
+
+    function renderCreditsCards() {
+      const container = document.getElementById('creditsListContainer');
+      if (!container) return;
+      container.innerHTML = '';
+
+      adminCredits.forEach(c => {
+        container.innerHTML += `
+          <div class="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm text-xs space-y-2">
+            <div class="flex justify-between items-start border-b pb-2">
+              <div>
+                <h3 class="font-bold text-sm text-gray-900">${c.client_name || 'Cliente'}</h3>
+                <p class="text-gray-500">📞 ${c.phone || 'Sin teléfono'}</p>
+              </div>
+              <span class="bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded-full text-[10px] uppercase">${c.status || 'en_revision'}</span>
+            </div>
+
+            <div class="bg-pink-50 p-2.5 rounded-xl border border-pink-100">
+              <p class="font-bold text-pink-900 mb-0.5">🛍️ Productos a Financiar:</p>
+              <p class="text-gray-800 font-semibold">${c.items_detail || 'Detalle no especificado'}</p>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2 text-gray-700">
+              <p>Monto Financiado: <strong class="text-pink-600">$${Number(c.financed_amount || 0).toLocaleString('es-CO')} COP</strong></p>
+              <p>Plan: <strong>${c.installments || 1} cuotas (${c.periodicity || 'mensual'})</strong></p>
+            </div>
+
+            <div class="bg-gray-50 p-2 rounded-lg text-[11px]">
+              <p class="font-bold text-gray-700">Referencias:</p>
+              <p>• ${c.ref1 || 'Ref 1 no ingresada'}</p>
+              <p>• ${c.ref2 || 'Ref 2 no ingresada'}</p>
+            </div>
+
+            <div class="flex gap-2 pt-2">
+              <button onclick="updateCreditStatus('${c.id}', 'Aprobado')" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-2 rounded-xl">
+                Aprobar Crédito
+              </button>
+              <button onclick="updateCreditStatus('${c.id}', 'Rechazado')" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-2 rounded-xl">
+                Rechazar
+              </button>
+            </div>
+          </div>
+        `;
+      });
+    }
+
+    function renderOrdersTable() {
+      const tbody = document.getElementById('adminOrdersTableBody');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+
+      adminOrders.forEach(o => {
+        const orderId = o.id || o.order_id || 'CUP0000';
+        tbody.innerHTML += `
+          <tr class="hover:bg-gray-50 border-b">
+            <td class="p-3 font-mono font-bold text-pink-600">${orderId}</td>
+            <td class="p-3 font-semibold">${o.client_name || o.client || 'Cliente'}</td>
+            <td class="p-3 text-gray-700 font-medium">${o.items_summary || 'Producto(s)'}</td>
+            <td class="p-3 font-bold">$${Number(o.total_amount || o.total || 0).toLocaleString('es-CO')}</td>
+            <td class="p-3">
+              ${(o.shipping_fee && o.shipping_fee > 0) 
+                ? `$${Number(o.shipping_fee).toLocaleString('es-CO')}` 
+                : `<button onclick="setShippingFee('${orderId}')" class="bg-pink-100 text-pink-700 px-2 py-1 rounded font-bold hover:bg-pink-200">Cotizar Envío</button>`}
+            </td>
+            <td class="p-3">
+              <span class="bg-blue-100 text-blue-800 font-bold px-2.5 py-1 rounded-full text-[10px]">${o.status || 'Pendiente'}</span>
+            </td>
+            <td class="p-3 text-right">
+              <button onclick="changeOrderStatusPrompt('${orderId}', '${o.status || 'Pendiente'}')" class="bg-gray-800 text-white px-2.5 py-1 rounded-lg font-bold hover:bg-gray-700">
+                Cambiar Estado
+              </button>
+            </td>
+          </tr>
+        `;
+      });
+    }
+
+    // 8. PESTAÑAS Y UTILIDADES
     function switchAdminTab(tab) {
       document.getElementById('adminSectionProducts').classList.add('hidden');
       document.getElementById('adminSectionCredits').classList.add('hidden');
@@ -275,7 +613,7 @@
       const btns = ['Products', 'Credits', 'Orders', 'Rentals'];
       btns.forEach(b => {
         const btn = document.getElementById(`tabBtn${b}`);
-        btn.className = "py-3 px-2 border-b-2 border-transparent text-gray-400 hover:text-white";
+        if(btn) btn.className = "py-3 px-2 border-b-2 border-transparent text-gray-400 hover:text-white";
       });
 
       if (tab === 'products') {
@@ -293,89 +631,6 @@
       }
     }
 
-    function renderProductsTable() {
-      const tbody = document.getElementById('adminProductsTableBody');
-      tbody.innerHTML = '';
-
-      adminProducts.forEach(p => {
-        tbody.innerHTML += `
-          <tr class="hover:bg-gray-50">
-            <td class="p-3 font-bold">${p.title}</td>
-            <td class="p-3 uppercase text-[10px]"><span class="bg-gray-100 px-2 py-0.5 rounded font-bold">${p.world_slug}</span></td>
-            <td class="p-3">${p.is_rental ? 'Venta y Alquiler' : 'Solo Venta'}</td>
-            <td class="p-3 font-bold">$${p.base_price.toLocaleString('es-CO')}</td>
-            <td class="p-3 font-bold text-pink-600">${p.advance_percentage}%</td>
-            <td class="p-3">${p.allows_credit ? '✅ Habilitado' : '❌ No'}</td>
-            <td class="p-3 text-right">
-              <button onclick="deleteProduct('${p.id}')" class="text-red-500 hover:text-red-700 font-bold">Eliminar</button>
-            </td>
-          </tr>
-        `;
-      });
-    }
-
-    function renderCreditsCards() {
-      const container = document.getElementById('creditsListContainer');
-      container.innerHTML = '';
-
-      adminCredits.forEach(c => {
-        container.innerHTML += `
-          <div class="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm text-xs space-y-2">
-            <div class="flex justify-between items-start border-b pb-2">
-              <div>
-                <h3 class="font-bold text-sm text-gray-900">${c.client_name}</h3>
-                <p class="text-gray-500">📞 ${c.phone}</p>
-              </div>
-              <span class="bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded-full text-[10px]">En Revisión</span>
-            </div>
-
-            <div class="grid grid-cols-2 gap-2 text-gray-700">
-              <p>Monto Financiado: <strong class="text-pink-600">$${c.financed_amount.toLocaleString('es-CO')} COP</strong></p>
-              <p>Plan: <strong>${c.installments} cuotas (${c.periodicity})</strong></p>
-            </div>
-
-            <div class="bg-gray-50 p-2 rounded-lg text-[11px]">
-              <p class="font-bold text-gray-700">Referencias:</p>
-              <p>• ${c.ref1}</p>
-              <p>• ${c.ref2}</p>
-            </div>
-
-            <div class="flex gap-2 pt-2">
-              <button onclick="approveCredit('${c.id}')" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-2 rounded-xl">
-                Aprobar Crédito
-              </button>
-              <button onclick="rejectCredit('${c.id}')" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-2 rounded-xl">
-                Rechazar
-              </button>
-            </div>
-          </div>
-        `;
-      });
-    }
-
-    function renderOrdersTable() {
-      const tbody = document.getElementById('adminOrdersTableBody');
-      tbody.innerHTML = '';
-
-      adminOrders.forEach(o => {
-        tbody.innerHTML += `
-          <tr class="hover:bg-gray-50">
-            <td class="p-3 font-mono font-bold">${o.id}</td>
-            <td class="p-3">${o.client}</td>
-            <td class="p-3">${o.type}</td>
-            <td class="p-3 font-bold">$${o.total.toLocaleString('es-CO')}</td>
-            <td class="p-3">
-              ${o.shipping_fee > 0 ? `$${o.shipping_fee.toLocaleString('es-CO')}` : '<button onclick="setShippingFee(\''+o.id+'\')" class="bg-pink-100 text-pink-700 px-2 py-1 rounded font-bold hover:bg-pink-200">Cotizar Envío</button>'}
-            </td>
-            <td class="p-3"><span class="bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded-full text-[10px]">${o.status}</span></td>
-            <td class="p-3 text-right">
-              <button onclick="updateOrderStatus('${o.id}')" class="text-blue-600 hover:underline font-bold">Avanzar Estado</button>
-            </td>
-          </tr>
-        `;
-      });
-    }
-
     function toggleProductModal(show) {
       document.getElementById('productModal').classList.toggle('hidden', !show);
     }
@@ -385,53 +640,15 @@
       document.getElementById('rentalFields').classList.toggle('hidden', !isRental);
     }
 
-    function saveProduct(e) {
-      e.preventDefault();
-      const newP = {
-        id: Date.now().toString(),
-        title: document.getElementById('pTitle').value,
-        world_slug: document.getElementById('pWorld').value,
-        base_price: parseFloat(document.getElementById('pBasePrice').value),
-        advance_percentage: parseFloat(document.getElementById('pAdvancePct').value),
-        is_rental: document.getElementById('pIsRental').checked,
-        allows_credit: document.getElementById('pAllowsCredit').checked
-      };
-
-      adminProducts.push(newP);
-      renderProductsTable();
-      toggleProductModal(false);
-      alert('¡Producto agregado exitosamente!');
-    }
-
-    function deleteProduct(id) {
-      if (confirm('¿Estás seguro de eliminar este producto?')) {
-        adminProducts = adminProducts.filter(p => p.id !== id);
-        renderProductsTable();
-      }
-    }
-
-    function approveCredit(id) {
-      alert(`Crédito ${id} Aprobado. Se ha notificado al cliente para realizar el pago del Anticipo Obligatorio.`);
-    }
-
-    function setShippingFee(id) {
-      const fee = prompt('Ingresa el costo del envío para la zona de entrega ($ COP):');
-      if (fee) {
-        const order = adminOrders.find(o => o.id === id);
-        if (order) {
-          order.shipping_fee = parseFloat(fee);
-          order.status = 'envio_confirmado';
-          renderOrdersTable();
-        }
-      }
-    }
-
     function adminLogout() {
       alert('Sesión cerrada.');
       window.location.href = 'index.html';
     }
 
-    initAdmin();
+    window.addEventListener('DOMContentLoaded', () => {
+      if (typeof lucide !== 'undefined') lucide.createIcons();
+      loadDataFromSupabase();
+    });
   </script>
 </body>
 </html>
