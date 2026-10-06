@@ -438,6 +438,12 @@
                         <input type="password" id="regClientPassword" required placeholder="••••••••" class="w-full border rounded-xl p-2.5" />
                     </div>
 
+                    <!-- Verificación Anti-Robot Actualizada -->
+                    <div class="bg-gray-50 p-3 rounded-xl border border-gray-200 space-y-2">
+                        <label id="mathCaptchaLabel" class="block font-bold text-[11px] text-gray-700">Ingresa el código de la imagen o haz la siguiente suma para verificar que no eres un robot: <span id="mathCaptchaQuestion" class="text-pink-600 font-extrabold"></span></label>
+                        <input type="text" id="mathCaptchaInput" required placeholder="Ingresa el resultado o código" class="w-full border rounded-lg p-2 bg-white text-xs font-bold" />
+                    </div>
+
                     <button type="submit" id="btnRegister" class="w-full py-3 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl transition-all shadow-md mt-1">
                         Registrarse
                     </button>
