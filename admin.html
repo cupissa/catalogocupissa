@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Cupissa Studio | Panel de Administración Exclusivo</title>
+  <title>Cupissa Admin | Panel de Gestión Integral</title>
   
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -12,638 +12,240 @@
   <!-- Supabase JS -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   
-  <style>
-    .bg-cupissa-fuchsia { background-color: #DB2777; }
-    .bg-cupissa-fuchsia-dark { background-color: #BE185D; }
-    .text-cupissa-fuchsia { color: #DB2777; }
-  </style>
+  <!-- Estilos Personalizados -->
+  <link rel="stylesheet" href="css/styles.css" />
 </head>
-<body class="bg-gray-100 text-gray-800 font-sans min-h-screen flex flex-col">
+<body class="bg-gray-100 text-gray-800 font-sans min-h-screen flex flex-col md:flex-row">
 
-  <!-- HEADER ADMIN -->
-  <header class="bg-gray-900 text-white sticky top-0 z-50 shadow-md">
-    <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-      <div class="flex items-center gap-3">
-        <span class="text-xl font-black text-pink-500 tracking-wider">CUPISSA</span>
-        <span class="text-xs bg-pink-900 text-pink-200 px-2 py-0.5 rounded-md font-bold uppercase">Panel Admin Privado</span>
+  <!-- SIDEBAR DE NAVEGACIÓN -->
+  <aside class="w-full md:w-64 bg-gray-900 text-white p-6 flex flex-col justify-between shrink-0">
+    <div>
+      <div class="flex items-center gap-2 mb-8">
+        <span class="text-2xl font-black text-pink-500 tracking-wider">CUPISSA</span>
+        <span class="text-[10px] bg-pink-900 text-pink-200 px-2 py-0.5 rounded font-extrabold uppercase">Admin</span>
       </div>
-      
-      <div class="flex items-center gap-4 text-xs">
-        <span id="adminUserEmail" class="text-gray-400">contacto@cupissa.com</span>
-        <button onclick="adminLogout()" class="bg-gray-800 hover:bg-gray-700 text-gray-200 px-3 py-1.5 rounded-lg flex items-center gap-1">
-          <i data-lucide="log-out" class="w-3.5 h-3.5"></i> Salir
+
+      <nav class="space-y-2 text-sm font-semibold">
+        <button onclick="showAdminTab('products')" id="adminTab-products" class="admin-nav-btn w-full text-left px-4 py-3 rounded-xl flex items-center gap-3 bg-pink-600 text-white transition-all">
+          <i data-lucide="package" class="w-5 h-5"></i>
+          <span>Gestión de Productos</span>
         </button>
-      </div>
+
+        <button onclick="showAdminTab('orders')" id="adminTab-orders" class="admin-nav-btn w-full text-left px-4 py-3 rounded-xl flex items-center gap-3 text-gray-400 hover:bg-gray-800 hover:text-white transition-all">
+          <i data-lucide="shopping-cart" class="w-5 h-5"></i>
+          <span>Pedidos y Anticipos</span>
+        </button>
+
+        <button onclick="showAdminTab('credits')" id="adminTab-credits" class="admin-nav-btn w-full text-left px-4 py-3 rounded-xl flex items-center gap-3 text-gray-400 hover:bg-gray-800 hover:text-white transition-all">
+          <i data-lucide="credit-card" class="w-5 h-5"></i>
+          <span>Créditos Cupissa</span>
+        </button>
+      </nav>
     </div>
 
-    <!-- PESTAÑAS MÓDULOS -->
-    <nav class="bg-gray-800 border-t border-gray-700 px-4">
-      <div class="max-w-7xl mx-auto flex gap-4 text-xs font-bold overflow-x-auto">
-        <button onclick="switchAdminTab('products')" id="tabBtnProducts" class="py-3 px-2 border-b-2 border-pink-500 text-pink-400">
-          🛍️ Productos y Alquileres
-        </button>
-        <button onclick="switchAdminTab('credits')" id="tabBtnCredits" class="py-3 px-2 border-b-2 border-transparent text-gray-400 hover:text-white">
-          💳 Solicitudes de Crédito
-        </button>
-        <button onclick="switchAdminTab('orders')" id="tabBtnOrders" class="py-3 px-2 border-b-2 border-transparent text-gray-400 hover:text-white">
-          📦 Pedidos y Envíos
-        </button>
-        <button onclick="switchAdminTab('rentals')" id="tabBtnRentals" class="py-3 px-2 border-b-2 border-transparent text-gray-400 hover:text-white">
-          👗 Control de Alquileres
-        </button>
-      </div>
-    </nav>
-  </header>
+    <div class="border-t border-gray-800 pt-4 mt-6 text-xs text-gray-500">
+      <p>Servidor: <span class="text-emerald-400 font-bold">Conectado a Supabase</span></p>
+      <p class="mt-1">© Cupissa S.A.S. - Panel Interno</p>
+    </div>
+  </aside>
 
-  <!-- CONTENIDO PRINCIPAL -->
-  <main class="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6">
+  <!-- CONTENIDO PRINCIPAL ADMIN -->
+  <main class="flex-1 p-6 md:p-10 overflow-y-auto">
 
-    <!-- MÓDULO 1: GESTIÓN DE PRODUCTOS Y ALQUILERES -->
-    <section id="adminSectionProducts">
-      <div class="flex justify-between items-center mb-6">
+    <!-- PESTAÑA 1: GESTIÓN DE PRODUCTOS -->
+    <section id="adminView-products">
+      <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
         <div>
-          <h1 class="text-xl font-bold text-gray-900">Catálogo y Reglas de Negocio</h1>
-          <p class="text-xs text-gray-500">Configura precios, anticipos obligatorios, días de producción y depósitos de garantía.</p>
+          <h1 class="text-2xl font-black text-gray-900">Catálogo de Productos y Servicios</h1>
+          <p class="text-xs text-gray-500">Crea, edita y ajusta configuraciones de alquiler o venta</p>
         </div>
-        <button onclick="toggleProductModal(true)" class="bg-cupissa-fuchsia hover:bg-cupissa-fuchsia-dark text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow flex items-center gap-1.5">
-          <i data-lucide="plus" class="w-4 h-4"></i> Crear Nuevo Producto / Servicio
+        <button onclick="openProductModal()" class="bg-pink-600 hover:bg-pink-700 text-white font-bold px-4 py-2.5 rounded-xl text-sm flex items-center gap-2 shadow-sm transition-all">
+          <i data-lucide="plus-circle" class="w-5 h-5"></i>
+          <span>Agregar Nuevo Producto</span>
         </button>
       </div>
 
       <!-- TABLA DE PRODUCTOS -->
       <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-        <table class="w-full text-left text-xs border-collapse">
-          <thead class="bg-gray-50 text-gray-500 font-bold uppercase border-b">
-            <tr>
-              <th class="p-3">Imagen</th>
-              <th class="p-3">Producto</th>
-              <th class="p-3">Mundo</th>
-              <th class="p-3">Categoría</th>
-              <th class="p-3">Modalidad</th>
-              <th class="p-3">Precio Base</th>
-              <th class="p-3">% Anticipo</th>
-              <th class="p-3">Crédito</th>
-              <th class="p-3 text-right">Acciones</th>
-            </tr>
-          </thead>
-          <tbody id="adminProductsTableBody" class="divide-y divide-gray-100">
-            <!-- Filas dinámicas -->
-          </tbody>
-        </table>
-      </div>
-    </section>
-
-    <!-- MÓDULO 2: SOLICITUDES DE CRÉDITO CUPISSA -->
-    <section id="adminSectionCredits" class="hidden">
-      <div class="mb-6">
-        <h1 class="text-xl font-bold text-gray-900">Evaluación de Créditos Directos</h1>
-        <p class="text-xs text-gray-500">Revisa los productos solicitados, referencias personales y aprueba cupos de financiación.</p>
-      </div>
-
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="creditsListContainer">
-        <!-- Tarjetas dinámicas de solicitudes -->
-      </div>
-    </section>
-
-    <!-- MÓDULO 3: PEDIDOS Y COTIZACIÓN DE ENVÍOS -->
-    <section id="adminSectionOrders" class="hidden">
-      <div class="flex justify-between items-center mb-6">
-        <div>
-          <h1 class="text-xl font-bold text-gray-900">Gestión de Pedidos y Rutas</h1>
-          <p class="text-xs text-gray-500">Supervisa pedidos con ID único (CUP0001, CUP0002...), asigna fletes y cambia estados de entrega.</p>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse text-xs md:text-sm">
+            <thead>
+              <tr class="bg-gray-50 text-gray-500 uppercase text-[11px] border-b">
+                <th class="p-4">Producto</th>
+                <th class="p-4">Mundo</th>
+                <th class="p-4">Categoría</th>
+                <th class="p-4">Precio Total</th>
+                <th class="p-4">Anticipo</th>
+                <th class="p-4">Modalidad</th>
+                <th class="p-4 text-center">Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="adminProductsTable" class="divide-y divide-gray-100">
+              <!-- Cargado dinámicamente -->
+            </tbody>
+          </table>
         </div>
-        <button onclick="createNewOrderPrompt()" class="bg-gray-900 hover:bg-black text-white font-bold text-xs px-3.5 py-2 rounded-xl shadow">
-          + Registrar Pedido Manual
-        </button>
+      </div>
+    </section>
+
+    <!-- PESTAÑA 2: PEDIDOS Y ANTICIPOS -->
+    <section id="adminView-orders" class="hidden">
+      <div class="mb-6">
+        <h1 class="text-2xl font-black text-gray-900">Gestión de Pedidos y Anticipos</h1>
+        <p class="text-xs text-gray-500">Supervisa anticipos pagados, saldos restantes y estados de envío</p>
       </div>
 
       <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-        <table class="w-full text-left text-xs">
-          <thead class="bg-gray-50 text-gray-500 font-bold uppercase border-b">
-            <tr>
-              <th class="p-3">ID Rastreable</th>
-              <th class="p-3">Cliente</th>
-              <th class="p-3">Detalle Pedido / Productos</th>
-              <th class="p-3">Monto Total</th>
-              <th class="p-3">Costo Envío</th>
-              <th class="p-3">Estado Actual</th>
-              <th class="p-3 text-right">Acciones</th>
-            </tr>
-          </thead>
-          <tbody id="adminOrdersTableBody" class="divide-y divide-gray-100">
-            <!-- Filas dinámicas -->
-          </tbody>
-        </table>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse text-xs md:text-sm">
+            <thead>
+              <tr class="bg-gray-50 text-gray-500 uppercase text-[11px] border-b">
+                <th class="p-4">Código</th>
+                <th class="p-4">Cliente</th>
+                <th class="p-4">Total</th>
+                <th class="p-4">Anticipo</th>
+                <th class="p-4">Saldo Restante</th>
+                <th class="p-4">Método Saldo</th>
+                <th class="p-4">Estado</th>
+                <th class="p-4 text-center">Acción</th>
+              </tr>
+            </thead>
+            <tbody id="adminOrdersTable" class="divide-y divide-gray-100">
+              <!-- Cargado dinámicamente -->
+            </tbody>
+          </table>
+        </div>
       </div>
     </section>
 
-    <!-- MÓDULO 4: CONTROL DE ALQUILERES -->
-    <section id="adminSectionRentals" class="hidden">
+    <!-- PESTAÑA 3: CRÉDITOS CUPISSA -->
+    <section id="adminView-credits" class="hidden">
       <div class="mb-6">
-        <h1 class="text-xl font-bold text-gray-900">Calendario y Depósitos de Alquiler</h1>
-        <p class="text-xs text-gray-500">Supervisa las fechas de retorno de trajes/mobiliario y la devolución de depósitos de garantía.</p>
+        <h1 class="text-2xl font-black text-gray-900">Solicitudes de Crédito Directo</h1>
+        <p class="text-xs text-gray-500">Revisa documentos, referencias y aprueba o rechaza créditos</p>
       </div>
 
-      <div class="bg-white rounded-2xl p-4 shadow-sm border text-xs space-y-3" id="rentalsListContainer">
-        <!-- Registros dinámicos de alquiler -->
+      <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse text-xs md:text-sm">
+            <thead>
+              <tr class="bg-gray-50 text-gray-500 uppercase text-[11px] border-b">
+                <th class="p-4">Cliente / Cédula</th>
+                <th class="p-4">Monto Solicitado</th>
+                <th class="p-4">Frecuencia / Cuotas</th>
+                <th class="p-4">Referencias</th>
+                <th class="p-4">Documentos</th>
+                <th class="p-4">Estado</th>
+                <th class="p-4 text-center">Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="adminCreditsTable" class="divide-y divide-gray-100">
+              <!-- Cargado dinámicamente -->
+            </tbody>
+          </table>
+        </div>
       </div>
     </section>
 
   </main>
 
-  <!-- MODAL: CREAR / EDITAR PRODUCTO -->
+  <!-- MODAL CREAR / EDITAR PRODUCTO -->
   <div id="productModal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center hidden p-4">
-    <div class="bg-white w-full max-w-xl rounded-2xl shadow-2xl p-6 overflow-y-auto max-h-[90vh]">
-      <div class="flex justify-between items-center pb-3 border-b">
-        <h3 class="font-bold text-base text-gray-900">Añadir / Editar Producto</h3>
-        <button onclick="toggleProductModal(false)" class="text-gray-400 hover:text-black">✕</button>
-      </div>
+    <div class="bg-white w-full max-w-2xl rounded-2xl shadow-2xl p-6 max-h-[90vh] overflow-y-auto relative">
+      <button onclick="closeProductModal()" class="absolute top-4 right-4 text-gray-400 hover:text-black">
+        <i data-lucide="x" class="w-6 h-6"></i>
+      </button>
 
-      <form id="productForm" onsubmit="saveProduct(event)" class="space-y-4 text-xs mt-4">
-        <div>
-          <label class="block font-bold mb-1">Título del Producto / Servicio</label>
-          <input type="text" id="pTitle" required class="w-full border rounded-lg p-2.5" placeholder="Ej: Vestido Típico Marimonda" />
-        </div>
+      <h3 id="productModalTitle" class="font-extrabold text-lg mb-4 text-gray-900">Agregar Producto</h3>
 
-        <div class="grid grid-cols-2 gap-3">
+      <form id="productForm" onsubmit="saveProduct(event)" class="space-y-4 text-xs md:text-sm">
+        <input type="hidden" id="prodId" />
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label class="block font-bold mb-1">Mundo</label>
-            <select id="pWorld" class="w-full border rounded-lg p-2.5">
-              <option value="familiar">Familiar y Regalos</option>
-              <option value="eventos">Eventos y Fiestas</option>
-              <option value="empresas">Empresas y B2B</option>
+            <label class="block font-bold mb-1">Nombre del Producto *</label>
+            <input type="text" id="prodTitle" required class="w-full border rounded-lg p-2.5" placeholder="Ej: Vestido de Gala Saten" />
+          </div>
+
+          <div>
+            <label class="block font-bold mb-1">Mundo Transversal *</label>
+            <select id="prodWorld" required class="w-full border rounded-lg p-2.5">
+              <option value="familiar">Mundo Familiar y Regalos</option>
+              <option value="eventos">Mundo Eventos y Fiestas</option>
+              <option value="empresas">Mundo Empresas y B2B</option>
             </select>
           </div>
-          <div>
-            <label class="block font-bold mb-1">Categoría Principal</label>
-            <input type="text" id="pCategory" class="w-full border rounded-lg p-2.5" placeholder="Ej: Trajes Típicos, Impresiones, Regalos" />
-          </div>
         </div>
 
-        <div class="grid grid-cols-2 gap-3">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label class="block font-bold mb-1">Subir Imagen Local</label>
-            <input type="file" id="pImageFile" accept="image/*" class="w-full text-xs border rounded-lg p-2 bg-gray-50" />
+            <label class="block font-bold mb-1">Categoría *</label>
+            <input type="text" id="prodCategory" required class="w-full border rounded-lg p-2.5" placeholder="Ej: Vestidos, Tarjetas, Regalos" />
           </div>
+
           <div>
-            <label class="block font-bold mb-1">O URL de Imagen Externa</label>
-            <input type="url" id="pImage" class="w-full border rounded-lg p-2.5" placeholder="https://..." />
+            <label class="block font-bold mb-1">URL de la Imagen *</label>
+            <input type="url" id="prodImageUrl" required class="w-full border rounded-lg p-2.5" placeholder="https://..." />
           </div>
         </div>
 
         <div>
           <label class="block font-bold mb-1">Descripción</label>
-          <textarea id="pDesc" rows="2" class="w-full border rounded-lg p-2.5"></textarea>
+          <textarea id="prodDescription" rows="2" class="w-full border rounded-lg p-2.5" placeholder="Detalles, materiales, especificaciones..."></textarea>
         </div>
 
-        <div class="grid grid-cols-3 gap-3 bg-gray-50 p-3 rounded-xl border">
-          <div>
-            <label class="block font-bold mb-1">Precio Base ($)</label>
-            <input type="number" id="pBasePrice" required class="w-full border rounded-lg p-2" />
-          </div>
-          <div>
-            <label class="block font-bold mb-1">% Anticipo Obligatorio</label>
-            <input type="number" id="pAdvancePct" value="50" class="w-full border rounded-lg p-2" />
-          </div>
-          <div>
-            <label class="block font-bold mb-1">Días Producción</label>
-            <input type="number" id="pProdDays" value="3" class="w-full border rounded-lg p-2" />
-          </div>
-        </div>
-
-        <!-- Opciones de Alquiler -->
-        <div class="border p-3 rounded-xl space-y-2 bg-pink-50/50 border-pink-200">
-          <label class="flex items-center gap-2 font-bold text-pink-900">
-            <input type="checkbox" id="pIsRental" onchange="toggleRentalFields()" />
-            <span>Disponible para Alquiler (24 horas)</span>
-          </label>
-
-          <div id="rentalFields" class="grid grid-cols-3 gap-2 hidden pt-2">
+        <!-- Precios y Anticipos -->
+        <div class="bg-gray-50 p-4 rounded-xl border space-y-3">
+          <h4 class="font-bold text-xs uppercase text-pink-700">Configuración Económica</h4>
+          
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div>
-              <label class="block font-semibold">Costo 24h ($)</label>
-              <input type="number" id="pRentalPrice" value="60000" class="w-full border rounded-lg p-1.5" />
+              <label class="block font-bold mb-1">Precio Total (COP) *</label>
+              <input type="number" id="prodPrice" required min="0" class="w-full border rounded-lg p-2" placeholder="150000" />
             </div>
+
             <div>
-              <label class="block font-semibold">Depósito ($)</label>
-              <input type="number" id="pRentalDeposit" value="20000" class="w-full border rounded-lg p-1.5" />
+              <label class="block font-bold mb-1">Anticipo Mínimo (%) *</label>
+              <input type="number" id="prodAdvancePct" required min="1" max="100" value="50" class="w-full border rounded-lg p-2" />
             </div>
+
             <div>
-              <label class="block font-semibold">Hora Extra ($)</label>
-              <input type="number" id="pRentalExtra" value="10000" class="w-full border rounded-lg p-1.5" />
+              <label class="block font-bold mb-1">¿Permite Alquiler? *</label>
+              <select id="prodAllowRental" class="w-full border rounded-lg p-2" onchange="toggleRentalFieldsAdmin()">
+                <option value="false">No (Solo Venta)</option>
+                <option value="true">Sí (Venta o Alquiler)</option>
+              </select>
             </div>
           </div>
+
+          <!-- Opciones específicas de Alquiler -->
+          <div id="adminRentalFields" class="hidden border-t pt-3 grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <label class="block font-bold mb-1">Depósito Garantía Alquiler (COP)</label>
+              <input type="number" id="prodRentalDeposit" min="0" value="0" class="w-full border rounded-lg p-2" placeholder="50000" />
+            </div>
+
+            <div>
+              <label class="block font-bold mb-1">Valor Hora Extra tras 24h (COP)</label>
+              <input type="number" id="prodExtraHourFee" min="0" value="0" class="w-full border rounded-lg p-2" placeholder="10000" />
+            </div>
+          </div>
         </div>
 
-        <!-- Opción de Crédito -->
-        <div class="flex items-center gap-2">
-          <input type="checkbox" id="pAllowsCredit" checked />
-          <label class="font-bold">Permitir Financiación con Créditos Cupissa</label>
+        <div class="flex justify-end gap-3 pt-4 border-t">
+          <button type="button" onclick="closeProductModal()" class="px-4 py-2 rounded-xl border text-gray-600 font-bold hover:bg-gray-100">
+            Cancelar
+          </button>
+          <button type="submit" class="px-6 py-2 rounded-xl bg-pink-600 hover:bg-pink-700 text-white font-bold">
+            Guardar Producto
+          </button>
         </div>
-
-        <button type="submit" id="saveProductBtn" class="w-full bg-cupissa-fuchsia hover:bg-cupissa-fuchsia-dark text-white font-extrabold py-3 rounded-xl shadow-md">
-          Guardar Producto en Supabase
-        </button>
       </form>
     </div>
   </div>
 
-  <script>
-    // CONFIGURACIÓN DE SUPABASE
-    const SUPABASE_URL = 'https://wuobahmvpvtuqvtkqnwg.supabase.co'; 
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1b2JhaG12cHZ0dXF2dGtxbndnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEyMTE2OTksImV4cCI6MjEwNjc4NzY5OX0.syTrgZ7qgYJlZSD94Fm4-Zm_Zd6XfyOGqOaXUiW0A1c';
-
-    let _supabase = null;
-    if (typeof supabase !== 'undefined') {
-      try {
-        _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-      } catch(e) {
-        console.error('Error al inicializar Supabase:', e);
-      }
-    }
-
-    let adminProducts = [];
-    let adminCredits = [];
-    let adminOrders = [];
-
-    // 2. GENERADOR DE ID CONSECUTIVO RASTREABLE PARA PEDIDOS (CUP0001, CUP0002...)
-    function generateNextOrderID() {
-      if (!adminOrders || adminOrders.length === 0) return 'CUP0001';
-
-      let maxNum = 0;
-      adminOrders.forEach(o => {
-        const idStr = (o.id || o.order_id || '').toString();
-        if (idStr.startsWith('CUP')) {
-          const num = parseInt(idStr.replace('CUP', ''), 10);
-          if (!isNaN(num) && num > maxNum) maxNum = num;
-        }
-      });
-
-      const nextNum = maxNum + 1;
-      return 'CUP' + nextNum.toString().padStart(4, '0');
-    }
-
-    // 3. CARGA DIRECTA DESDE SUPABASE REAL
-    async function loadDataFromSupabase() {
-      if (!_supabase) {
-        console.warn('Supabase no configurado.');
-        return;
-      }
-
-      // Cargar Catálogo de Productos
-      try {
-        const { data, error } = await _supabase.from('products').select('*').order('created_at', { ascending: false });
-        if (!error && data) {
-          adminProducts = data;
-        } else {
-          adminProducts = [];
-        }
-        renderProductsTable();
-      } catch (err) {
-        console.error('Error leyendo tabla products:', err.message);
-      }
-
-      // Cargar Pedidos de Clientes
-      try {
-        const { data, error } = await _supabase.from('orders').select('*').order('created_at', { ascending: false });
-        if (!error && data) {
-          adminOrders = data;
-        } else {
-          adminOrders = [];
-        }
-        renderOrdersTable();
-      } catch (err) {
-        console.error('Error leyendo orders:', err);
-      }
-
-      // Cargar Solicitudes de Crédito
-      try {
-        const { data, error } = await _supabase.from('credit_applications').select('*').order('created_at', { ascending: false });
-        if (!error && data) {
-          adminCredits = data;
-        } else {
-          adminCredits = [];
-        }
-        renderCreditsCards();
-      } catch (err) {
-        console.error('Error leyendo credit_applications:', err);
-      }
-    }
-
-    // 4. GUARDAR PRODUCTO DIRECTAMENTE EN SUPABASE
-    async function saveProduct(e) {
-      e.preventDefault();
-
-      if (!_supabase) {
-        alert('Debes configurar la URL y KEY de Supabase en el script.');
-        return;
-      }
-
-      const saveBtn = document.getElementById('saveProductBtn');
-      saveBtn.innerText = 'Guardando en Supabase...';
-      saveBtn.disabled = true;
-
-      try {
-        let finalImageUrl = document.getElementById('pImage').value;
-        const fileInput = document.getElementById('pImageFile');
-
-        // Subir archivo a Storage si se selecciona
-        if (fileInput && fileInput.files && fileInput.files[0]) {
-          const file = fileInput.files[0];
-          const fileExt = file.name.split('.').pop();
-          const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 6)}.${fileExt}`;
-
-          const { data: uploadData, error: uploadError } = await _supabase.storage
-            .from('productos')
-            .upload(fileName, file, { cacheControl: '3600', upsert: true });
-
-          if (!uploadError) {
-            const { data: publicUrlData } = _supabase.storage.from('productos').getPublicUrl(fileName);
-            if (publicUrlData) finalImageUrl = publicUrlData.publicUrl;
-          }
-        }
-
-        const isRental = document.getElementById('pIsRental').checked;
-        const selectedWorld = document.getElementById('pWorld').value;
-        const categoryVal = document.getElementById('pCategory').value || 'General';
-
-        const payload = {
-          title: document.getElementById('pTitle').value,
-          description: document.getElementById('pDesc').value || '',
-          main_image: finalImageUrl || 'https://images.unsplash.com/photo-1518831959646-742c3a14ebf7?w=500&q=80',
-          world_slug: selectedWorld,
-          category: categoryVal,
-          base_price: parseFloat(document.getElementById('pBasePrice').value) || 0,
-          advance_percentage: parseFloat(document.getElementById('pAdvancePct').value) || 50,
-          production_days: parseInt(document.getElementById('pProdDays').value) || 3,
-          is_sale: true,
-          is_rental: isRental,
-          allows_credit: document.getElementById('pAllowsCredit').checked,
-          rental_price_24h: isRental ? parseFloat(document.getElementById('pRentalPrice').value) || 60000 : null,
-          rental_deposit: isRental ? parseFloat(document.getElementById('pRentalDeposit').value) || 20000 : null,
-          rental_extra_hour_fee: isRental ? parseFloat(document.getElementById('pRentalExtra').value) || 10000 : null
-        };
-
-        const { data, error } = await _supabase.from('products').insert([payload]).select();
-
-        if (error) {
-          console.error('Error detallado de Supabase:', error);
-          alert('Error de Supabase: ' + error.message);
-        } else {
-          alert('¡Producto guardado exitosamente en Supabase!');
-          toggleProductModal(false);
-          document.getElementById('productForm').reset();
-          await loadDataFromSupabase();
-        }
-
-      } catch (err) {
-        console.error('Excepción al guardar:', err);
-        alert('Ocurrió una excepción al conectar con Supabase: ' + err.message);
-      } finally {
-        saveBtn.innerText = 'Guardar Producto en Supabase';
-        saveBtn.disabled = false;
-      }
-    }
-
-    // 5. ELIMINAR PRODUCTO DE SUPABASE
-    async function deleteProduct(id) {
-      if (confirm('¿Deseas eliminar este producto permanentemente de Supabase?')) {
-        if (_supabase) {
-          const { error } = await _supabase.from('products').delete().eq('id', id);
-          if (error) {
-            alert('Error al eliminar: ' + error.message);
-            return;
-          }
-        }
-        await loadDataFromSupabase();
-      }
-    }
-
-    // 6. GESTIÓN DE PEDIDOS CON ID RASTREABLE
-    async function createNewOrderPrompt() {
-      const nextID = generateNextOrderID();
-      const clientName = prompt(`Creando Pedido ${nextID}\n\nIngresa el nombre del cliente:`);
-      if (!clientName) return;
-
-      const items = prompt('Ingresa el detalle de los productos comprados:', '1x Vestido Típico');
-      const total = parseFloat(prompt('Monto total ($ COP):', '150000')) || 0;
-
-      const newOrder = {
-        id: nextID,
-        client_name: clientName,
-        items_summary: items,
-        total_amount: total,
-        shipping_fee: 0,
-        status: 'Pendiente'
-      };
-
-      if (_supabase) {
-        const { error } = await _supabase.from('orders').insert([newOrder]);
-        if (error) console.warn('Aviso guardado pedido:', error.message);
-      }
-
-      await loadDataFromSupabase();
-      alert(`Pedido registrado con ID de Rastreo: ${nextID}`);
-    }
-
-    async function changeOrderStatusPrompt(orderId, currentStatus) {
-      const newStatus = prompt(`Pedido: ${orderId}\nEstado actual: ${currentStatus}\n\nIngresa el nuevo estado:`, currentStatus);
-      if (newStatus && newStatus !== currentStatus) {
-        if (_supabase) {
-          await _supabase.from('orders').update({ status: newStatus }).eq('id', orderId);
-        }
-        await loadDataFromSupabase();
-      }
-    }
-
-    async function setShippingFee(orderId) {
-      const fee = prompt(`Asignar costo de envío al pedido ${orderId} ($ COP):`);
-      if (fee) {
-        const parsedFee = parseFloat(fee) || 0;
-        if (_supabase) {
-          await _supabase.from('orders').update({ shipping_fee: parsedFee, status: 'Envío Cotizado' }).eq('id', orderId);
-        }
-        await loadDataFromSupabase();
-      }
-    }
-
-    async function updateCreditStatus(creditId, status) {
-      if (_supabase) {
-        await _supabase.from('credit_applications').update({ status: status }).eq('id', creditId);
-      }
-      await loadDataFromSupabase();
-      alert(`Solicitud de Crédito ${creditId} marcada como: ${status}`);
-    }
-
-    // 7. RENDERIZADO DE TABLAS Y VISTAS
-    function renderProductsTable() {
-      const tbody = document.getElementById('adminProductsTableBody');
-      if (!tbody) return;
-      tbody.innerHTML = '';
-
-      if (adminProducts.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="9" class="p-4 text-center text-gray-400 font-semibold">No se encontraron productos registrados en Supabase.</td></tr>`;
-        return;
-      }
-
-      adminProducts.forEach(p => {
-        const imgUrl = p.main_image || p.image_url || 'https://via.placeholder.com/50';
-        tbody.innerHTML += `
-          <tr class="hover:bg-gray-50 border-b">
-            <td class="p-3"><img src="${imgUrl}" class="w-10 h-10 object-cover rounded-lg border" /></td>
-            <td class="p-3 font-bold text-gray-900">${p.title || 'Sin título'}</td>
-            <td class="p-3 uppercase text-[10px]"><span class="bg-gray-100 px-2 py-0.5 rounded font-bold">${p.world_slug || 'familiar'}</span></td>
-            <td class="p-3 text-gray-600 font-semibold">${p.category || 'General'}</td>
-            <td class="p-3">${p.is_rental ? 'Venta y Alquiler' : 'Solo Venta'}</td>
-            <td class="p-3 font-bold">$${Number(p.base_price || 0).toLocaleString('es-CO')}</td>
-            <td class="p-3 font-bold text-pink-600">${p.advance_percentage || 50}%</td>
-            <td class="p-3">${p.allows_credit ? '✅ Sí' : '❌ No'}</td>
-            <td class="p-3 text-right">
-              <button onclick="deleteProduct('${p.id}')" class="text-red-500 hover:text-red-700 font-bold">Eliminar</button>
-            </td>
-          </tr>
-        `;
-      });
-    }
-
-    function renderCreditsCards() {
-      const container = document.getElementById('creditsListContainer');
-      if (!container) return;
-      container.innerHTML = '';
-
-      if (adminCredits.length === 0) {
-        container.innerHTML = `<p class="col-span-full text-center text-gray-400 py-8 font-semibold">No hay solicitudes de crédito pendientes en Supabase.</p>`;
-        return;
-      }
-
-      adminCredits.forEach(c => {
-        container.innerHTML += `
-          <div class="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm text-xs space-y-2">
-            <div class="flex justify-between items-start border-b pb-2">
-              <div>
-                <h3 class="font-bold text-sm text-gray-900">${c.client_name || 'Cliente'}</h3>
-                <p class="text-gray-500">📞 ${c.phone || 'Sin teléfono'}</p>
-              </div>
-              <span class="bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded-full text-[10px] uppercase">${c.status || 'en_revision'}</span>
-            </div>
-
-            <div class="bg-pink-50 p-2.5 rounded-xl border border-pink-100">
-              <p class="font-bold text-pink-900 mb-0.5">🛍️ Productos a Financiar:</p>
-              <p class="text-gray-800 font-semibold">${c.items_detail || 'Detalle no especificado'}</p>
-            </div>
-
-            <div class="grid grid-cols-2 gap-2 text-gray-700">
-              <p>Monto Financiado: <strong class="text-pink-600">$${Number(c.financed_amount || 0).toLocaleString('es-CO')} COP</strong></p>
-              <p>Plan: <strong>${c.installments || 1} cuotas (${c.periodicity || 'mensual'})</strong></p>
-            </div>
-
-            <div class="bg-gray-50 p-2 rounded-lg text-[11px]">
-              <p class="font-bold text-gray-700">Referencias:</p>
-              <p>• ${c.ref1 || 'Ref 1 no ingresada'}</p>
-              <p>• ${c.ref2 || 'Ref 2 no ingresada'}</p>
-            </div>
-
-            ${(c.id_front_url || c.id_back_url || c.selfie_url) ? `
-            <div class="flex gap-2 pt-1 text-[11px]">
-              ${c.id_front_url ? `<a href="${c.id_front_url}" target="_blank" class="text-pink-600 font-bold underline">Ver Cédula (F)</a>` : ''}
-              ${c.id_back_url ? `<a href="${c.id_back_url}" target="_blank" class="text-pink-600 font-bold underline">Ver Cédula (R)</a>` : ''}
-              ${c.selfie_url ? `<a href="${c.selfie_url}" target="_blank" class="text-pink-600 font-bold underline">Ver Selfie</a>` : ''}
-            </div>` : ''}
-
-            <div class="flex gap-2 pt-2">
-              <button onclick="updateCreditStatus('${c.id}', 'Aprobado')" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-2 rounded-xl">
-                Aprobar Crédito
-              </button>
-              <button onclick="updateCreditStatus('${c.id}', 'Rechazado')" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-2 rounded-xl">
-                Rechazar
-              </button>
-            </div>
-          </div>
-        `;
-      });
-    }
-
-    function renderOrdersTable() {
-      const tbody = document.getElementById('adminOrdersTableBody');
-      if (!tbody) return;
-      tbody.innerHTML = '';
-
-      if (adminOrders.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-gray-400 font-semibold">No hay pedidos registrados en Supabase.</td></tr>`;
-        return;
-      }
-
-      adminOrders.forEach(o => {
-        const orderId = o.id || o.order_id || 'CUP0000';
-        tbody.innerHTML += `
-          <tr class="hover:bg-gray-50 border-b">
-            <td class="p-3 font-mono font-bold text-pink-600">${orderId}</td>
-            <td class="p-3 font-semibold">${o.client_name || o.client || 'Cliente'}</td>
-            <td class="p-3 text-gray-700 font-medium">${o.items_summary || 'Producto(s)'}</td>
-            <td class="p-3 font-bold">$${Number(o.total_amount || o.total || 0).toLocaleString('es-CO')}</td>
-            <td class="p-3">
-              ${(o.shipping_fee && o.shipping_fee > 0) 
-                ? `$${Number(o.shipping_fee).toLocaleString('es-CO')}` 
-                : `<button onclick="setShippingFee('${orderId}')" class="bg-pink-100 text-pink-700 px-2 py-1 rounded font-bold hover:bg-pink-200">Cotizar Envío</button>`}
-            </td>
-            <td class="p-3">
-              <span class="bg-blue-100 text-blue-800 font-bold px-2.5 py-1 rounded-full text-[10px]">${o.status || 'Pendiente'}</span>
-            </td>
-            <td class="p-3 text-right">
-              <button onclick="changeOrderStatusPrompt('${orderId}', '${o.status || 'Pendiente'}')" class="bg-gray-800 text-white px-2.5 py-1 rounded-lg font-bold hover:bg-gray-700">
-                Cambiar Estado
-              </button>
-            </td>
-          </tr>
-        `;
-      });
-    }
-
-    // 8. PESTAÑAS Y UTILIDADES
-    function switchAdminTab(tab) {
-      document.getElementById('adminSectionProducts').classList.add('hidden');
-      document.getElementById('adminSectionCredits').classList.add('hidden');
-      document.getElementById('adminSectionOrders').classList.add('hidden');
-      document.getElementById('adminSectionRentals').classList.add('hidden');
-
-      const btns = ['Products', 'Credits', 'Orders', 'Rentals'];
-      btns.forEach(b => {
-        const btn = document.getElementById(`tabBtn${b}`);
-        if(btn) btn.className = "py-3 px-2 border-b-2 border-transparent text-gray-400 hover:text-white";
-      });
-
-      if (tab === 'products') {
-        document.getElementById('adminSectionProducts').classList.remove('hidden');
-        document.getElementById('tabBtnProducts').className = "py-3 px-2 border-b-2 border-pink-500 text-pink-400 font-bold";
-      } else if (tab === 'credits') {
-        document.getElementById('adminSectionCredits').classList.remove('hidden');
-        document.getElementById('tabBtnCredits').className = "py-3 px-2 border-b-2 border-pink-500 text-pink-400 font-bold";
-      } else if (tab === 'orders') {
-        document.getElementById('adminSectionOrders').classList.remove('hidden');
-        document.getElementById('tabBtnOrders').className = "py-3 px-2 border-b-2 border-pink-500 text-pink-400 font-bold";
-      } else if (tab === 'rentals') {
-        document.getElementById('adminSectionRentals').classList.remove('hidden');
-        document.getElementById('tabBtnRentals').className = "py-3 px-2 border-b-2 border-pink-500 text-pink-400 font-bold";
-      }
-    }
-
-    function toggleProductModal(show) {
-      document.getElementById('productModal').classList.toggle('hidden', !show);
-    }
-
-    function toggleRentalFields() {
-      const isRental = document.getElementById('pIsRental').checked;
-      document.getElementById('rentalFields').classList.toggle('hidden', !isRental);
-    }
-
-    function adminLogout() {
-      alert('Sesión cerrada.');
-      window.location.href = 'index.html';
-    }
-
-    window.addEventListener('DOMContentLoaded', () => {
-      if (typeof lucide !== 'undefined') lucide.createIcons();
-      loadDataFromSupabase();
-    });
-  </script>
+  <!-- ARCHIVOS JAVASCRIPT MODULARIZADOS -->
+  <script src="js/config.js"></script>
+  <script src="js/admin.js"></script>
 </body>
 </html>
