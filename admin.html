@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cupissa Studio | Panel de Administración Exclusivo</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Iconos Lucide -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Supabase JS -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  
+  <style>
+    .bg-cupissa-fuchsia { background-color: #DB2777; }
+    .bg-cupissa-fuchsia-dark { background-color: #BE185D; }
+    .text-cupissa-fuchsia { color: #DB2777; }
+  </style>
+</head>
+<body class="bg-gray-100 text-gray-800 font-sans min-h-screen flex flex-col">
+
+  <!-- HEADER ADMIN -->
+  <header class="bg-gray-900 text-white sticky top-0 z-50 shadow-md">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <span class="text-xl font-black text-pink-500 tracking-wider">CUPISSA</span>
+        <span class="text-xs bg-pink-900 text-pink-200 px-2 py-0.5 rounded-md font-bold uppercase">Panel Admin Privado</span>
+      </div>
+      
+      <div class="flex items-center gap-4 text-xs">
+        <span id="adminUserEmail" class="text-gray-400">contacto@cupissa.com</span>
+        <button onclick="adminLogout()" class="bg-gray-800 hover:bg-gray-700 text-gray-200 px-3 py-1.5 rounded-lg flex items-center gap-1">
+          <i data-lucide="log-out" class="w-3.5 h-3.5"></i> Salir
+        </button>
+      </div>
+    </div>
+
+    <!-- PESTAÑAS MÓDULOS -->
+    <nav class="bg-gray-800 border-t border-gray-700 px-4">
+      <div class="max-w-7xl mx-auto flex gap-4 text-xs font-bold overflow-x-auto">
+        <button onclick="switchAdminTab('products')" id="tabBtnProducts" class="py-3 px-2 border-b-2 border-pink-500 text-pink-400">
+          🛍️ Productos y Alquileres
+        </button>
+        <button onclick="switchAdminTab('credits')" id="tabBtnCredits" class="py-3 px-2 border-b-2 border-transparent text-gray-400 hover:text-white">
+          💳 Solicitudes de Crédito
+        </button>
+        <button onclick="switchAdminTab('orders')" id="tabBtnOrders" class="py-3 px-2 border-b-2 border-transparent text-gray-400 hover:text-white">
+          📦 Pedidos y Envíos
+        </button>
+        <button onclick="switchAdminTab('rentals')" id="tabBtnRentals" class="py-3 px-2 border-b-2 border-transparent text-gray-400 hover:text-white">
+          👗 Control de Alquileres
+        </button>
+      </div>
+    </nav>
+  </header>
+
+  <!-- CONTENIDO PRINCIPAL -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6">
+
+    <!-- MÓDULO 1: GESTIÓN DE PRODUCTOS Y ALQUILERES -->
+    <section id="adminSectionProducts">
+      <div class="flex justify-between items-center mb-6">
+        <div>
+          <h1 class="text-xl font-bold text-gray-900">Catálogo y Reglas de Negocio</h1>
+          <p class="text-xs text-gray-500">Configura precios, anticipos obligatorios, días de producción y depósitos de garantía.</p>
+        </div>
+        <button onclick="toggleProductModal(true)" class="bg-cupissa-fuchsia hover:bg-cupissa-fuchsia-dark text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow flex items-center gap-1.5">
+          <i data-lucide="plus" class="w-4 h-4"></i> Crear Nuevo Producto / Servicio
+        </button>
+      </div>
+
+      <!-- TABLA DE PRODUCTOS -->
+      <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+        <table class="w-full text-left text-xs border-collapse">
+          <thead class="bg-gray-50 text-gray-500 font-bold uppercase border-b">
+            <tr>
+              <th class="p-3">Producto</th>
+              <th class="p-3">Mundo</th>
+              <th class="p-3">Modalidad</th>
+              <th class="p-3">Precio Base</th>
+              <th class="p-3">% Anticipo</th>
+              <th class="p-3">Crédito</th>
+              <th class="p-3 text-right">Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="adminProductsTableBody" class="divide-y divide-gray-100">
+            <!-- Filas dinámicas -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- MÓDULO 2: SOLICITUDES DE CRÉDITO CUPISSA -->
+    <section id="adminSectionCredits" class="hidden">
+      <div class="mb-6">
+        <h1 class="text-xl font-bold text-gray-900">Evaluación de Créditos Directos</h1>
+        <p class="text-xs text-gray-500">Revisa documentos, referencias personales y aprueba cupos de financiación.</p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="creditsListContainer">
+        <!-- Tarjetas dinámicas de solicitudes -->
+      </div>
+    </section>
+
+    <!-- MÓDULO 3: PEDIDOS Y COTIZACIÓN DE ENVÍOS -->
+    <section id="adminSectionOrders" class="hidden">
+      <div class="mb-6">
+        <h1 class="text-xl font-bold text-gray-900">Gestión de Pedidos y Rutas</h1>
+        <p class="text-xs text-gray-500">Asigna costos de envío para Barranquilla/Metropolitana o resto del país y actualiza estados.</p>
+      </div>
+
+      <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+        <table class="w-full text-left text-xs">
+          <thead class="bg-gray-50 text-gray-500 font-bold uppercase border-b">
+            <tr>
+              <th class="p-3">ID Pedido</th>
+              <th class="p-3">Cliente</th>
+              <th class="p-3">Tipo</th>
+              <th class="p-3">Monto Total</th>
+              <th class="p-3">Costo Envío</th>
+              <th class="p-3">Estado</th>
+              <th class="p-3 text-right">Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="adminOrdersTableBody" class="divide-y divide-gray-100">
+            <!-- Filas dinámicas -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- MÓDULO 4: CONTROL DE ALQUILERES -->
+    <section id="adminSectionRentals" class="hidden">
+      <div class="mb-6">
+        <h1 class="text-xl font-bold text-gray-900">Calendario y Depósitos de Alquiler</h1>
+        <p class="text-xs text-gray-500">Supervisa las fechas de retorno de trajes/mobiliario y la devolución de depósitos de garantía ($20.000 COP).</p>
+      </div>
+
+      <div class="bg-white rounded-2xl p-4 shadow-sm border text-xs space-y-3" id="rentalsListContainer">
+        <!-- Registros dinámicos de alquiler -->
+      </div>
+    </section>
+
+  </main>
+
+  <!-- MODAL: CREAR / EDITAR PRODUCTO -->
+  <div id="productModal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center hidden p-4">
+    <div class="bg-white w-full max-w-xl rounded-2xl shadow-2xl p-6 overflow-y-auto max-h-[90vh]">
+      <div class="flex justify-between items-center pb-3 border-b">
+        <h3 class="font-bold text-base text-gray-900">Añadir / Editar Producto</h3>
+        <button onclick="toggleProductModal(false)" class="text-gray-400 hover:text-black">✕</button>
+      </div>
+
+      <form id="productForm" onsubmit="saveProduct(event)" class="space-y-4 text-xs mt-4">
+        <div>
+          <label class="block font-bold mb-1">Título del Producto / Servicio</label>
+          <input type="text" id="pTitle" required class="w-full border rounded-lg p-2.5" placeholder="Ej: Vestido Típico Marimonda" />
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-bold mb-1">Mundo</label>
+            <select id="pWorld" class="w-full border rounded-lg p-2.5">
+              <option value="familiar">Familiar y Regalos</option>
+              <option value="eventos">Eventos y Fiestas</option>
+              <option value="empresas">Empresas y B2B</option>
+            </select>
+          </div>
+          <div>
+            <label class="block font-bold mb-1">Imagen URL</label>
+            <input type="url" id="pImage" required class="w-full border rounded-lg p-2.5" placeholder="https://..." />
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-bold mb-1">Descripción</label>
+          <textarea id="pDesc" rows="2" class="w-full border rounded-lg p-2.5"></textarea>
+        </div>
+
+        <div class="grid grid-cols-3 gap-3 bg-gray-50 p-3 rounded-xl border">
+          <div>
+            <label class="block font-bold mb-1">Precio Base ($)</label>
+            <input type="number" id="pBasePrice" required class="w-full border rounded-lg p-2" />
+          </div>
+          <div>
+            <label class="block font-bold mb-1">% Anticipo Obligatorio</label>
+            <input type="number" id="pAdvancePct" value="50" class="w-full border rounded-lg p-2" />
+          </div>
+          <div>
+            <label class="block font-bold mb-1">Días Producción</label>
+            <input type="number" id="pProdDays" value="3" class="w-full border rounded-lg p-2" />
+          </div>
+        </div>
+
+        <!-- Opciones de Alquiler -->
+        <div class="border p-3 rounded-xl space-y-2 bg-pink-50/50 border-pink-200">
+          <label class="flex items-center gap-2 font-bold text-pink-900">
+            <input type="checkbox" id="pIsRental" onchange="toggleRentalFields()" />
+            <span>Disponible para Alquiler (24 horas)</span>
+          </label>
+
+          <div id="rentalFields" class="grid grid-cols-3 gap-2 hidden pt-2">
+            <div>
+              <label class="block font-semibold">Costo 24h ($)</label>
+              <input type="number" id="pRentalPrice" value="60000" class="w-full border rounded-lg p-1.5" />
+            </div>
+            <div>
+              <label class="block font-semibold">Depósito ($)</label>
+              <input type="number" id="pRentalDeposit" value="20000" class="w-full border rounded-lg p-1.5" />
+            </div>
+            <div>
+              <label class="block font-semibold">Hora Extra ($)</label>
+              <input type="number" id="pRentalExtra" value="10000" class="w-full border rounded-lg p-1.5" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Opción de Crédito -->
+        <div class="flex items-center gap-2">
+          <input type="checkbox" id="pAllowsCredit" checked />
+          <label class="font-bold">Permitir Financiación con Créditos Cupissa</label>
+        </div>
+
+        <button type="submit" class="w-full bg-cupissa-fuchsia hover:bg-cupissa-fuchsia-dark text-white font-extrabold py-3 rounded-xl shadow-md">
+          Guardar Producto en el Catálogo
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    lucide.createIcons();
+
+    const SUPABASE_URL = 'TU_SUPABASE_URL';
+    const SUPABASE_KEY = 'TU_SUPABASE_ANON_KEY';
+    const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    // Datos simulados para administración
+    let adminProducts = [
+      { id: '1', title: 'Conjunto Personalizado Niña', world_slug: 'familiar', is_rental: false, base_price: 120000, advance_percentage: 50, allows_credit: true },
+      { id: '2', title: 'Vestido Típico Garabato', world_slug: 'eventos', is_rental: true, base_price: 180000, advance_percentage: 50, allows_credit: true }
+    ];
+
+    let adminCredits = [
+      {
+        id: 'c1',
+        client_name: 'María Alejandra Pérez',
+        phone: '3001234567',
+        financed_amount: 250000,
+        periodicity: 'quincenal',
+        installments: 4,
+        ref1: 'Carlos Pérez (Hermano - 3019876543)',
+        ref2: 'Ana Gómez (Amiga - 3025554433)',
+        status: 'en_revision'
+      }
+    ];
+
+    let adminOrders = [
+      { id: 'ord-8a7c1', client: 'María Pérez', type: 'Venta', total: 250000, shipping_fee: 0, status: 'pendiente_cotizacion_envio' }
+    ];
+
+    function initAdmin() {
+      renderProductsTable();
+      renderCreditsCards();
+      renderOrdersTable();
+    }
+
+    function switchAdminTab(tab) {
+      document.getElementById('adminSectionProducts').classList.add('hidden');
+      document.getElementById('adminSectionCredits').classList.add('hidden');
+      document.getElementById('adminSectionOrders').classList.add('hidden');
+      document.getElementById('adminSectionRentals').classList.add('hidden');
+
+      const btns = ['Products', 'Credits', 'Orders', 'Rentals'];
+      btns.forEach(b => {
+        const btn = document.getElementById(`tabBtn${b}`);
+        btn.className = "py-3 px-2 border-b-2 border-transparent text-gray-400 hover:text-white";
+      });
+
+      if (tab === 'products') {
+        document.getElementById('adminSectionProducts').classList.remove('hidden');
+        document.getElementById('tabBtnProducts').className = "py-3 px-2 border-b-2 border-pink-500 text-pink-400 font-bold";
+      } else if (tab === 'credits') {
+        document.getElementById('adminSectionCredits').classList.remove('hidden');
+        document.getElementById('tabBtnCredits').className = "py-3 px-2 border-b-2 border-pink-500 text-pink-400 font-bold";
+      } else if (tab === 'orders') {
+        document.getElementById('adminSectionOrders').classList.remove('hidden');
+        document.getElementById('tabBtnOrders').className = "py-3 px-2 border-b-2 border-pink-500 text-pink-400 font-bold";
+      } else if (tab === 'rentals') {
+        document.getElementById('adminSectionRentals').classList.remove('hidden');
+        document.getElementById('tabBtnRentals').className = "py-3 px-2 border-b-2 border-pink-500 text-pink-400 font-bold";
+      }
+    }
+
+    function renderProductsTable() {
+      const tbody = document.getElementById('adminProductsTableBody');
+      tbody.innerHTML = '';
+
+      adminProducts.forEach(p => {
+        tbody.innerHTML += `
+          <tr class="hover:bg-gray-50">
+            <td class="p-3 font-bold">${p.title}</td>
+            <td class="p-3 uppercase text-[10px]"><span class="bg-gray-100 px-2 py-0.5 rounded font-bold">${p.world_slug}</span></td>
+            <td class="p-3">${p.is_rental ? 'Venta y Alquiler' : 'Solo Venta'}</td>
+            <td class="p-3 font-bold">$${p.base_price.toLocaleString('es-CO')}</td>
+            <td class="p-3 font-bold text-pink-600">${p.advance_percentage}%</td>
+            <td class="p-3">${p.allows_credit ? '✅ Habilitado' : '❌ No'}</td>
+            <td class="p-3 text-right">
+              <button onclick="deleteProduct('${p.id}')" class="text-red-500 hover:text-red-700 font-bold">Eliminar</button>
+            </td>
+          </tr>
+        `;
+      });
+    }
+
+    function renderCreditsCards() {
+      const container = document.getElementById('creditsListContainer');
+      container.innerHTML = '';
+
+      adminCredits.forEach(c => {
+        container.innerHTML += `
+          <div class="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm text-xs space-y-2">
+            <div class="flex justify-between items-start border-b pb-2">
+              <div>
+                <h3 class="font-bold text-sm text-gray-900">${c.client_name}</h3>
+                <p class="text-gray-500">📞 ${c.phone}</p>
+              </div>
+              <span class="bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded-full text-[10px]">En Revisión</span>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2 text-gray-700">
+              <p>Monto Financiado: <strong class="text-pink-600">$${c.financed_amount.toLocaleString('es-CO')} COP</strong></p>
+              <p>Plan: <strong>${c.installments} cuotas (${c.periodicity})</strong></p>
+            </div>
+
+            <div class="bg-gray-50 p-2 rounded-lg text-[11px]">
+              <p class="font-bold text-gray-700">Referencias:</p>
+              <p>• ${c.ref1}</p>
+              <p>• ${c.ref2}</p>
+            </div>
+
+            <div class="flex gap-2 pt-2">
+              <button onclick="approveCredit('${c.id}')" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-2 rounded-xl">
+                Aprobar Crédito
+              </button>
+              <button onclick="rejectCredit('${c.id}')" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-2 rounded-xl">
+                Rechazar
+              </button>
+            </div>
+          </div>
+        `;
+      });
+    }
+
+    function renderOrdersTable() {
+      const tbody = document.getElementById('adminOrdersTableBody');
+      tbody.innerHTML = '';
+
+      adminOrders.forEach(o => {
+        tbody.innerHTML += `
+          <tr class="hover:bg-gray-50">
+            <td class="p-3 font-mono font-bold">${o.id}</td>
+            <td class="p-3">${o.client}</td>
+            <td class="p-3">${o.type}</td>
+            <td class="p-3 font-bold">$${o.total.toLocaleString('es-CO')}</td>
+            <td class="p-3">
+              ${o.shipping_fee > 0 ? `$${o.shipping_fee.toLocaleString('es-CO')}` : '<button onclick="setShippingFee(\''+o.id+'\')" class="bg-pink-100 text-pink-700 px-2 py-1 rounded font-bold hover:bg-pink-200">Cotizar Envío</button>'}
+            </td>
+            <td class="p-3"><span class="bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded-full text-[10px]">${o.status}</span></td>
+            <td class="p-3 text-right">
+              <button onclick="updateOrderStatus('${o.id}')" class="text-blue-600 hover:underline font-bold">Avanzar Estado</button>
+            </td>
+          </tr>
+        `;
+      });
+    }
+
+    function toggleProductModal(show) {
+      document.getElementById('productModal').classList.toggle('hidden', !show);
+    }
+
+    function toggleRentalFields() {
+      const isRental = document.getElementById('pIsRental').checked;
+      document.getElementById('rentalFields').classList.toggle('hidden', !isRental);
+    }
+
+    function saveProduct(e) {
+      e.preventDefault();
+      const newP = {
+        id: Date.now().toString(),
+        title: document.getElementById('pTitle').value,
+        world_slug: document.getElementById('pWorld').value,
+        base_price: parseFloat(document.getElementById('pBasePrice').value),
+        advance_percentage: parseFloat(document.getElementById('pAdvancePct').value),
+        is_rental: document.getElementById('pIsRental').checked,
+        allows_credit: document.getElementById('pAllowsCredit').checked
+      };
+
+      adminProducts.push(newP);
+      renderProductsTable();
+      toggleProductModal(false);
+      alert('¡Producto agregado exitosamente!');
+    }
+
+    function deleteProduct(id) {
+      if (confirm('¿Estás seguro de eliminar este producto?')) {
+        adminProducts = adminProducts.filter(p => p.id !== id);
+        renderProductsTable();
+      }
+    }
+
+    function approveCredit(id) {
+      alert(`Crédito ${id} Aprobado. Se ha notificado al cliente para realizar el pago del Anticipo Obligatorio.`);
+    }
+
+    function setShippingFee(id) {
+      const fee = prompt('Ingresa el costo del envío para la zona de entrega ($ COP):');
+      if (fee) {
+        const order = adminOrders.find(o => o.id === id);
+        if (order) {
+          order.shipping_fee = parseFloat(fee);
+          order.status = 'envio_confirmado';
+          renderOrdersTable();
+        }
+      }
+    }
+
+    function adminLogout() {
+      alert('Sesión cerrada.');
+      window.location.href = 'index.html';
+    }
+
+    initAdmin();
+  </script>
+</body>
+</html>
