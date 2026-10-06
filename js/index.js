@@ -2,10 +2,25 @@
    CUPISSA - LÓGICA DE TIENDA Y CLIENTE
    ========================================== */
 
+let captchaCorrectAnswer = 0;
+
 document.addEventListener("DOMContentLoaded", () => {
   loadProductsFromSupabase();
   checkActiveSession();
+  generateMathCaptcha();
 });
+
+// GENERAR CAPTCHA DE SUMA MATEMÁTICA
+function generateMathCaptcha() {
+  const num1 = Math.floor(Math.random() * 10) + 1;
+  const num2 = Math.floor(Math.random() * 10) + 1;
+  captchaCorrectAnswer = num1 + num2;
+  
+  const questionElem = document.getElementById("mathCaptchaQuestion");
+  if (questionElem) {
+    questionElem.textContent = `${num1} + ${num2} = ?`;
+  }
+}
 
 // 1. CARGAR PRODUCTOS DESDE SUPABASE
 async function loadProductsFromSupabase() {
@@ -493,6 +508,15 @@ function switchAuthMode(mode) {
 async function handleClientRegister(e) {
   e.preventDefault();
 
+  // Validación de la Suma / Código Anti-Robot
+  const captchaInputVal = document.getElementById("mathCaptchaInput").value.trim();
+  if (parseInt(captchaInputVal, 10) !== captchaCorrectAnswer) {
+    alert("La respuesta de la verificación anti-robot es incorrecta. Por favor, inténtalo de nuevo.");
+    generateMathCaptcha();
+    document.getElementById("mathCaptchaInput").value = "";
+    return;
+  }
+
   const name = document.getElementById("regClientName").value.trim();
   const cedula = document.getElementById("regClientCedula").value.trim();
   const contact = document.getElementById("regClientContact").value.trim();
@@ -550,6 +574,7 @@ async function handleClientRegister(e) {
   } finally {
     btn.disabled = false;
     btn.textContent = "Registrarse";
+    generateMathCaptcha();
   }
 }
 
