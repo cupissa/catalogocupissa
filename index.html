@@ -1,427 +1,508 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Cupissa | Ecosistema Integral de Comercio, Alquiler y Crédito Directo</title>
-  
-  <!-- Tailwind CSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Iconos Lucide -->
-  <script src="https://unpkg.com/lucide@latest"></script>
-  <!-- Supabase JS -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  
-  <!-- Estilos Personalizados -->
-  <link rel="stylesheet" href="css/styles.css" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cupissa Studio - Alquiler y Venta de Moda</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#fdf2f8',
+                            100: '#fce7f3',
+                            500: '#ec4899',
+                            600: '#db2777',
+                            700: '#be185d',
+                            900: '#831843',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome para Íconos -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Estilos Personalizados -->
+    <link rel="stylesheet" href="css/styles.css">
+    <!-- Supabase JS Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
-<body class="bg-gray-50 text-gray-800 font-sans min-h-screen flex flex-col">
+<body class="bg-gray-50 text-gray-800 font-sans antialiased selection:bg-brand-500 selection:text-white">
 
-  <!-- HEADER -->
-  <header class="bg-white text-gray-900 sticky top-0 z-50 shadow-sm border-b border-gray-100">
-    <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-      <!-- Logo Cupissa -->
-      <a href="#" onclick="showSection('catalog')" class="flex items-center gap-2">
-        <span class="text-2xl font-black tracking-wider text-cupissa-fuchsia">CUPISSA</span>
-        <span class="text-xs bg-pink-100 text-pink-700 font-extrabold px-2 py-0.5 rounded-full">STUDIO</span>
-      </a>
+    <!-- HEADER / NAVEGACIÓN -->
+    <header class="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-gray-100 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-20">
+                <!-- Logo -->
+                <div class="flex-shrink-0 flex items-center space-x-3 cursor-pointer" onclick="showSection('catalog')">
+                    <div class="w-10 h-10 bg-brand-600 rounded-full flex items-center justify-center text-white font-bold text-xl shadow-md shadow-brand-500/20">
+                        C
+                    </div>
+                    <span class="font-serif text-2xl font-bold tracking-wider text-gray-900">CUPISSA <span class="text-brand-600 text-sm font-sans font-medium uppercase tracking-normal block -mt-1">Studio</span></span>
+                </div>
 
-      <!-- Buscador -->
-      <div class="hidden md:flex flex-1 max-w-md mx-6 relative">
-        <input type="text" id="searchInput" oninput="filterProductsBySearch()" placeholder="Buscar vestidos, tarjetas, regalos, alquileres..." 
-               class="w-full bg-gray-100 text-gray-800 text-sm rounded-full pl-4 pr-10 py-2 border border-gray-200 focus:outline-none focus:border-pink-500" />
-        <i data-lucide="search" class="w-4 h-4 absolute right-3 top-2.5 text-gray-400"></i>
-      </div>
+                <!-- Buscador Desktop -->
+                <div class="hidden md:flex flex-1 max-w-md mx-8">
+                    <div class="relative w-full">
+                        <input type="text" id="searchInput" onkeyup="filterProductsBySearch()" placeholder="Buscar vestidos, accesorios, calzado..." class="w-full pl-10 pr-4 py-2 rounded-full border border-gray-200 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 text-sm transition-all">
+                        <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-gray-400 text-sm"></i>
+                    </div>
+                </div>
 
-      <!-- Acciones (Rastrear, Registro/Usuario y Carrito) -->
-      <div class="flex items-center gap-3 md:gap-4">
-        <button onclick="showSection('tracking')" class="text-xs md:text-sm font-semibold hover:text-pink-600 flex items-center gap-1 text-gray-600">
-          <i data-lucide="truck" class="w-4 h-4 text-pink-600"></i>
-          <span class="hidden sm:inline">Rastrear Pedido</span>
-        </button>
+                <!-- Acciones Cliente -->
+                <div class="flex items-center space-x-4">
+                    <!-- Botón Rastrear Pedido -->
+                    <button onclick="showSection('tracking')" class="hidden sm:flex items-center space-x-1 text-xs font-semibold text-gray-600 hover:text-brand-600 bg-gray-100 hover:bg-brand-50 px-3 py-2 rounded-full transition-all">
+                        <i class="fa-solid fa-truck-fast"></i>
+                        <span>Rastrear Pedido</span>
+                    </button>
 
-        <!-- SECCIÓN DE REGISTRO / USUARIO LOGUEADO -->
-        <div id="userAuthSection">
-          <button onclick="toggleAuthModal(true)" class="bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-bold px-3 py-2 rounded-full flex items-center gap-1.5 transition-all">
-            <i data-lucide="user" class="w-4 h-4 text-pink-600"></i>
-            <span class="hidden sm:inline">Registrarse / Ingresar</span>
-          </button>
+                    <!-- Botón Registro / Perfil -->
+                    <div id="userAuthSection">
+                        <button onclick="toggleAuthModal(true)" class="flex items-center space-x-2 text-sm font-medium text-gray-700 hover:text-brand-600 transition-colors py-2 px-3 rounded-lg hover:bg-gray-50">
+                            <i class="fa-regular fa-user text-lg"></i>
+                            <span class="hidden sm:inline">Iniciar Sesión</span>
+                        </button>
+                    </div>
+
+                    <!-- Carrito -->
+                    <button onclick="toggleCartModal(true)" class="relative p-2.5 text-gray-700 hover:text-brand-600 transition-colors rounded-full hover:bg-gray-50">
+                        <i class="fa-solid fa-bag-shopping text-xl"></i>
+                        <span id="cartCount" class="absolute top-1 right-1 w-5 h-5 bg-brand-600 text-white text-xs font-bold rounded-full flex items-center justify-center">0</span>
+                    </button>
+                </div>
+            </div>
         </div>
 
-        <button onclick="toggleCartModal()" class="relative p-2 hover:bg-gray-100 rounded-full">
-          <i data-lucide="shopping-bag" class="w-5 h-5 text-gray-700"></i>
-          <span id="cartCount" class="absolute -top-1 -right-1 bg-cupissa-fuchsia text-white font-bold text-xs w-5 h-5 rounded-full flex items-center justify-center">0</span>
-        </button>
-      </div>
+        <!-- Buscador Mobile -->
+        <div class="md:hidden px-4 pb-4">
+            <div class="relative w-full">
+                <input type="text" onkeyup="filterProductsBySearch()" placeholder="Buscar vestidos, accesorios..." class="w-full pl-10 pr-4 py-2 rounded-full border border-gray-200 focus:outline-none focus:border-brand-500 text-sm">
+                <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-gray-400 text-sm"></i>
+            </div>
+        </div>
+    </header>
+
+    <!-- VISTA PRINCIPAL: CATÁLOGO Y HOME -->
+    <div id="section-catalog">
+        <!-- BANNER HERO -->
+        <section class="relative bg-gradient-to-r from-gray-900 to-gray-800 text-white py-16 px-4 sm:px-6 lg:px-8 overflow-hidden">
+            <div class="absolute inset-0 opacity-20 bg-[radial-gradient(#ec4899_1px,transparent_1px)] [background-size:16px_16px]"></div>
+            <div class="max-w-7xl mx-auto relative z-10 text-center sm:text-left flex flex-col sm:flex-row items-center justify-between">
+                <div class="mb-8 sm:mb-0 max-w-xl">
+                    <span class="inline-block px-3 py-1 bg-brand-500/20 text-brand-300 rounded-full text-xs font-semibold tracking-wider uppercase mb-3 border border-brand-500/30">Exclusividad & Elegancia</span>
+                    <h1 class="text-3xl sm:text-5xl font-serif font-bold leading-tight mb-4">Luce Espectacular sin Comprar Completo</h1>
+                    <p class="text-gray-300 text-base sm:text-lg mb-6">Alquila por 7 días o compra con nuestro exclusivo <span class="text-brand-400 font-semibold">Crédito Cupissa</span> a cuotas cómodas sin complicaciones.</p>
+                    <div class="flex flex-wrap gap-3 justify-center sm:justify-start">
+                        <a href="#catalogo-grid" class="px-6 py-3 bg-brand-600 hover:bg-brand-700 text-white font-medium rounded-full shadow-lg shadow-brand-600/30 transition-all text-sm">Explorar Catálogo</a>
+                        <a href="#como-funciona" class="px-6 py-3 bg-white/10 hover:bg-white/20 text-white font-medium rounded-full backdrop-blur-sm transition-all text-sm">¿Cómo Funciona?</a>
+                    </div>
+                </div>
+                <div class="hidden md:block w-72 h-72 rounded-2xl overflow-hidden shadow-2xl border-2 border-white/10 rotate-2 transform hover:rotate-0 transition-all duration-500">
+                    <img src="https://images.unsplash.com/photo-1566174053879-31528523f8ae?auto=format&fit=crop&w=600&q=80" alt="Moda Cupissa" class="w-full h-full object-cover">
+                </div>
+            </div>
+        </section>
+
+        <!-- SECCIÓN CÓMO FUNCIONA -->
+        <section id="como-funciona" class="py-12 bg-white border-b border-gray-100">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center max-w-2xl mx-auto mb-10">
+                    <h2 class="text-2xl font-serif font-bold text-gray-900">¿Cómo Funciona Cupissa Studio?</h2>
+                    <p class="text-sm text-gray-500 mt-1">Dos modalidades diseñadas para adaptarse a tu estilo de vida</p>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <!-- Opción 1: Alquiler -->
+                    <div class="bg-gray-50 rounded-2xl p-6 border border-gray-100 relative overflow-hidden">
+                        <div class="w-12 h-12 bg-brand-100 text-brand-600 rounded-xl flex items-center justify-center text-xl font-bold mb-4">
+                            <i class="fa-solid fa-calendar-check"></i>
+                        </div>
+                        <h3 class="text-lg font-bold text-gray-900 mb-2">1. Alquiler por 7 Días</h3>
+                        <p class="text-xs text-gray-600 leading-relaxed mb-4">Elige tu vestido o accesorio, selecciona la fecha de tu evento y disfrútalo durante 7 días continuos. Solo pagas un anticipo del 50% al agendar y el saldo restante antes de la entrega.</p>
+                        <ul class="text-xs text-gray-500 space-y-1.5">
+                            <li class="flex items-center"><i class="fa-solid fa-check text-green-500 mr-2"></i> Reserva previa con calendario.</li>
+                            <li class="flex items-center"><i class="fa-solid fa-check text-green-500 mr-2"></i> Incluye tintorería y ajustes menores.</li>
+                        </ul>
+                    </div>
+                    <!-- Opción 2: Crédito Cupissa -->
+                    <div class="bg-gradient-to-br from-brand-50 to-pink-50/30 rounded-2xl p-6 border border-brand-100 relative overflow-hidden">
+                        <div class="w-12 h-12 bg-brand-600 text-white rounded-xl flex items-center justify-center text-xl font-bold mb-4 shadow-md shadow-brand-500/20">
+                            <i class="fa-solid fa-credit-card"></i>
+                        </div>
+                        <h3 class="text-lg font-bold text-gray-900 mb-2">2. Crédito Directo Cupissa</h3>
+                        <p class="text-xs text-gray-600 leading-relaxed mb-4">Compra tus prendas en cuotas fijas (hasta 6 quincenas o meses). Carga tu documento de identidad, comprobante y referencia personal para aprobación inmediata.</p>
+                        <ul class="text-xs text-gray-500 space-y-1.5">
+                            <li class="flex items-center"><i class="fa-solid fa-check text-brand-600 mr-2"></i> Sin papeleos complejos ni bancos.</li>
+                            <li class="flex items-center"><i class="fa-solid fa-check text-brand-600 mr-2"></i> Seguimiento directo en tu panel de usuario.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- FILTROS Y CATÁLOGO DE PRODUCTOS -->
+        <main id="catalogo-grid" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+            <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-gray-200 pb-4 mb-8">
+                <h2 id="currentWorldTitle" class="text-2xl font-serif font-bold text-gray-900">Catálogo General Cupissa</h2>
+                
+                <!-- Pestañas por Mundo -->
+                <div class="flex space-x-2 overflow-x-auto no-scrollbar max-w-full">
+                    <button id="tab-all" onclick="filterByWorld('all')" class="world-tab active px-4 py-2 rounded-full text-xs font-bold bg-gray-100 text-gray-700 hover:bg-gray-200">Todos</button>
+                    <button id="tab-familiar" onclick="filterByWorld('familiar')" class="world-tab px-4 py-2 rounded-full text-xs font-bold bg-gray-100 text-gray-700 hover:bg-gray-200">Familiar & Regalos</button>
+                    <button id="tab-eventos" onclick="filterByWorld('eventos')" class="world-tab px-4 py-2 rounded-full text-xs font-bold bg-gray-100 text-gray-700 hover:bg-gray-200">Eventos & Fiestas</button>
+                    <button id="tab-empresas" onclick="filterByWorld('empresas')" class="world-tab px-4 py-2 rounded-full text-xs font-bold bg-gray-100 text-gray-700 hover:bg-gray-200">Empresas & B2B</button>
+                </div>
+            </div>
+
+            <!-- Grid de Productos (Renderizado por js/index.js) -->
+            <div id="productGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                <div class="col-span-full text-center py-16">
+                    <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-brand-600 border-t-transparent"></div>
+                    <p class="mt-3 text-gray-500 text-sm">Cargando colección...</p>
+                </div>
+            </div>
+        </main>
     </div>
 
-    <!-- MUNDOS TRANSVERSALES -->
-    <nav class="bg-gray-50 border-t border-gray-100 overflow-x-auto">
-      <div class="max-w-7xl mx-auto px-4 flex justify-start md:justify-center gap-2 md:gap-8 py-2 text-xs md:text-sm whitespace-nowrap">
-        <button onclick="filterByWorld('all')" class="world-tab active bg-cupissa-fuchsia text-white px-4 py-1.5 rounded-full font-bold transition-all" id="tab-all">Todos los Mundos</button>
-        <button onclick="filterByWorld('familiar')" class="world-tab hover:bg-gray-200 px-4 py-1.5 rounded-full text-gray-600 transition-all" id="tab-familiar">Mundo Familiar y Regalos</button>
-        <button onclick="filterByWorld('eventos')" class="world-tab hover:bg-gray-200 px-4 py-1.5 rounded-full text-gray-600 transition-all" id="tab-eventos">Mundo Eventos y Fiestas</button>
-        <button onclick="filterByWorld('empresas')" class="world-tab hover:bg-gray-200 px-4 py-1.5 rounded-full text-gray-600 transition-all" id="tab-empresas">Mundo Empresas y B2B</button>
-      </div>
-    </nav>
-  </header>
-
-  <!-- BANNER CRÉDITO DIRECTO -->
-  <section class="bg-gradient-to-r from-pink-600 to-rose-600 text-white py-2 px-4 text-center text-xs md:text-sm font-medium shadow-inner">
-    💖 Financia tus pedidos o alquileres desde $200.000 COP con <span class="font-extrabold underline">Créditos Cupissa</span>. Pagos diarios, semanales o mensuales.
-  </section>
-
-  <!-- CONTENIDO PRINCIPAL -->
-  <main class="flex-1 max-w-7xl w-full mx-auto p-4">
-
-    <!-- SECCIÓN: CATÁLOGO DE PRODUCTOS -->
-    <section id="section-catalog">
-      <div class="flex justify-between items-center mb-6">
-        <div>
-          <h1 id="currentWorldTitle" class="text-2xl font-black text-gray-900">Catálogo General Cupissa</h1>
-          <p class="text-sm text-gray-500">Fabricación a medida, detalles únicos y alquiler de recursos</p>
-        </div>
-      </div>
-
-      <!-- GRID DE PRODUCTOS -->
-      <div id="productGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-        <!-- Cargado dinámicamente desde Supabase -->
-      </div>
-    </section>
-
-    <!-- SECCIÓN: FICHA DE PRODUCTO -->
-    <section id="section-product-detail" class="hidden">
-      <button onclick="showSection('catalog')" class="mb-4 text-sm font-semibold text-gray-600 hover:text-black flex items-center gap-1">
-        <i data-lucide="arrow-left" class="w-4 h-4"></i> Volver al Catálogo
-      </button>
-
-      <div class="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden grid grid-cols-1 md:grid-cols-2 gap-8 p-6">
-        <!-- Imagen -->
-        <div class="flex flex-col items-center">
-          <img id="detailImage" src="" alt="" class="w-full h-80 md:h-96 object-cover rounded-xl shadow-sm border" />
-          <p class="text-xs text-gray-400 mt-2">📍 Fabricación e insumos garantizados bajo pedido</p>
-        </div>
-
-        <!-- Calculadora e información -->
-        <div class="flex flex-col justify-between">
-          <div>
-            <div class="flex items-center gap-2 mb-2">
-              <span id="detailWorldBadge" class="bg-pink-100 text-pink-800 text-xs font-bold px-2.5 py-0.5 rounded-full">Mundo</span>
-              <span id="detailCategoryBadge" class="bg-gray-100 text-gray-700 text-xs font-semibold px-2.5 py-0.5 rounded-full">Categoría</span>
-            </div>
-            <h2 id="detailTitle" class="text-2xl font-black text-gray-900 mb-2">Título del Producto</h2>
-            <p id="detailDescription" class="text-sm text-gray-600 mb-4">Descripción...</p>
-
-            <!-- Modalidad Venta vs Alquiler -->
-            <div id="modalTypeContainer" class="mb-4 hidden">
-              <label class="block text-xs font-bold text-gray-700 uppercase mb-2">Selecciona Modalidad</label>
-              <div class="grid grid-cols-2 gap-2">
-                <button id="btnSelectSale" onclick="setProductMode('sale')" class="border-2 border-pink-500 bg-pink-50 text-pink-800 font-bold py-2 rounded-lg text-sm">Comprar</button>
-                <button id="btnSelectRental" onclick="setProductMode('rental')" class="border-2 border-gray-200 hover:border-pink-500 py-2 rounded-lg text-sm">Alquilar (24h)</button>
-              </div>
-            </div>
-
-            <!-- Regla Alquiler: 7 días mínimos -->
-            <div id="rentalConfig" class="bg-blue-50 border border-blue-200 p-4 rounded-xl mb-4 hidden">
-              <h4 class="text-xs font-bold text-blue-900 uppercase mb-1">📅 Reserva de Alquiler (Mínimo 7 días)</h4>
-              <p class="text-xs text-blue-700 mb-2">Para eventos urgentes antes de 7 días, agenda directamente por WhatsApp:</p>
-              <a href="https://wa.me/573147671380?text=Hola%20Cupissa,%20necesito%20alquiler%20inmediato" target="_blank" class="inline-flex items-center gap-1 bg-green-600 text-white text-xs px-3 py-1.5 rounded-lg font-bold mb-3 hover:bg-green-700">
-                <i data-lucide="phone" class="w-3 h-3"></i> WhatsApp Inmediato (3147671380)
-              </a>
-              <div>
-                <label class="block text-xs font-semibold text-gray-700 mb-1">Fecha del evento:</label>
-                <input type="date" id="rentalDateInput" class="w-full bg-white border border-gray-300 rounded-lg p-2 text-sm focus:border-pink-500" />
-              </div>
-              <div class="mt-2 text-xs text-gray-600">
-                • Depósito Reembolsable: <strong id="detailDepositText">$0</strong><br>
-                • Recargo por Hora Extra tras 24h: <strong id="detailExtraHourText">$0/hr</strong>
-              </div>
-            </div>
-
-            <!-- Precios y Anticipo -->
-            <div class="bg-pink-50 border border-pink-200 p-4 rounded-xl mb-4">
-              <div class="flex justify-between items-baseline mb-2">
-                <span class="text-xs text-gray-500 font-semibold">Valor Total:</span>
-                <span id="detailTotalPrice" class="text-xl font-black text-gray-900">$0 COP</span>
-              </div>
-              <div class="border-t border-pink-200 pt-2 flex justify-between items-center text-xs">
-                <span class="text-pink-900 font-bold">Anticipo Obligatorio (<span id="detailAdvancePct">50</span>% - No Reembolsable):</span>
-                <span id="detailAdvancePrice" class="font-extrabold text-pink-700 text-sm">$0 COP</span>
-              </div>
-              <div class="flex justify-between items-center text-xs text-gray-500 mt-1">
-                <span>Saldo Restante (Pagas al recibir o a Crédito):</span>
-                <span id="detailRemainingPrice" class="font-semibold">$0 COP</span>
-              </div>
-            </div>
-
-            <!-- Aviso Envíos -->
-            <div class="bg-gray-100 p-3 rounded-lg text-xs text-gray-600 mb-4 flex items-start gap-2">
-              <i data-lucide="info" class="w-4 h-4 text-pink-600 shrink-0 mt-0.5"></i>
-              <p>El envío (Barranquilla, Soledad, Malambo, Galapa, Puerto Colombia o resto del país) se cotiza por un asesor manualmente antes del despacho.</p>
-            </div>
-          </div>
-
-          <button onclick="addToCartCurrent()" class="w-full bg-cupissa-fuchsia hover:bg-cupissa-fuchsia-dark text-white font-extrabold py-3.5 rounded-xl shadow-md transition-all flex items-center justify-center gap-2">
-            <i data-lucide="shopping-cart" class="w-5 h-5"></i>
-            <span>Agregar al Pedido</span>
-          </button>
-        </div>
-      </div>
-    </section>
-
-    <!-- SECCIÓN: CHECKOUT / PAGO Y CRÉDITO CUPISSA -->
-    <section id="section-checkout" class="hidden max-w-2xl mx-auto bg-white p-6 rounded-2xl shadow-lg border border-gray-200">
-      <h2 class="text-xl font-black text-gray-900 mb-4 flex items-center gap-2">
-        <i data-lucide="credit-card" class="w-6 h-6 text-pink-600"></i> Finalizar Pedido
-      </h2>
-
-      <!-- Resumen de Totales -->
-      <div class="bg-gray-50 p-4 rounded-xl mb-6 text-sm space-y-2 border">
-        <div class="flex justify-between font-bold">
-          <span>Total del Pedido:</span>
-          <span id="checkoutTotalText">$0 COP</span>
-        </div>
-        <div class="flex justify-between font-bold text-pink-700">
-          <span>Anticipo Obligatorio (Pagas HOY):</span>
-          <span id="checkoutAdvanceText">$0 COP</span>
-        </div>
-        <div class="flex justify-between text-gray-600 border-t pt-2 text-xs">
-          <span>Saldo Restante:</span>
-          <span id="checkoutRemainingText">$0 COP</span>
-        </div>
-      </div>
-
-      <!-- SELECCIÓN DE MÉTODO DE FINANCIACIÓN DEL SALDO -->
-      <h3 class="font-bold text-sm text-gray-900 mb-3">¿Cómo deseas pagar el Saldo Restante?</h3>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
-        <label class="border-2 p-4 rounded-xl cursor-pointer flex items-start gap-3 hover:border-pink-500 border-pink-500 bg-pink-50" id="optPayDirect">
-          <input type="radio" name="paymentOption" value="direct" checked onchange="toggleCheckoutMethod('direct')" class="mt-1" />
-          <div>
-            <span class="font-bold text-sm block">Pago Directo / Contraentrega</span>
-            <span class="text-xs text-gray-500">Pagas el anticipo hoy por Wompi o QR, y el saldo al recibir (Área Metropolitana).</span>
-          </div>
-        </label>
-
-        <label class="border-2 p-4 rounded-xl cursor-pointer flex items-start gap-3 hover:border-pink-500 border-gray-200" id="optPayCredit">
-          <input type="radio" name="paymentOption" value="credit" onchange="toggleCheckoutMethod('credit')" class="mt-1" />
-          <div>
-            <span class="font-bold text-sm block">Solicitar Crédito Cupissa</span>
-            <span class="text-xs text-gray-500">Financia el saldo desde $200.000 COP a cuotas diarias, semanales o mensuales.</span>
-          </div>
-        </label>
-      </div>
-
-      <!-- FORMULARIO DE CRÉDITO CUPISSA -->
-      <div id="creditFormContainer" class="hidden border-t pt-4 space-y-4">
-        <div class="bg-pink-100 p-3 rounded-lg text-xs text-pink-900 font-bold">
-          📄 Solicitud de Crédito Directo Cupissa - Requisitos
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <div>
-            <label class="block text-xs font-bold mb-1">Foto Cédula (Frente)</label>
-            <input type="file" id="idFrontFile" accept="image/*" class="w-full text-xs border rounded-lg p-2 bg-gray-50" />
-          </div>
-          <div>
-            <label class="block text-xs font-bold mb-1">Foto Cédula (Reverso)</label>
-            <input type="file" id="idBackFile" accept="image/*" class="w-full text-xs border rounded-lg p-2 bg-gray-50" />
-          </div>
-        </div>
-
-        <div>
-          <label class="block text-xs font-bold mb-1">Foto Selfie de Verificación</label>
-          <input type="file" id="selfieFile" accept="image/*" class="w-full text-xs border rounded-lg p-2 bg-gray-50" />
-        </div>
-
-        <!-- Referencias -->
-        <div class="border-t pt-3">
-          <h4 class="text-xs font-bold uppercase text-gray-700 mb-2">Referencias Personales (2 Requeridas)</h4>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-2">
-            <input type="text" id="ref1Name" placeholder="Nombre Ref 1" class="border rounded-lg p-2 text-xs" />
-            <input type="tel" id="ref1Phone" placeholder="Teléfono Ref 1" class="border rounded-lg p-2 text-xs" />
-          </div>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <input type="text" id="ref2Name" placeholder="Nombre Ref 2" class="border rounded-lg p-2 text-xs" />
-            <input type="tel" id="ref2Phone" placeholder="Teléfono Ref 2" class="border rounded-lg p-2 text-xs" />
-          </div>
-        </div>
-
-        <!-- Frecuencia de Pago y Cuotas -->
-        <div class="border-t pt-3 grid grid-cols-1 md:grid-cols-2 gap-3">
-          <div>
-            <label class="block text-xs font-bold mb-1">Frecuencia de Pago Deseada</label>
-            <select id="creditPeriodicity" class="w-full border rounded-lg p-2 text-xs">
-              <option value="diario">Diario</option>
-              <option value="semanal">Semanal</option>
-              <option value="quincenal" selected>Quincenal</option>
-              <option value="mensual">Mensual</option>
-            </select>
-          </div>
-          <div>
-            <label class="block text-xs font-bold mb-1">Número de Cuotas</label>
-            <input type="number" id="creditInstallments" value="4" min="1" max="40" class="w-full border rounded-lg p-2 text-xs" />
-          </div>
-        </div>
-
-        <!-- Contrato Digital -->
-        <div class="border-t pt-3">
-          <label class="flex items-start gap-2 text-xs cursor-pointer">
-            <input type="checkbox" id="contractConsent" class="mt-1" />
-            <span>Acepto los <strong class="underline">Términos y Condiciones del Crédito Cupissa</strong>, autorizo la consulta/contacto de mis referencias personales y firmo digitalmente este compromiso.</span>
-          </label>
-        </div>
-      </div>
-
-      <!-- BOTÓN FINAL DE PROCESAMIENTO -->
-      <button id="btnProcessOrder" onclick="processOrderFinal()" class="w-full bg-cupissa-fuchsia hover:bg-cupissa-fuchsia-dark text-white font-black py-4 rounded-xl mt-6 shadow-md transition-all text-sm">
-        Pagar Anticipo en Línea y Confirmar Pedido
-      </button>
-    </section>
-
-    <!-- SECCIÓN: RASTREO DE PEDIDOS -->
-    <section id="section-tracking" class="hidden max-w-xl mx-auto bg-white p-6 rounded-2xl shadow-md border border-gray-200">
-      <h2 class="text-xl font-bold mb-2 flex items-center gap-2 text-gray-900">
-        <i data-lucide="search" class="w-5 h-5 text-pink-600"></i> Rastrear Estado de tu Pedido
-      </h2>
-      <p class="text-xs text-gray-500 mb-4">Ingresa el código de pedido asignado al confirmar tu anticipo.</p>
-      
-      <div class="flex gap-2 mb-6">
-        <input type="text" id="trackingOrderInput" placeholder="Ej: CUP0001" class="flex-1 border rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-pink-500" />
-        <button onclick="trackOrder()" class="bg-gray-900 text-white font-bold px-4 py-2 rounded-xl text-sm hover:bg-black">Buscar</button>
-      </div>
-
-      <div id="trackingResult" class="hidden border-t pt-4"></div>
-    </section>
-
-  </main>
-
-  <!-- MODAL REGISTRO / LOGIN CLIENTE -->
-  <div id="authModal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center hidden p-4">
-    <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl p-6 relative">
-      <button onclick="toggleAuthModal(false)" class="absolute top-4 right-4 text-gray-400 hover:text-black">✕</button>
-      
-      <!-- Pestañas Cliente / Tienda -->
-      <div class="flex border-b mb-4">
-        <button id="tabRoleClient" onclick="switchRoleTab('client')" class="flex-1 pb-2 font-bold text-xs border-b-2 border-pink-600 text-pink-600">
-          👤 Cliente
+    <!-- VISTA DETALLE DE PRODUCTO Y CALCULADORA -->
+    <div id="section-product-detail" class="max-w-5xl mx-auto px-4 py-12 hidden">
+        <button onclick="showSection('catalog')" class="mb-6 text-xs font-bold text-gray-500 hover:text-brand-600 flex items-center gap-2">
+            <i class="fa-solid fa-arrow-left"></i> Volver al Catálogo
         </button>
-        <button id="tabRoleStore" onclick="switchRoleTab('store')" class="flex-1 pb-2 font-bold text-xs border-b-2 border-transparent text-gray-400">
-          🏪 Tienda (Próximamente)
-        </button>
-      </div>
 
-      <!-- FORMULARIO CLIENTE -->
-      <div id="formClientContainer">
-        <h3 class="font-extrabold text-base mb-1 text-gray-900">Registro de Cliente</h3>
-        <p class="text-xs text-gray-500 mb-4">Ingresa tus datos para realizar pedidos y solicitar créditos.</p>
+        <div class="bg-white rounded-3xl border border-gray-100 shadow-xl overflow-hidden grid grid-cols-1 md:grid-cols-2 gap-8 p-6 md:p-8">
+            <div>
+                <img id="detailImage" src="" alt="Producto" class="w-full h-96 object-cover rounded-2xl shadow-sm border border-gray-100">
+            </div>
 
-        <!-- PASO 1: DATOS PERSONALES -->
-        <form id="clientRegisterForm" onsubmit="sendVerificationCode(event)" class="space-y-3 text-xs">
-          <div>
-            <label class="block font-bold mb-1">Nombre Completo</label>
-            <input type="text" id="regClientName" required class="w-full border rounded-lg p-2.5" placeholder="Ej: María Pérez" />
-          </div>
+            <div class="flex flex-col justify-between">
+                <div>
+                    <div class="flex gap-2 mb-2">
+                        <span id="detailWorldBadge" class="bg-pink-100 text-pink-800 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full"></span>
+                        <span id="detailCategoryBadge" class="bg-gray-100 text-gray-700 text-[10px] font-bold px-2.5 py-0.5 rounded-full"></span>
+                    </div>
 
-          <div>
-            <label class="block font-bold mb-1">Cédula de Ciudadanía</label>
-            <input type="text" id="regClientCedula" required class="w-full border rounded-lg p-2.5" placeholder="Ej: 1040123456" />
-          </div>
+                    <h1 id="detailTitle" class="text-2xl font-serif font-bold text-gray-900 mb-2"></h1>
+                    <p id="detailDescription" class="text-xs text-gray-500 mb-6 leading-relaxed"></p>
 
-          <div>
-            <label class="block font-bold mb-1">Teléfono o Correo Electrónico</label>
-            <input type="text" id="regClientContact" required class="w-full border rounded-lg p-2.5" placeholder="Ej: 3001234567 o cliente@gmail.com" />
-          </div>
+                    <!-- Selector de Modalidad (Venta vs Alquiler) -->
+                    <div id="modalTypeContainer" class="mb-6 space-y-3">
+                        <label class="block text-xs font-bold uppercase text-gray-400">Selecciona Modalidad</label>
+                        <div class="grid grid-cols-2 gap-3">
+                            <button id="btnSelectSale" onclick="setProductMode('sale')" class="border-2 border-pink-500 bg-pink-50 text-pink-800 font-bold py-2 rounded-lg text-sm">Comprar</button>
+                            <button id="btnSelectRental" onclick="setProductMode('rental')" class="border-2 border-gray-200 text-gray-600 hover:border-pink-500 py-2 rounded-lg text-sm">Alquilar (7 Días)</button>
+                        </div>
+                    </div>
 
-          <button type="submit" id="btnSendCode" class="w-full bg-pink-600 hover:bg-pink-700 text-white font-extrabold py-2.5 rounded-xl">
-            Enviar Código de Verificación
-          </button>
-        </form>
+                    <!-- Configuración de Fecha Alquiler -->
+                    <div id="rentalConfig" class="hidden mb-6 p-4 bg-gray-50 rounded-2xl border border-gray-100 space-y-3 text-xs">
+                        <div>
+                            <label class="block font-bold mb-1 text-gray-700">Fecha del Evento / Alquiler</label>
+                            <input type="date" id="rentalDateInput" class="w-full border rounded-lg p-2 bg-white" />
+                        </div>
+                        <div class="flex justify-between text-[11px] text-gray-500 pt-2 border-t">
+                            <span>Garantía Reembolsable: <strong id="detailDepositText">$0</strong></span>
+                            <span>Hora Extra: <strong id="detailExtraHourText">$0</strong></span>
+                        </div>
+                    </div>
 
-        <!-- PASO 2: CÓDIGO DE VERIFICACIÓN OTP -->
-        <form id="verifyCodeForm" onsubmit="completeClientRegistration(event)" class="space-y-3 text-xs mt-4 hidden bg-pink-50 p-4 rounded-xl border border-pink-200">
-          <p class="font-bold text-pink-900">Hemos enviado un código de 6 dígitos a tu contacto.</p>
-          <div>
-            <label class="block font-bold mb-1">Ingresa el Código OTP (Prueba: 123456)</label>
-            <input type="text" id="otpCode" maxlength="6" required class="w-full border rounded-lg p-2.5 text-center text-lg font-mono tracking-widest" placeholder="123456" />
-          </div>
+                    <!-- Desglose de Precios / Anticipo -->
+                    <div class="bg-pink-50/50 p-4 rounded-2xl border border-pink-100 mb-6">
+                        <div class="flex justify-between items-center mb-1">
+                            <span class="text-xs text-gray-600 font-bold">Precio Total</span>
+                            <span id="detailTotalPrice" class="text-lg font-black text-gray-900"></span>
+                        </div>
+                        <div class="flex justify-between items-center text-xs text-pink-700 font-bold pt-2 border-t border-pink-100">
+                            <span>Anticipo Inicial (<span id="detailAdvancePct">50</span>%):</span>
+                            <span id="detailAdvancePrice" class="text-base font-extrabold"></span>
+                        </div>
+                        <div class="flex justify-between items-center text-[11px] text-gray-500 pt-1">
+                            <span>Saldo Restante a Contraentrega:</span>
+                            <span id="detailRemainingPrice" class="font-semibold"></span>
+                        </div>
+                    </div>
+                </div>
 
-          <button type="submit" id="btnCompleteReg" class="w-full bg-gray-900 hover:bg-black text-white font-extrabold py-2.5 rounded-xl">
-            Verificar y Finalizar Registro
-          </button>
-        </form>
-      </div>
-
-      <!-- PESTAÑA TIENDA (FUTURA) -->
-      <div id="formStoreContainer" class="hidden text-center py-8 space-y-3">
-        <div class="bg-amber-50 border border-amber-200 text-amber-800 p-4 rounded-xl text-xs">
-          <p class="font-bold mb-1">🏪 Registro de Tiendas y Aliados</p>
-          <p>Esta sección requerirá Cámara de Comercio, RUT y verificación comercial. Estará disponible muy pronto.</p>
+                <button onclick="addToCartCurrent()" class="w-full py-3.5 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl shadow-lg shadow-brand-600/30 transition-all text-sm flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-cart-plus"></i>
+                    <span>Agregar al Carrito de Pedido</span>
+                </button>
+            </div>
         </div>
-      </div>
     </div>
-  </div>
 
-  <!-- MODAL CARRITO -->
-  <div id="cartModal" class="fixed inset-0 bg-black/60 z-50 flex justify-end hidden">
-    <div class="bg-white w-full max-w-md h-full flex flex-col p-6 shadow-2xl">
-      <div class="flex justify-between items-center pb-4 border-b">
-        <h3 class="font-bold text-lg text-gray-900 flex items-center gap-2">
-          <i data-lucide="shopping-bag" class="w-5 h-5 text-pink-600"></i> Tu Lista de Pedido
-        </h3>
-        <button onclick="toggleCartModal()" class="text-gray-400 hover:text-black">
-          <i data-lucide="x" class="w-6 h-6"></i>
+    <!-- VISTA CHECKOUT / FORMULARIO FINAL -->
+    <div id="section-checkout" class="max-w-3xl mx-auto px-4 py-12 hidden">
+        <button onclick="showSection('catalog')" class="mb-6 text-xs font-bold text-gray-500 hover:text-brand-600 flex items-center gap-2">
+            <i class="fa-solid fa-arrow-left"></i> Cancelar y Volver
         </button>
-      </div>
 
-      <div id="cartItemsList" class="flex-1 overflow-y-auto py-4 space-y-3">
-        <p class="text-center text-sm text-gray-400 mt-10">Tu carrito está vacío.</p>
-      </div>
+        <div class="bg-white rounded-3xl border border-gray-100 shadow-xl p-6 sm:p-8">
+            <h2 class="text-2xl font-serif font-bold text-gray-900 mb-6 border-b pb-3">Finalizar y Registrar Pedido</h2>
 
-      <div class="border-t pt-4 space-y-2 text-sm">
-        <div class="flex justify-between font-bold text-gray-900">
-          <span>Total Productos:</span>
-          <span id="cartTotalText">$0 COP</span>
+            <!-- Resumen Económico -->
+            <div class="bg-gray-50 p-4 rounded-2xl border border-gray-100 mb-6 space-y-2 text-xs">
+                <div class="flex justify-between text-gray-600">
+                    <span>Total del Pedido:</span>
+                    <strong id="checkoutTotalText" class="text-gray-900">$0 COP</strong>
+                </div>
+                <div class="flex justify-between text-pink-700 font-bold text-sm pt-1 border-t">
+                    <span>Anticipo Mínimo a Pagar Hoy:</span>
+                    <strong id="checkoutAdvanceText">$0 COP</strong>
+                </div>
+                <div class="flex justify-between text-gray-500 text-[11px]">
+                    <span>Saldo Restante Pendiente:</span>
+                    <strong id="checkoutRemainingText">$0 COP</strong>
+                </div>
+            </div>
+
+            <!-- Selección Método de Pago del Saldo -->
+            <div class="space-y-4 mb-6">
+                <label class="block text-xs font-bold uppercase text-gray-500">Forma de Pago del Saldo Restante</label>
+                
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <label id="optPayDirect" onclick="toggleCheckoutMethod('direct')" class="border-2 p-4 rounded-xl cursor-pointer flex items-start gap-3 border-pink-500 bg-pink-50">
+                        <input type="radio" name="paymentOption" value="direct" checked class="mt-1 text-pink-600" />
+                        <div>
+                            <p class="text-xs font-bold text-gray-900">Pago Directo / Contraentrega</p>
+                            <p class="text-[10px] text-gray-500">Liquida el saldo restante en efectivo o transferencia al recibir.</p>
+                        </div>
+                    </label>
+
+                    <label id="optPayCredit" onclick="toggleCheckoutMethod('credit')" class="border-2 p-4 rounded-xl cursor-pointer flex items-start gap-3 border-gray-200">
+                        <input type="radio" name="paymentOption" value="credit" class="mt-1 text-pink-600" />
+                        <div>
+                            <p class="text-xs font-bold text-gray-900">Crédito Directo Cupissa</p>
+                            <p class="text-[10px] text-gray-500">Financia el saldo restante en cuotas fijas quincenales o mensuales.</p>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Formulario Específico para Solicitar Crédito (Carga a Supabase Storage) -->
+            <div id="creditFormContainer" class="hidden bg-pink-50/40 p-5 rounded-2xl border border-pink-100 mb-6 space-y-4 text-xs">
+                <h4 class="font-bold text-pink-800 uppercase text-xs flex items-center gap-2">
+                    <i class="fa-solid fa-file-shield"></i> Requisitos para Crédito Cupissa
+                </h4>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-bold mb-1">Periodicidad de Pago</label>
+                        <select id="creditPeriodicity" class="w-full border rounded-lg p-2.5 bg-white">
+                            <option value="quincenal">Quincenal</option>
+                            <option value="mensual">Mensual</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block font-bold mb-1">Número de Cuotas</label>
+                        <select id="creditInstallments" class="w-full border rounded-lg p-2.5 bg-white">
+                            <option value="2">2 Cuotas</option>
+                            <option value="4">4 Cuotas</option>
+                            <option value="6">6 Cuotas</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="border-t border-pink-100 pt-3 space-y-3">
+                    <p class="font-bold text-gray-700">Referencias Personales</p>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <input type="text" id="ref1Name" placeholder="Nombre Referencia 1" class="border rounded-lg p-2 bg-white" />
+                        <input type="tel" id="ref1Phone" placeholder="Teléfono Referencia 1" class="border rounded-lg p-2 bg-white" />
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <input type="text" id="ref2Name" placeholder="Nombre Referencia 2" class="border rounded-lg p-2 bg-white" />
+                        <input type="tel" id="ref2Phone" placeholder="Teléfono Referencia 2" class="border rounded-lg p-2 bg-white" />
+                    </div>
+                </div>
+
+                <div class="border-t border-pink-100 pt-3 space-y-3">
+                    <p class="font-bold text-gray-700">Adjuntar Documentación de Identidad</p>
+                    <div>
+                        <label class="block text-[11px] text-gray-500 mb-1">Cédula Frente (Imagen o PDF)</label>
+                        <input type="file" id="idFrontFile" accept="image/*,application/pdf" class="w-full text-xs text-gray-500 file:mr-2 file:py-1 file:px-3 file:rounded-full file:border-0 file:bg-pink-100 file:text-pink-700 font-bold" />
+                    </div>
+                    <div>
+                        <label class="block text-[11px] text-gray-500 mb-1">Cédula Reverso (Imagen o PDF)</label>
+                        <input type="file" id="idBackFile" accept="image/*,application/pdf" class="w-full text-xs text-gray-500 file:mr-2 file:py-1 file:px-3 file:rounded-full file:border-0 file:bg-pink-100 file:text-pink-700 font-bold" />
+                    </div>
+                    <div>
+                        <label class="block text-[11px] text-gray-500 mb-1">Selfie con Documento en Mano</label>
+                        <input type="file" id="selfieFile" accept="image/*" class="w-full text-xs text-gray-500 file:mr-2 file:py-1 file:px-3 file:rounded-full file:border-0 file:bg-pink-100 file:text-pink-700 font-bold" />
+                    </div>
+                </div>
+
+                <div class="pt-2">
+                    <label class="flex items-center gap-2 text-[11px] text-gray-600 cursor-pointer">
+                        <input type="checkbox" id="contractConsent" class="rounded text-pink-600" />
+                        <span>Acepto los términos del contrato de crédito y autorizo firma digital.</span>
+                    </label>
+                </div>
+            </div>
+
+            <button id="btnProcessOrder" onclick="processOrderFinal()" class="w-full py-4 bg-brand-600 hover:bg-brand-700 text-white font-extrabold rounded-2xl shadow-lg shadow-brand-600/30 transition-all text-sm">
+                Pagar Anticipo en Línea y Confirmar Pedido
+            </button>
         </div>
-        <div class="flex justify-between text-xs font-bold text-pink-800 bg-pink-50 p-2 rounded-lg">
-          <span>Anticipo Total a pagar HOY:</span>
-          <span id="cartAdvanceText">$0 COP</span>
+    </div>
+
+    <!-- VISTA RASTREO DE PEDIDO -->
+    <div id="section-tracking" class="max-w-xl mx-auto px-4 py-16 hidden">
+        <div class="bg-white rounded-3xl border border-gray-100 shadow-xl p-6 sm:p-8 text-center">
+            <div class="w-12 h-12 bg-pink-100 text-brand-600 rounded-2xl flex items-center justify-center mx-auto mb-4 text-xl">
+                <i class="fa-solid fa-magnifying-glass-location"></i>
+            </div>
+            <h2 class="text-2xl font-serif font-bold text-gray-900 mb-2">Rastrear Estado de Pedido</h2>
+            <p class="text-xs text-gray-500 mb-6">Ingresa el código único asignado a tu compra para consultar el estado en tiempo real.</p>
+
+            <div class="flex gap-2 mb-6">
+                <input type="text" id="trackingOrderInput" placeholder="Ej: CUP1024" class="flex-1 border rounded-xl px-4 py-2.5 text-sm uppercase font-mono font-bold" />
+                <button onclick="trackOrder()" class="bg-brand-600 hover:bg-brand-700 text-white font-bold px-5 py-2.5 rounded-xl text-sm transition-all">Buscar</button>
+            </div>
+
+            <div id="trackingResult" class="hidden text-left border-t pt-4"></div>
         </div>
-        
-        <p class="text-[10px] text-gray-400 text-center">*(El valor de envío se cotiza por un asesor antes del despacho)*</p>
-
-        <button onclick="goToCheckout()" class="w-full bg-cupissa-fuchsia hover:bg-cupissa-fuchsia-dark text-white font-extrabold py-3 rounded-xl mt-2 transition-all">
-          Ir a Pagar Anticipo / Crédito
-        </button>
-      </div>
     </div>
-  </div>
 
-  <!-- FOOTER -->
-  <footer class="bg-gray-900 text-gray-400 text-xs py-8 border-t border-gray-800">
-    <div class="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-3 gap-8">
-      <div>
-        <h4 class="text-white font-bold mb-2">CUPISSA S.A.S. / STUDIO</h4>
-        <p>Ecosistema integral de comercio, alquiler, fabricación a medida y crédito directo en Barranquilla, Atlántico, Colombia.</p>
-      </div>
-      <div>
-        <h4 class="text-white font-bold mb-2">Atención al Cliente</h4>
-        <p>📧 Email: contacto@cupissa.com</p>
-        <p>📞 WhatsApp: 3147671380</p>
-        <p>⏰ Horario: Recepción de pedidos 24 horas</p>
-      </div>
-      <div>
-        <h4 class="text-white font-bold mb-2">Términos y Políticas</h4>
-        <ul class="space-y-1">
-          <li><a href="#" class="hover:underline">Políticas de Anticipos no reembolsables</a></li>
-          <li><a href="#" class="hover:underline">Términos del Crédito Cupissa</a></li>
-          <li><a href="#" class="hover:underline">Tratamiento de Datos Personales</a></li>
-        </ul>
-      </div>
+    <!-- MODAL DRAWER DE CARRITO -->
+    <div id="cartModal" class="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm hidden flex justify-end">
+        <div class="w-full max-w-md bg-white h-full shadow-2xl flex flex-col justify-between p-6 overflow-y-auto">
+            <div>
+                <div class="flex justify-between items-center border-b pb-4 mb-4">
+                    <h3 class="font-bold text-gray-900 text-base flex items-center gap-2">
+                        <i class="fa-solid fa-bag-shopping text-brand-600"></i> Tu Lista de Pedido
+                    </h3>
+                    <button onclick="toggleCartModal(false)" class="text-gray-400 hover:text-black">✕</button>
+                </div>
+
+                <div id="cartItemsList" class="space-y-3">
+                    <p class="text-center text-sm text-gray-400 mt-10">Tu carrito está vacío.</p>
+                </div>
+            </div>
+
+            <div class="border-t pt-4 space-y-3">
+                <div class="flex justify-between text-xs font-bold text-gray-600">
+                    <span>Total Productos:</span>
+                    <span id="cartTotalText" class="text-gray-900 font-extrabold">$0 COP</span>
+                </div>
+                <div class="flex justify-between text-sm font-extrabold text-pink-700 bg-pink-50 p-3 rounded-xl">
+                    <span>Anticipo Total Hoy:</span>
+                    <span id="cartAdvanceText">$0 COP</span>
+                </div>
+                <button onclick="goToCheckout()" class="w-full py-3.5 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl shadow-lg transition-all text-sm">
+                    Ir a Pagar Anticipo / Crédito
+                </button>
+            </div>
+        </div>
     </div>
-  </footer>
 
-  <!-- ARCHIVOS JAVASCRIPT MODULARIZADOS -->
-  <script src="js/config.js"></script>
-  <script src="js/index.js"></script>
+    <!-- MODAL DE REGISTRO / ACCESO REAL CON OTP -->
+    <div id="authModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl relative">
+            <button onclick="toggleAuthModal(false)" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600">✕</button>
+
+            <!-- Pestañas de Rol -->
+            <div class="flex border-b border-gray-200 mb-6">
+                <button id="tabRoleClient" onclick="switchRoleTab('client')" class="flex-1 pb-2 font-bold text-xs border-b-2 border-pink-600 text-pink-600">Cliente</button>
+                <button id="tabRoleStore" onclick="switchRoleTab('store')" class="flex-1 pb-2 font-bold text-xs border-b-2 border-transparent text-gray-400">Tienda (Próximamente)</button>
+            </div>
+
+            <!-- CONTENEDOR CLIENTE -->
+            <div id="formClientContainer">
+                <!-- PASO 1: FORMULARIO DE REGISTRO E INICIO OTP -->
+                <form id="clientRegisterForm" onsubmit="sendVerificationCode(event)" class="space-y-4 text-xs">
+                    <div class="mb-4">
+                        <h3 class="text-lg font-extrabold text-gray-900">Registro / Acceso Cliente</h3>
+                        <p class="text-gray-500">Ingresa tus datos para procesar tus compras y créditos.</p>
+                    </div>
+
+                    <div>
+                        <label class="block font-bold mb-1">Nombre Completo *</label>
+                        <input type="text" id="regClientName" required placeholder="Ej: María Pérez" class="w-full border rounded-xl p-2.5" />
+                    </div>
+
+                    <div>
+                        <label class="block font-bold mb-1">Cédula de Ciudadanía *</label>
+                        <input type="text" id="regClientCedula" required placeholder="Ej: 1040123456" class="w-full border rounded-xl p-2.5" />
+                    </div>
+
+                    <div>
+                        <label class="block font-bold mb-1">Correo Electrónico o Teléfono *</label>
+                        <input type="text" id="regClientContact" required placeholder="cliente@correo.com o 3001234567" class="w-full border rounded-xl p-2.5" />
+                    </div>
+
+                    <button type="submit" id="btnSendCode" class="w-full py-3 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl transition-all shadow-md mt-2">
+                        Enviar Código de Verificación
+                    </button>
+                </form>
+
+                <!-- PASO 2: VERIFICACIÓN CÓDIGO OTP -->
+                <form id="verifyCodeForm" onsubmit="completeClientRegistration(event)" class="space-y-4 text-xs hidden">
+                    <div class="text-center mb-4">
+                        <div class="w-10 h-10 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-2">
+                            <i class="fa-solid fa-shield-halved"></i>
+                        </div>
+                        <h3 class="text-lg font-extrabold text-gray-900">Ingresa tu Código OTP</h3>
+                        <p class="text-gray-500 text-[11px]">Revisa tu correo o mensajes e ingresa el código enviado.</p>
+                    </div>
+
+                    <div>
+                        <input type="text" id="otpCode" required maxlength="6" pattern="[0-9]{6}" inputmode="numeric" placeholder="000000" class="w-full text-center text-2xl tracking-[0.4em] font-extrabold py-3 border rounded-xl" />
+                    </div>
+
+                    <button type="submit" id="btnCompleteReg" class="w-full py-3 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl transition-all shadow-md">
+                        Verificar e Iniciar Sesión
+                    </button>
+                </form>
+            </div>
+
+            <!-- CONTENEDOR TIENDA PROXIMAMENTE -->
+            <div id="formStoreContainer" class="hidden text-center py-8 text-xs text-gray-400">
+                Módulo para aliado comercial en desarrollo.
+            </div>
+        </div>
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="bg-[#0b1329] text-gray-300 py-12 border-t border-gray-800 text-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
+            <div>
+                <h3 class="text-white font-bold text-base mb-3 uppercase tracking-wide">CUPISSA S.A.S. / STUDIO</h3>
+                <p class="text-xs leading-relaxed text-gray-400">
+                    Ecosistema integral de comercio, alquiler, fabricación a medida y crédito directo en Barranquilla, Atlántico, Colombia.
+                </p>
+            </div>
+
+            <div>
+                <h4 class="text-white font-bold text-base mb-3">Atención al Cliente</h4>
+                <ul class="space-y-2 text-xs text-gray-300">
+                    <li class="flex items-center gap-2"><i class="fa-solid fa-envelope text-blue-400"></i> contacto@cupissa.com</li>
+                    <li class="flex items-center gap-2"><i class="fa-solid fa-phone text-brand-500"></i> WhatsApp: 3147671380</li>
+                    <li class="flex items-center gap-2"><i class="fa-solid fa-clock text-amber-400"></i> Horario: Recepción de pedidos 24h</li>
+                </ul>
+            </div>
+
+            <div>
+                <h4 class="text-white font-bold text-base mb-3">Términos y Políticas</h4>
+                <ul class="space-y-2 text-xs text-gray-400">
+                    <li><a href="#" class="hover:text-white transition-colors">Políticas de Anticipos no reembolsables</a></li>
+                    <li><a href="#" class="hover:text-white transition-colors">Términos del Crédito Cupissa</a></li>
+                    <li><a href="#" class="hover:text-white transition-colors">Tratamiento de Datos Personales</a></li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 border-t border-gray-800/80 flex flex-col sm:flex-row items-center justify-between text-xs text-gray-500 gap-2">
+            <div>© 2026 CUPISSA S.A.S. Todos los derechos reservados.</div>
+            <div class="font-medium text-gray-400">Diseñado y Desarrollado por <span class="text-brand-500 font-bold">Deiner Gonzalez</span></div>
+        </div>
+    </footer>
+
+    <!-- Scripts de Configuración y Lógica -->
+    <script src="js/config.js"></script>
+    <script src="js/index.js"></script>
 </body>
 </html>
