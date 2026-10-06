@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cupissa Studio - Alquiler y Venta de Moda</title>
+    <title>Cupissa - Alquiler y Venta de Moda</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -112,7 +112,7 @@
         <section id="como-funciona" class="py-12 bg-white border-b border-gray-100">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="text-center max-w-2xl mx-auto mb-10">
-                    <h2 class="text-2xl font-serif font-bold text-gray-900">¿Cómo Funciona Cupissa Studio?</h2>
+                    <h2 class="text-2xl font-serif font-bold text-gray-900">¿Cómo Funciona Cupissa?</h2>
                     <p class="text-sm text-gray-500 mt-1">Dos modalidades diseñadas para adaptarse a tu estilo de vida</p>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -158,7 +158,7 @@
                 </div>
             </div>
 
-            <!-- Grid de Productos (Renderizado por js/index.js) -->
+            <!-- Grid de Productos -->
             <div id="productGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 <div class="col-span-full text-center py-16">
                     <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-brand-600 border-t-transparent"></div>
@@ -283,7 +283,7 @@
                 </div>
             </div>
 
-            <!-- Formulario Específico para Solicitar Crédito (Carga a Supabase Storage) -->
+            <!-- Formulario Específico para Solicitar Crédito -->
             <div id="creditFormContainer" class="hidden bg-pink-50/40 p-5 rounded-2xl border border-pink-100 mb-6 space-y-4 text-xs">
                 <h4 class="font-bold text-pink-800 uppercase text-xs flex items-center gap-2">
                     <i class="fa-solid fa-file-shield"></i> Requisitos para Crédito Cupissa
@@ -399,24 +399,23 @@
         </div>
     </div>
 
-    <!-- MODAL DE REGISTRO / ACCESO REAL CON OTP -->
+    <!-- MODAL DE REGISTRO / ACCESO REAL -->
     <div id="authModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
         <div class="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl relative">
             <button onclick="toggleAuthModal(false)" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600">✕</button>
 
-            <!-- Pestañas de Rol -->
+            <!-- Pestañas de Rol / Tipo de Formulario (Registro / Iniciar Sesión) -->
             <div class="flex border-b border-gray-200 mb-6">
-                <button id="tabRoleClient" onclick="switchRoleTab('client')" class="flex-1 pb-2 font-bold text-xs border-b-2 border-pink-600 text-pink-600">Cliente</button>
-                <button id="tabRoleStore" onclick="switchRoleTab('store')" class="flex-1 pb-2 font-bold text-xs border-b-2 border-transparent text-gray-400">Tienda (Próximamente)</button>
+                <button id="tabRoleRegister" onclick="switchAuthMode('register')" class="flex-1 pb-2 font-bold text-xs border-b-2 border-pink-600 text-pink-600">Registrarse</button>
+                <button id="tabRoleLogin" onclick="switchAuthMode('login')" class="flex-1 pb-2 font-bold text-xs border-b-2 border-transparent text-gray-400">Iniciar Sesión</button>
             </div>
 
-            <!-- CONTENEDOR CLIENTE -->
-            <div id="formClientContainer">
-                <!-- PASO 1: FORMULARIO DE REGISTRO E INICIO OTP -->
-                <form id="clientRegisterForm" onsubmit="sendVerificationCode(event)" class="space-y-4 text-xs">
-                    <div class="mb-4">
-                        <h3 class="text-lg font-extrabold text-gray-900">Registro / Acceso Cliente</h3>
-                        <p class="text-gray-500">Ingresa tus datos para procesar tus compras y créditos.</p>
+            <!-- CONTENEDOR DE REGISTRO -->
+            <div id="formRegisterContainer">
+                <form id="clientRegisterForm" onsubmit="handleClientRegister(event)" class="space-y-3 text-xs">
+                    <div class="mb-2">
+                        <h3 class="text-lg font-extrabold text-gray-900">Crear Cuenta en Cupissa</h3>
+                        <p class="text-gray-500 text-[11px]">Completa tus datos para registrarte.</p>
                     </div>
 
                     <div>
@@ -434,34 +433,47 @@
                         <input type="text" id="regClientContact" required placeholder="cliente@correo.com o 3001234567" class="w-full border rounded-xl p-2.5" />
                     </div>
 
-                    <button type="submit" id="btnSendCode" class="w-full py-3 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl transition-all shadow-md mt-2">
-                        Enviar Código de Verificación
-                    </button>
-                </form>
-
-                <!-- PASO 2: VERIFICACIÓN CÓDIGO OTP -->
-                <form id="verifyCodeForm" onsubmit="completeClientRegistration(event)" class="space-y-4 text-xs hidden">
-                    <div class="text-center mb-4">
-                        <div class="w-10 h-10 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-2">
-                            <i class="fa-solid fa-shield-halved"></i>
-                        </div>
-                        <h3 class="text-lg font-extrabold text-gray-900">Ingresa tu Código OTP</h3>
-                        <p class="text-gray-500 text-[11px]">Revisa tu correo o mensajes e ingresa el código enviado.</p>
-                    </div>
-
                     <div>
-                        <input type="text" id="otpCode" required maxlength="6" pattern="[0-9]{6}" inputmode="numeric" placeholder="000000" class="w-full text-center text-2xl tracking-[0.4em] font-extrabold py-3 border rounded-xl" />
+                        <label class="block font-bold mb-1">Contraseña *</label>
+                        <input type="password" id="regClientPassword" required placeholder="••••••••" class="w-full border rounded-xl p-2.5" />
                     </div>
 
-                    <button type="submit" id="btnCompleteReg" class="w-full py-3 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl transition-all shadow-md">
-                        Verificar e Iniciar Sesión
+                    <button type="submit" id="btnRegister" class="w-full py-3 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl transition-all shadow-md mt-1">
+                        Registrarse
                     </button>
+
+                    <div class="text-center pt-2">
+                        <p class="text-gray-500">¿Ya tienes una cuenta? <span onclick="switchAuthMode('login')" class="text-brand-600 font-bold cursor-pointer hover:underline">Iniciar Sesión</span></p>
+                    </div>
                 </form>
             </div>
 
-            <!-- CONTENEDOR TIENDA PROXIMAMENTE -->
-            <div id="formStoreContainer" class="hidden text-center py-8 text-xs text-gray-400">
-                Módulo para aliado comercial en desarrollo.
+            <!-- CONTENEDOR DE INICIAR SESIÓN -->
+            <div id="formLoginContainer" class="hidden">
+                <form id="clientLoginForm" onsubmit="handleClientLogin(event)" class="space-y-4 text-xs">
+                    <div class="mb-2">
+                        <h3 class="text-lg font-extrabold text-gray-900">Iniciar Sesión en Cupissa</h3>
+                        <p class="text-gray-500 text-[11px]">Ingresa con tus credenciales.</p>
+                    </div>
+
+                    <div>
+                        <label class="block font-bold mb-1">Correo Electrónico o Teléfono *</label>
+                        <input type="text" id="loginContact" required placeholder="cliente@correo.com o 3001234567" class="w-full border rounded-xl p-2.5" />
+                    </div>
+
+                    <div>
+                        <label class="block font-bold mb-1">Contraseña *</label>
+                        <input type="password" id="loginPassword" required placeholder="••••••••" class="w-full border rounded-xl p-2.5" />
+                    </div>
+
+                    <button type="submit" id="btnLogin" class="w-full py-3 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl transition-all shadow-md mt-1">
+                        Ingresar
+                    </button>
+
+                    <div class="text-center pt-2">
+                        <p class="text-gray-500">¿No tienes cuenta? <span onclick="switchAuthMode('register')" class="text-brand-600 font-bold cursor-pointer hover:underline">Registrarse</span></p>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
@@ -470,7 +482,7 @@
     <footer class="bg-[#0b1329] text-gray-300 py-12 border-t border-gray-800 text-sm">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
             <div>
-                <h3 class="text-white font-bold text-base mb-3 uppercase tracking-wide">CUPISSA S.A.S. / STUDIO</h3>
+                <h3 class="text-white font-bold text-base mb-3 uppercase tracking-wide">CUPISSA S.A.S.</h3>
                 <p class="text-xs leading-relaxed text-gray-400">
                     Ecosistema integral de comercio, alquiler, fabricación a medida y crédito directo en Barranquilla, Atlántico, Colombia.
                 </p>
