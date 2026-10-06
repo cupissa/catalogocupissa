@@ -89,7 +89,7 @@
 
       <!-- GRID DE PRODUCTOS -->
       <div id="productGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-        <!-- Cargado dinámicamente desde Supabase o mock -->
+        <!-- Cargado dinámicamente desde Supabase -->
       </div>
     </section>
 
@@ -224,17 +224,17 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
             <label class="block text-xs font-bold mb-1">Foto Cédula (Frente)</label>
-            <input type="file" id="idFrontFile" class="w-full text-xs border rounded-lg p-2" />
+            <input type="file" id="idFrontFile" accept="image/*" class="w-full text-xs border rounded-lg p-2 bg-gray-50" />
           </div>
           <div>
             <label class="block text-xs font-bold mb-1">Foto Cédula (Reverso)</label>
-            <input type="file" id="idBackFile" class="w-full text-xs border rounded-lg p-2" />
+            <input type="file" id="idBackFile" accept="image/*" class="w-full text-xs border rounded-lg p-2 bg-gray-50" />
           </div>
         </div>
 
         <div>
           <label class="block text-xs font-bold mb-1">Foto Selfie de Verificación</label>
-          <input type="file" id="selfieFile" class="w-full text-xs border rounded-lg p-2" />
+          <input type="file" id="selfieFile" accept="image/*" class="w-full text-xs border rounded-lg p-2 bg-gray-50" />
         </div>
 
         <!-- Referencias -->
@@ -250,15 +250,21 @@
           </div>
         </div>
 
-        <!-- Frecuencia de Pago -->
-        <div class="border-t pt-3">
-          <label class="block text-xs font-bold mb-1">Frecuencia de Pago Deseada</label>
-          <select id="creditPeriodicity" class="w-full border rounded-lg p-2 text-xs">
-            <option value="diario">Diario (Hasta 40 cuotas)</option>
-            <option value="semanal">Semanal (Hasta 8 cuotas)</option>
-            <option value="quincenal">Quincenal (Hasta 8 cuotas)</option>
-            <option value="mensual">Mensual (Hasta 4 cuotas)</option>
-          </select>
+        <!-- Frecuencia de Pago y Cuotas -->
+        <div class="border-t pt-3 grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold mb-1">Frecuencia de Pago Deseada</label>
+            <select id="creditPeriodicity" class="w-full border rounded-lg p-2 text-xs">
+              <option value="diario">Diario</option>
+              <option value="semanal">Semanal</option>
+              <option value="quincenal" selected>Quincenal</option>
+              <option value="mensual">Mensual</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold mb-1">Número de Cuotas</label>
+            <input type="number" id="creditInstallments" value="4" min="1" max="40" class="w-full border rounded-lg p-2 text-xs" />
+          </div>
         </div>
 
         <!-- Contrato Digital -->
@@ -271,7 +277,7 @@
       </div>
 
       <!-- BOTÓN FINAL DE PROCESAMIENTO -->
-      <button onclick="processOrderFinal()" class="w-full bg-cupissa-fuchsia hover:bg-cupissa-fuchsia-dark text-white font-black py-4 rounded-xl mt-6 shadow-md transition-all text-sm">
+      <button id="btnProcessOrder" onclick="processOrderFinal()" class="w-full bg-cupissa-fuchsia hover:bg-cupissa-fuchsia-dark text-white font-black py-4 rounded-xl mt-6 shadow-md transition-all text-sm">
         Pagar Anticipo en Línea y Confirmar Pedido
       </button>
     </section>
@@ -343,7 +349,7 @@
             <input type="text" id="otpCode" maxlength="6" required class="w-full border rounded-lg p-2.5 text-center text-lg font-mono tracking-widest" placeholder="123456" />
           </div>
 
-          <button type="submit" class="w-full bg-gray-900 hover:bg-black text-white font-extrabold py-2.5 rounded-xl">
+          <button type="submit" id="btnCompleteReg" class="w-full bg-gray-900 hover:bg-black text-white font-extrabold py-2.5 rounded-xl">
             Verificar y Finalizar Registro
           </button>
         </form>
@@ -418,9 +424,9 @@
     </div>
   </footer>
 
-  <!-- LÓGICA JAVASCRIPT INTEGRADA -->
+  <!-- LÓGICA JAVASCRIPT INTEGRADA REAL -->
   <script>
-    // 1. SUPABASE Y VARIABLES GLOBALES
+    // 1. SUPABASE Y VARIABLES GLOBALES REALES
     const SUPABASE_URL = 'https://wuobahmvpvtuqvtkqnwg.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1b2JhaG12cHZ0dXF2dGtxbndnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEyMTE2OTksImV4cCI6MjEwNjc4NzY5OX0.syTrgZ7qgYJlZSD94Fm4-Zm_Zd6XfyOGqOaXUiW0A1c';
     
@@ -440,59 +446,17 @@
     let cart = [];
     let currentUser = JSON.parse(localStorage.getItem('cupissa_logged_user')) || null;
 
-    const mockProducts = [
-      {
-        id: '1',
-        title: 'Conjunto Personalizado Niña / Cumpleaños',
-        description: 'Set completo con suéter personalizado, tutú y tiara a juego para celebraciones.',
-        base_price: 120000,
-        advance_percentage: 50,
-        is_sale: true,
-        is_rental: false,
-        world_slug: 'familiar',
-        category: 'Ropa Infantil',
-        main_image: 'https://images.unsplash.com/photo-1518831959646-742c3a14ebf7?w=500&q=80'
-      },
-      {
-        id: '2',
-        title: 'Vestido Típico Garabato / Marimonda',
-        description: 'Indumentaria festiva para eventos folclóricos en venta o alquiler por 24 horas.',
-        base_price: 180000,
-        advance_percentage: 50,
-        is_sale: true,
-        is_rental: true,
-        rental_price_24h: 60000,
-        rental_deposit: 20000,
-        rental_extra_hour_fee: 10000,
-        world_slug: 'eventos',
-        category: 'Trajes Típicos',
-        main_image: 'https://images.unsplash.com/photo-1566737236500-c8ac43014a67?w=500&q=80'
-      },
-      {
-        id: '3',
-        title: 'Kit Emprendedor Premium (Volantes + Stickers)',
-        description: '1000 Tarjetas + 500 Volantes publicidad full color + 100 Stickers troquelados para packaging.',
-        base_price: 250000,
-        advance_percentage: 50,
-        is_sale: true,
-        is_rental: false,
-        world_slug: 'empresas',
-        category: 'Publicidad e Impresión',
-        main_image: 'https://images.unsplash.com/photo-1572021335469-31706a17aaef?w=500&q=80'
-      }
-    ];
-
-    // 2. INICIALIZACIÓN
+    // 2. INICIALIZACIÓN Y CARGA DE SUPABASE
     async function init() {
       if (_supabase) {
         try {
           const { data, error } = await _supabase.from('products').select('*').order('created_at', { ascending: false });
-          productsList = (!error && data && data.length > 0) ? data : mockProducts;
+          if (!error && data) {
+            productsList = data;
+          }
         } catch (e) {
-          productsList = mockProducts;
+          console.error('Error al cargar productos desde Supabase:', e);
         }
-      } else {
-        productsList = mockProducts;
       }
 
       currentFiltered = productsList;
@@ -516,8 +480,8 @@
       if (!grid) return;
       grid.innerHTML = '';
 
-      if (items.length === 0) {
-        grid.innerHTML = `<p class="col-span-full text-center py-10 text-gray-400">No se encontraron productos en esta categoría.</p>`;
+      if (!items || items.length === 0) {
+        grid.innerHTML = `<p class="col-span-full text-center py-10 text-gray-400 font-semibold">No se encontraron productos disponibles en el catálogo.</p>`;
         return;
       }
 
@@ -772,7 +736,7 @@
       document.getElementById('verifyCodeForm').classList.remove('hidden');
     }
 
-    function completeClientRegistration(e) {
+    async function completeClientRegistration(e) {
       e.preventDefault();
       const code = document.getElementById('otpCode').value;
 
@@ -781,14 +745,44 @@
         return;
       }
 
+      const btn = document.getElementById('btnCompleteReg');
+      btn.innerText = 'Registrando en Supabase...';
+      btn.disabled = true;
+
+      const full_name = document.getElementById('regClientName').value;
+      const cedula = document.getElementById('regClientCedula').value;
+      const contact = document.getElementById('regClientContact').value;
+
+      let supabaseRegistered = false;
+
+      if (_supabase) {
+        try {
+          const { data, error } = await _supabase.from('clients').insert([{
+            full_name: full_name,
+            cedula: cedula,
+            contact: contact
+          }]).select();
+
+          if (!error) {
+            supabaseRegistered = true;
+          } else {
+            console.warn('Inserción directa en clients:', error.message);
+          }
+        } catch (err) {
+          console.error('Error insertando cliente en Supabase:', err);
+        }
+      }
+
       currentUser = {
-        name: document.getElementById('regClientName').value,
-        cedula: document.getElementById('regClientCedula').value,
-        contact: document.getElementById('regClientContact').value
+        name: full_name,
+        cedula: cedula,
+        contact: contact
       };
 
       localStorage.setItem('cupissa_logged_user', JSON.stringify(currentUser));
-      alert(`¡Bienvenido/a ${currentUser.name}! Tu registro ha sido completado.`);
+      alert(`¡Bienvenido/a ${currentUser.name}! Tu registro ha sido completado con éxito.`);
+      btn.innerText = 'Verificar y Finalizar Registro';
+      btn.disabled = false;
       toggleAuthModal(false);
       updateUserHeader();
     }
@@ -825,7 +819,8 @@
 
     // 8. PROCESAR PEDIDO Y ENVIAR A SUPABASE CON RASTREO
     async function processOrderFinal() {
-      const isCredit = document.querySelector('input[name="paymentOption"]:checked').value === 'credit';
+      const paymentOpt = document.querySelector('input[name="paymentOption"]:checked').value;
+      const isCredit = paymentOpt === 'credit';
 
       if (isCredit) {
         const consent = document.getElementById('contractConsent').checked;
@@ -835,55 +830,126 @@
         }
       }
 
-      // Generar ID de pedido único (CUP0001, CUP0002...)
-      let nextID = 'CUP0001';
-      if (_supabase) {
-        try {
-          const { data } = await _supabase.from('orders').select('id').order('created_at', { ascending: false }).limit(1);
-          if (data && data.length > 0 && data[0].id.startsWith('CUP')) {
-            const num = parseInt(data[0].id.replace('CUP', ''), 10) + 1;
-            nextID = 'CUP' + num.toString().padStart(4, '0');
+      const btn = document.getElementById('btnProcessOrder');
+      btn.innerText = 'Procesando e insertando en Supabase...';
+      btn.disabled = true;
+
+      try {
+        // Generar ID de pedido único (CUP0001, CUP0002...)
+        let nextID = 'CUP0001';
+        if (_supabase) {
+          try {
+            const { data } = await _supabase.from('orders').select('id').order('created_at', { ascending: false }).limit(1);
+            if (data && data.length > 0 && data[0].id && data[0].id.toString().startsWith('CUP')) {
+              const num = parseInt(data[0].id.toString().replace('CUP', ''), 10) + 1;
+              if (!isNaN(num)) nextID = 'CUP' + num.toString().padStart(4, '0');
+            }
+          } catch (e) {
+            console.warn('Generando ID local:', e);
           }
-        } catch (e) {
-          console.warn('Usando ID local temporal...');
         }
-      }
 
-      const totalAmount = cart.reduce((acc, i) => acc + i.finalPrice, 0);
-      const itemsSummary = cart.map(i => i.title).join(', ');
+        const totalAmount = cart.reduce((acc, i) => acc + i.finalPrice, 0);
+        const advanceAmount = cart.reduce((acc, i) => acc + i.advanceAmount, 0);
+        const remainingAmount = totalAmount - advanceAmount;
+        const itemsSummary = cart.map(i => i.title).join(', ');
 
-      const newOrder = {
-        id: nextID,
-        client_name: currentUser ? currentUser.name : 'Cliente General',
-        client_contact: currentUser ? currentUser.contact : '3000000000',
-        items_summary: itemsSummary,
-        total_amount: totalAmount,
-        shipping_fee: 0,
-        status: isCredit ? 'En Revisión de Crédito' : 'Pendiente de Pago Anticipo'
-      };
+        // 1. Insertar Pedido
+        const newOrder = {
+          id: nextID,
+          client_name: currentUser ? currentUser.name : 'Cliente General',
+          client_contact: currentUser ? currentUser.contact : '3000000000',
+          items_summary: itemsSummary,
+          total_amount: totalAmount,
+          shipping_fee: 0,
+          status: isCredit ? 'En Revisión de Crédito' : 'Pendiente de Pago'
+        };
 
-      if (_supabase) {
-        try {
-          await _supabase.from('orders').insert([newOrder]);
-        } catch(e) {
-          console.error('Error insertando pedido:', e);
+        if (_supabase) {
+          const { error: orderError } = await _supabase.from('orders').insert([newOrder]);
+          if (orderError) {
+            console.error('Error insertando orden en Supabase:', orderError.message);
+          }
         }
-      }
 
-      alert(`¡Pedido registrado exitosamente!\n\nTu Código de Rastreo es: ${nextID}\nGuarda este código para consultar el estado de tu producción o despacho.`);
-      cart = [];
-      updateCartUI();
-      showSection('catalog');
+        // 2. Si eligió crédito, insertar en credit_applications para el Panel Administrativo
+        if (isCredit) {
+          const ref1N = document.getElementById('ref1Name').value;
+          const ref1P = document.getElementById('ref1Phone').value;
+          const ref2N = document.getElementById('ref2Name').value;
+          const ref2P = document.getElementById('ref2Phone').value;
+          const periodicity = document.getElementById('creditPeriodicity').value;
+          const installments = parseInt(document.getElementById('creditInstallments').value) || 4;
+
+          // Subir archivos si fueron seleccionados
+          let frontUrl = '', backUrl = '', selfieUrl = '';
+          const fFront = document.getElementById('idFrontFile');
+          const fBack = document.getElementById('idBackFile');
+          const fSelfie = document.getElementById('selfieFile');
+
+          if (_supabase) {
+            if (fFront && fFront.files[0]) {
+              const file = fFront.files[0];
+              const fileName = `cedula_front_${Date.now()}.${file.name.split('.').pop()}`;
+              const { data: uData } = await _supabase.storage.from('creditos').upload(fileName, file);
+              if (uData) frontUrl = _supabase.storage.from('creditos').getPublicUrl(fileName).data.publicUrl;
+            }
+            if (fBack && fBack.files[0]) {
+              const file = fBack.files[0];
+              const fileName = `cedula_back_${Date.now()}.${file.name.split('.').pop()}`;
+              const { data: uData } = await _supabase.storage.from('creditos').upload(fileName, file);
+              if (uData) backUrl = _supabase.storage.from('creditos').getPublicUrl(fileName).data.publicUrl;
+            }
+            if (fSelfie && fSelfie.files[0]) {
+              const file = fSelfie.files[0];
+              const fileName = `selfie_${Date.now()}.${file.name.split('.').pop()}`;
+              const { data: uData } = await _supabase.storage.from('creditos').upload(fileName, file);
+              if (uData) selfieUrl = _supabase.storage.from('creditos').getPublicUrl(fileName).data.publicUrl;
+            }
+
+            const creditPayload = {
+              client_name: currentUser ? currentUser.name : 'Cliente General',
+              phone: currentUser ? currentUser.contact : '3000000000',
+              financed_amount: remainingAmount,
+              items_detail: itemsSummary,
+              periodicity: periodicity,
+              installments: installments,
+              ref1: `${ref1N} (${ref1P})`,
+              ref2: `${ref2N} (${ref2P})`,
+              status: 'en_revision',
+              id_front_url: frontUrl,
+              id_back_url: backUrl,
+              selfie_url: selfieUrl
+            };
+
+            const { error: creditError } = await _supabase.from('credit_applications').insert([creditPayload]);
+            if (creditError) {
+              console.error('Error insertando solicitud de crédito:', creditError.message);
+            }
+          }
+        }
+
+        alert(`¡Pedido procesado exitosamente!\n\nTu Código de Rastreo es: ${nextID}\nGuarda este código para consultar el estado de tu producción o despacho.`);
+        cart = [];
+        updateCartUI();
+        showSection('catalog');
+      } catch (err) {
+        console.error('Excepción al procesar pedido:', err);
+        alert('Ocurrió un inconveniente al procesar la solicitud: ' + err.message);
+      } finally {
+        btn.innerText = 'Pagar Anticipo en Línea y Confirmar Pedido';
+        btn.disabled = false;
+      }
     }
 
-    // 9. RASTREO DE PEDIDO
+    // 9. RASTREO DE PEDIDO REAL EN SUPABASE
     async function trackOrder() {
       const orderId = document.getElementById('trackingOrderInput').value.trim();
       const res = document.getElementById('trackingResult');
       if (!orderId) return;
 
       res.classList.remove('hidden');
-      res.innerHTML = `<p class="text-xs text-gray-500 py-2">Buscando pedido ${orderId}...</p>`;
+      res.innerHTML = `<p class="text-xs text-gray-500 py-2">Buscando pedido ${orderId} en la base de datos...</p>`;
 
       let foundOrder = null;
       if (_supabase) {
@@ -903,18 +969,13 @@
             <p class="text-gray-700"><strong>Cliente:</strong> ${foundOrder.client_name}</p>
             <p class="text-gray-700"><strong>Productos:</strong> ${foundOrder.items_summary}</p>
             <p class="text-gray-700"><strong>Total:</strong> $${Number(foundOrder.total_amount || 0).toLocaleString('es-CO')} COP</p>
+            <p class="text-gray-700"><strong>Costo Envío:</strong> ${foundOrder.shipping_fee ? '$' + Number(foundOrder.shipping_fee).toLocaleString('es-CO') + ' COP' : 'Pendiente por cotizar'}</p>
           </div>
         `;
       } else {
         res.innerHTML = `
-          <div class="bg-gray-50 p-4 rounded-xl text-xs space-y-2">
-            <div class="flex justify-between items-center font-bold">
-              <span>Pedido: ${orderId}</span>
-              <span class="bg-pink-100 text-pink-800 px-2 py-0.5 rounded-full">En Proceso de Producción</span>
-            </div>
-            <p class="text-gray-600">• Anticipo recibido: 50% pago verificado.</p>
-            <p class="text-gray-600">• Tiempo de producción estimado: 3 días hábiles.</p>
-            <p class="text-gray-600">• Dirección: Cotización de envío pendiente para Barranquilla.</p>
+          <div class="bg-red-50 p-4 rounded-xl text-xs text-red-700 border border-red-200">
+            No se encontró ningún pedido registrado con el código <strong>${orderId}</strong>. Por favor verifica la información ingresada.
           </div>
         `;
       }
