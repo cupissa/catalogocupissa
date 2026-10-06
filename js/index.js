@@ -1,5 +1,5 @@
 /* ==========================================
-   CUPISSA STUDIO - LÓGICA DE TIENDA Y CLIENTE
+   CUPISSA - LÓGICA DE TIENDA Y CLIENTE
    ========================================== */
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -225,7 +225,7 @@ function updateCartUI() {
       <div class="flex justify-between items-center bg-gray-50 p-3 rounded-xl border border-gray-100 text-xs">
         <div>
           <h4 class="font-bold text-gray-900">${item.title}</h4>
-          <span class="text-gray-500">${item.mode === 'rental' ? 'Alquiler (24h)' : 'Compra'}</span>
+          <span class="text-gray-500">${item.mode === 'rental' ? 'Alquiler (7 Días)' : 'Compra'}</span>
           ${item.rentalDate ? `<span class="block text-[10px] text-blue-600">Fecha: ${item.rentalDate}</span>` : ''}
           <span class="block font-semibold text-pink-700 mt-1">Anticipo: $${item.advancePrice.toLocaleString()} COP</span>
         </div>
@@ -274,6 +274,21 @@ function goToCheckout() {
   document.getElementById("checkoutAdvanceText").textContent = `$${advanceSum.toLocaleString()} COP`;
   document.getElementById("checkoutRemainingText").textContent = `$${remainingSum.toLocaleString()} COP`;
 
+  const hasNonCreditItem = currentCart.some(cartItem => {
+    const prod = currentProducts.find(p => p.id === cartItem.id);
+    return prod && prod.allow_credit === false;
+  });
+
+  const optCreditLabel = document.getElementById("optPayCredit");
+  if (hasNonCreditItem) {
+    optCreditLabel.style.opacity = "0.5";
+    optCreditLabel.style.pointerEvents = "none";
+    toggleCheckoutMethod('direct');
+  } else {
+    optCreditLabel.style.opacity = "1";
+    optCreditLabel.style.pointerEvents = "auto";
+  }
+
   showSection("checkout");
 }
 
@@ -293,7 +308,6 @@ function toggleCheckoutMethod(method) {
   }
 }
 
-// SUBIR ARCHIVOS A SUPABASE STORAGE
 async function uploadDocument(file, path) {
   if (!file) return null;
   const fileExt = file.name.split('.').pop();
@@ -315,9 +329,9 @@ async function uploadDocument(file, path) {
   return publicUrlData.publicUrl;
 }
 
-// PROCESAR PEDIDO Y ENVIAR A TABLA ORDERS / CUPISSA_CREDITS
 async function processOrderFinal() {
-  const isCredit = document.querySelector('input[name="paymentOption"]:checked').value === "credit";
+  const selectedPaymentOpt = document.querySelector('input[name="paymentOption"]:checked');
+  const isCredit = selectedPaymentOpt && selectedPaymentOpt.value === "credit";
   const btnProcess = document.getElementById("btnProcessOrder");
 
   let totalSum = 0;
@@ -334,7 +348,6 @@ async function processOrderFinal() {
   btnProcess.textContent = "Procesando Pedido...";
 
   try {
-    // 1. Guardar Orden en 'orders'
     const { data: orderData, error: orderError } = await supabaseClient
       .from("orders")
       .insert([
@@ -354,7 +367,6 @@ async function processOrderFinal() {
 
     if (orderError) throw orderError;
 
-    // 2. Si es Crédito, Subir Documentos y Guardar en 'cupissa_credits'
     if (isCredit) {
       const consent = document.getElementById("contractConsent").checked;
       if (!consent) {
@@ -454,146 +466,66 @@ async function trackOrder() {
   }
 }
 
-// 8. AUTENTICACIÓN REAL MEDIANTE SUPABASE AUTH (OTP) Y PROFILES
+// 8. AUTENTICACIÓN Y REDIRECCIÓN ADMIN / CLIENTE
 function toggleAuthModal(show) {
   document.getElementById("authModal").classList.toggle("hidden", !show);
 }
 
-function switchRoleTab(role) {
-  const tabClient = document.getElementById("tabRoleClient");
-  const tabStore = document.getElementById("tabRoleStore");
-  const formClient = document.getElementById("formClientContainer");
-  const formStore = document.getElementById("formStoreContainer");
+function switchAuthMode(mode) {
+  const tabReg = document.getElementById("tabRoleRegister");
+  const tabLog = document.getElementById("tabRoleLogin");
+  const formReg = document.getElementById("formRegisterContainer");
+  const formLog = document.getElementById("formLoginContainer");
 
-  if (role === "client") {
-    tabClient.className = "flex-1 pb-2 font-bold text-xs border-b-2 border-pink-600 text-pink-600";
-    tabStore.className = "flex-1 pb-2 font-bold text-xs border-b-2 border-transparent text-gray-400";
-    formClient.classList.remove("hidden");
-    formStore.classList.add("hidden");
+  if (mode === "register") {
+    tabReg.className = "flex-1 pb-2 font-bold text-xs border-b-2 border-pink-600 text-pink-600";
+    tabLog.className = "flex-1 pb-2 font-bold text-xs border-b-2 border-transparent text-gray-400";
+    formReg.classList.remove("hidden");
+    formLog.classList.add("hidden");
   } else {
-    tabStore.className = "flex-1 pb-2 font-bold text-xs border-b-2 border-pink-600 text-pink-600";
-    tabClient.className = "flex-1 pb-2 font-bold text-xs border-b-2 border-transparent text-gray-400";
-    formStore.classList.remove("hidden");
-    formClient.classList.add("hidden");
+    tabLog.className = "flex-1 pb-2 font-bold text-xs border-b-2 border-pink-600 text-pink-600";
+    tabReg.className = "flex-1 pb-2 font-bold text-xs border-b-2 border-transparent text-gray-400";
+    formLog.classList.remove("hidden");
+    formReg.classList.add("hidden");
   }
 }
 
-// ENVIAR CÓDIGO OTP REAL (EMAIL O TELÉFONO)
-let pendingRegisterData = {};
-
-// ENVIAR CÓDIGO OTP (Email o Teléfono)
-async function sendVerificationCode(event) {
-    if (event) event.preventDefault();
-    
-    const nameInput = document.getElementById('regClientName');
-    const cedulaInput = document.getElementById('regClientCedula');
-    const contactInput = document.getElementById('regClientContact');
-    const btnSend = document.getElementById('btnSendCode');
-
-    const name = nameInput ? nameInput.value.trim() : '';
-    const cedula = cedulaInput ? cedulaInput.value.trim() : '';
-    const contact = contactInput ? contactInput.value.trim() : '';
-
-    if (!name || !cedula || !contact) {
-        alert('Por favor completa todos los campos obligatorios.');
-        return;
-    }
-
-    // Guardar datos temporales para cuando verifique el código
-    window.tempRegistrationData = { name, cedula, contact };
-
-    if (btnSend) {
-        btnSend.disabled = true;
-        btnSend.innerText = 'Enviando Código...';
-    }
-
-    try {
-        const isEmail = contact.includes('@');
-
-        if (isEmail) {
-            // Envío por correo electrónico
-            const { data, error } = await supabaseClient.auth.signInWithOtp({
-                email: contact,
-                options: {
-                    shouldCreateUser: true
-                }
-            });
-
-            if (error) throw error;
-
-            alert(`¡Código enviado a ${contact}! Revisa tu bandeja de entrada o spam.`);
-        } else {
-            // Envío por teléfono (requiere formato internacional E.164, ej: +573001234567)
-            let formattedPhone = contact.replace(/\s+/g, '');
-            if (!formattedPhone.startsWith('+')) {
-                formattedPhone = '+57' + formattedPhone; // Ajusta el prefijo de tu país si es necesario
-            }
-
-            const { data, error } = await supabaseClient.auth.signInWithOtp({
-                phone: formattedPhone
-            });
-
-            if (error) throw error;
-
-            alert(`¡Código enviado por SMS a ${formattedPhone}!`);
-        }
-
-        // Mostrar formulario de verificación de código OTP
-        const regForm = document.getElementById('clientRegisterForm');
-        const verifyForm = document.getElementById('verifyCodeForm');
-
-        if (regForm) regForm.classList.add('hidden');
-        if (verifyForm) verifyForm.classList.remove('hidden');
-
-    } catch (err) {
-        console.error('Error enviando OTP:', err);
-        alert('Error al enviar el código OTP: ' + (err.message || err.error_description || 'Verifica los datos e intenta de nuevo.'));
-    } finally {
-        if (btnSend) {
-            btnSend.disabled = false;
-            btnSend.innerText = 'Enviar Código...';
-        }
-    }
-}
-
-// VERIFICAR CÓDIGO OTP Y CREAR PERFIL EN TABLA 'PROFILES'
-async function completeClientRegistration(e) {
+async function handleClientRegister(e) {
   e.preventDefault();
 
-  const token = document.getElementById("otpCode").value.trim();
-  const { contact, name, cedula } = pendingRegisterData;
-  const isEmail = contact.includes("@");
-  const btn = document.getElementById("btnCompleteReg");
+  const name = document.getElementById("regClientName").value.trim();
+  const cedula = document.getElementById("regClientCedula").value.trim();
+  const contact = document.getElementById("regClientContact").value.trim();
+  const password = document.getElementById("regClientPassword").value;
+  const btn = document.getElementById("btnRegister");
+
+  if (!name || !cedula || !contact || !password) {
+    alert("Por favor completa todos los campos.");
+    return;
+  }
 
   btn.disabled = true;
-  btn.textContent = "Verificando...";
+  btn.textContent = "Registrando...";
 
   try {
-    let sessionData, authError;
-
+    const isEmail = contact.includes("@");
+    let signUpPayload = { password };
+    
     if (isEmail) {
-      const res = await supabaseClient.auth.verifyOtp({
-        email: contact,
-        token: token,
-        type: 'email'
-      });
-      sessionData = res.data;
-      authError = res.error;
+      signUpPayload.email = contact;
     } else {
-      const res = await supabaseClient.auth.verifyOtp({
-        phone: contact,
-        token: token,
-        type: 'sms'
-      });
-      sessionData = res.data;
-      authError = res.error;
+      let phoneFormatted = contact.replace(/\s+/g, '');
+      if (!phoneFormatted.startsWith('+')) {
+        phoneFormatted = '+57' + phoneFormatted;
+      }
+      signUpPayload.phone = phoneFormatted;
     }
 
-    if (authError) throw authError;
+    const { data, error } = await supabaseClient.auth.signUp(signUpPayload);
+    if (error) throw error;
 
-    currentUser = sessionData.user;
+    currentUser = data.user || (data.session ? data.session.user : null);
 
-    // Guardar o Actualizar Perfil en 'profiles'
     if (currentUser) {
       const { error: profileError } = await supabaseClient
         .from("profiles")
@@ -609,19 +541,80 @@ async function completeClientRegistration(e) {
       if (profileError) console.error("Error al guardar perfil:", profileError);
     }
 
-    alert("¡Verificación exitosa! Bienvenido/a a Cupissa.");
+    alert("¡Registro exitoso! Bienvenido/a a Cupissa.");
     updateAuthUI(true, name || contact);
     toggleAuthModal(false);
   } catch (err) {
-    console.error("Error al verificar OTP:", err);
-    alert("Código OTP incorrecto o expirado.");
+    console.error("Error en registro:", err);
+    alert("Error al registrarse: " + (err.message || "Verifica los datos e intenta de nuevo."));
   } finally {
     btn.disabled = false;
-    btn.textContent = "Verificar y Finalizar Registro";
+    btn.textContent = "Registrarse";
   }
 }
 
-// VERIFICAR SESIÓN ACTIVA EN SUPABASE
+async function handleClientLogin(e) {
+  e.preventDefault();
+
+  const contact = document.getElementById("loginContact").value.trim();
+  const password = document.getElementById("loginPassword").value;
+  const btn = document.getElementById("btnLogin");
+
+  if (!contact || !password) {
+    alert("Por favor completa los campos.");
+    return;
+  }
+
+  // VALIDACIÓN DE ADMIN DIRECTO DESDE EL LOGIN DE CLIENTES
+  if (contact === "daviddeiner956@gmail.com" && password === "Deiner123") {
+    sessionStorage.setItem("cupissa_admin_logged", "true");
+    alert("Credenciales de Administrador correctas. Redirigiendo al panel...");
+    window.location.href = "admin.html";
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = "Iniciando sesión...";
+
+  try {
+    const isEmail = contact.includes("@");
+    let loginPayload = { password };
+
+    if (isEmail) {
+      loginPayload.email = contact;
+    } else {
+      let phoneFormatted = contact.replace(/\s+/g, '');
+      if (!phoneFormatted.startsWith('+')) {
+        phoneFormatted = '+57' + phoneFormatted;
+      }
+      loginPayload.phone = phoneFormatted;
+    }
+
+    const { data, error } = await supabaseClient.auth.signInWithPassword(loginPayload);
+    if (error) throw error;
+
+    currentUser = data.user;
+
+    const { data: profile } = await supabaseClient
+      .from("profiles")
+      .select("full_name")
+      .eq("id", currentUser.id)
+      .single();
+
+    const name = profile ? profile.full_name : contact;
+
+    alert("¡Inicio de sesión exitoso!");
+    updateAuthUI(true, name);
+    toggleAuthModal(false);
+  } catch (err) {
+    console.error("Error en login:", err);
+    alert("Credenciales incorrectas o usuario no encontrado.");
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Ingresar";
+  }
+}
+
 async function checkActiveSession() {
   const { data: { session } } = await supabaseClient.auth.getSession();
   if (session && session.user) {
@@ -651,12 +644,11 @@ function updateAuthUI(isLoggedIn, userName = "") {
     `;
   } else {
     section.innerHTML = `
-      <button onclick="toggleAuthModal(true)" class="bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-bold px-3 py-2 rounded-full flex items-center gap-1.5 transition-all">
-        <i data-lucide="user" class="w-4 h-4 text-pink-600"></i>
-        <span class="hidden sm:inline">Registrarse / Ingresar</span>
+      <button onclick="toggleAuthModal(true)" class="flex items-center space-x-2 text-sm font-medium text-gray-700 hover:text-brand-600 transition-colors py-2 px-3 rounded-lg hover:bg-gray-50">
+        <i class="fa-regular fa-user text-lg"></i>
+        <span class="hidden sm:inline">Iniciar Sesión</span>
       </button>
     `;
-    if (window.lucide) lucide.createIcons();
   }
 }
 
