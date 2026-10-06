@@ -1,12 +1,46 @@
 /* ==========================================
-   CUPISSA STUDIO - LÓGICA DE ADMINISTRACIÓN
+   CUPISSA - LÓGICA DE ADMINISTRACIÓN
    ========================================== */
 
 document.addEventListener("DOMContentLoaded", () => {
-  loadAdminProducts();
-  loadAdminOrders();
-  loadAdminCredits();
+  checkAdminAuth();
 });
+
+// VALIDACIÓN DE AUTENTICACIÓN ADMIN
+function checkAdminAuth() {
+  const adminSession = sessionStorage.getItem("cupissa_admin_logged");
+  const loginModal = document.getElementById("adminLoginModal");
+
+  if (adminSession === "true") {
+    if (loginModal) loginModal.classList.add("hidden");
+    loadAdminProducts();
+    loadAdminOrders();
+    loadAdminCredits();
+  } else {
+    if (loginModal) loginModal.classList.remove("hidden");
+  }
+}
+
+function handleAdminLogin(e) {
+  e.preventDefault();
+  const email = document.getElementById("adminEmailInput").value.trim();
+  const pass = document.getElementById("adminPasswordInput").value;
+
+  if (email === "daviddeiner956@gmail.com" && pass === "Deiner123") {
+    sessionStorage.setItem("cupissa_admin_logged", "true");
+    document.getElementById("adminLoginModal").classList.add("hidden");
+    loadAdminProducts();
+    loadAdminOrders();
+    loadAdminCredits();
+  } else {
+    alert("Correo o contraseña de administrador incorrectos.");
+  }
+}
+
+function adminLogout() {
+  sessionStorage.removeItem("cupissa_admin_logged");
+  location.reload();
+}
 
 // 1. NAVEGACIÓN ENTRE PESTAÑAS DEL ADMIN
 function showAdminTab(tabName) {
@@ -24,7 +58,6 @@ function showAdminTab(tabName) {
     activeBtn.className = "admin-nav-btn w-full text-left px-4 py-3 rounded-xl flex items-center gap-3 bg-pink-600 text-white transition-all";
   }
 
-  // Recargar datos al cambiar de pestaña
   if (tabName === 'products') loadAdminProducts();
   if (tabName === 'orders') loadAdminOrders();
   if (tabName === 'credits') loadAdminCredits();
@@ -44,7 +77,7 @@ async function loadAdminProducts() {
     if (!tbody) return;
 
     if (!data || data.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-gray-400 text-xs">No hay productos registrados en la base de datos.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="8" class="p-4 text-center text-gray-400 text-xs">No hay productos registrados en la base de datos.</td></tr>`;
       return;
     }
 
@@ -63,6 +96,11 @@ async function loadAdminProducts() {
         <td class="p-4">
           <span class="px-2 py-1 rounded-full text-[10px] font-bold ${prod.allow_rental ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-700'}">
             ${prod.allow_rental ? 'Venta/Alquiler' : 'Solo Venta'}
+          </span>
+        </td>
+        <td class="p-4">
+          <span class="px-2 py-1 rounded-full text-[10px] font-bold ${prod.allow_credit !== false ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'}">
+            ${prod.allow_credit !== false ? 'Disponible' : 'No disponible'}
           </span>
         </td>
         <td class="p-4 text-center space-x-2">
@@ -143,7 +181,6 @@ async function loadAdminOrders() {
   }
 }
 
-// CAMBIAR ESTADO DE PEDIDO EN SUPABASE
 async function updateOrderStatus(orderId, newStatus) {
   try {
     const { error } = await supabaseClient
@@ -160,7 +197,7 @@ async function updateOrderStatus(orderId, newStatus) {
   }
 }
 
-// 4. CARGAR SOLICITUDES DE CRÉDITO REALES DESDE 'CUPISSA_CREDITS'
+// 4. CARGAR SOLICITUDES DE CRÉDITO REALES
 async function loadAdminCredits() {
   const tbody = document.getElementById("adminCreditsTable");
   if (!tbody) return;
@@ -234,7 +271,6 @@ async function loadAdminCredits() {
   }
 }
 
-// CAMBIAR ESTADO DE CRÉDITO (APROBAR / RECHAZAR)
 async function changeCreditStatus(creditId, status) {
   try {
     const { error } = await supabaseClient
@@ -255,6 +291,7 @@ async function changeCreditStatus(creditId, status) {
 function openProductModal() {
   document.getElementById("productForm").reset();
   document.getElementById("prodId").value = "";
+  document.getElementById("prodExistingImageUrl").value = "";
   document.getElementById("productModalTitle").textContent = "Agregar Producto";
   document.getElementById("productModal").classList.remove("hidden");
 }
@@ -287,10 +324,11 @@ async function editProduct(id) {
     document.getElementById("prodTitle").value = data.title;
     document.getElementById("prodWorld").value = data.world;
     document.getElementById("prodCategory").value = data.category;
-    document.getElementById("prodImageUrl").value = data.image_url || "";
+    document.getElementById("prodExistingImageUrl").value = data.image_url || "";
     document.getElementById("prodDescription").value = data.description || "";
     document.getElementById("prodPrice").value = data.price;
     document.getElementById("prodAdvancePct").value = data.advance_pct || 50;
+    document.getElementById("prodAllowCredit").value = data.allow_credit !== false ? "true" : "false";
     document.getElementById("prodAllowRental").value = data.allow_rental ? "true" : "false";
 
     toggleRentalFieldsAdmin();
@@ -305,18 +343,56 @@ async function editProduct(id) {
   }
 }
 
+// FUNCIÓN PARA SUBIR IMAGEN DE PRODUCTO A SUPABASE STORAGE
+async function uploadProductImage(file) {
+  if (!file) return null;
+  const fileExt = file.name.split('.').pop();
+  const fileName = `product_${Date.now()}.${fileExt}`;
+  
+  const { data, error } = await supabaseClient.storage
+    .from('documents')
+    .upload(fileName, file);
+
+  if (error) {
+    console.error("Error al subir imagen:", error);
+    return null;
+  }
+
+  const { data: publicUrlData } = supabaseClient.storage
+    .from('documents')
+    .getPublicUrl(fileName);
+
+  return publicUrlData.publicUrl;
+}
+
 async function saveProduct(e) {
   e.preventDefault();
 
   const id = document.getElementById("prodId").value;
+  const imageFile = document.getElementById("prodImageFile").files[0];
+  let imageUrl = document.getElementById("prodExistingImageUrl").value;
+
+  if (imageFile) {
+    const uploadedUrl = await uploadProductImage(imageFile);
+    if (uploadedUrl) {
+      imageUrl = uploadedUrl;
+    }
+  }
+
+  if (!id && !imageUrl) {
+    alert("Por favor selecciona una imagen para el producto.");
+    return;
+  }
+
   const payload = {
     title: document.getElementById("prodTitle").value,
     world: document.getElementById("prodWorld").value,
     category: document.getElementById("prodCategory").value,
-    image_url: document.getElementById("prodImageUrl").value,
+    image_url: imageUrl,
     description: document.getElementById("prodDescription").value,
     price: Number(document.getElementById("prodPrice").value),
     advance_pct: Number(document.getElementById("prodAdvancePct").value),
+    allow_credit: document.getElementById("prodAllowCredit").value === "true",
     allow_rental: document.getElementById("prodAllowRental").value === "true",
     rental_deposit: Number(document.getElementById("prodRentalDeposit").value || 0),
     extra_hour_fee: Number(document.getElementById("prodExtraHourFee").value || 0),
