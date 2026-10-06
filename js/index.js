@@ -533,19 +533,21 @@ async function handleClientRegister(e) {
 
   try {
     const isEmail = contact.includes("@");
-    let signUpPayload = { password };
     
-    if (isEmail) {
-      signUpPayload.email = contact;
-    } else {
-      let phoneFormatted = contact.replace(/\s+/g, '');
-      if (!phoneFormatted.startsWith('+')) {
-        phoneFormatted = '+57' + phoneFormatted;
+    // Configuración robusta para el registro de Auth en Supabase
+    let authOptions = {
+      email: isEmail ? contact : `${contact.replace(/\D/g, '')}@cupissclient.com`,
+      password: password,
+      options: {
+        data: {
+          full_name: name,
+          cedula: cedula,
+          contact: contact
+        }
       }
-      signUpPayload.phone = phoneFormatted;
-    }
+    };
 
-    const { data, error } = await supabaseClient.auth.signUp(signUpPayload);
+    const { data, error } = await supabaseClient.auth.signUp(authOptions);
     if (error) throw error;
 
     currentUser = data.user || (data.session ? data.session.user : null);
@@ -562,7 +564,9 @@ async function handleClientRegister(e) {
           }
         ]);
 
-      if (profileError) console.error("Error al guardar perfil:", profileError);
+      if (profileError) {
+        console.error("Error al guardar perfil en tabla profiles:", profileError);
+      }
     }
 
     alert("¡Registro exitoso! Bienvenido/a a Cupissa.");
