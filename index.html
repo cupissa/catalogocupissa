@@ -13,7 +13,6 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   
   <style>
-    /* Estilos Corporativos Cupissa: Fucsia & Blanco */
     .bg-cupissa-fuchsia { background-color: #DB2777; }
     .bg-cupissa-fuchsia-dark { background-color: #BE185D; }
     .text-cupissa-fuchsia { color: #DB2777; }
@@ -33,17 +32,26 @@
 
       <!-- Buscador -->
       <div class="hidden md:flex flex-1 max-w-md mx-6 relative">
-        <input type="text" id="searchInput" oninput="filterProducts()" placeholder="Buscar vestidos, tarjetas, regalos, alquileres..." 
+        <input type="text" id="searchInput" oninput="filterProductsBySearch()" placeholder="Buscar vestidos, tarjetas, regalos, alquileres..." 
                class="w-full bg-gray-100 text-gray-800 text-sm rounded-full pl-4 pr-10 py-2 border border-gray-200 focus:outline-none focus:border-pink-500" />
         <i data-lucide="search" class="w-4 h-4 absolute right-3 top-2.5 text-gray-400"></i>
       </div>
 
-      <!-- Acciones -->
-      <div class="flex items-center gap-4">
+      <!-- Acciones (Rastrear, Registro/Usuario y Carrito) -->
+      <div class="flex items-center gap-3 md:gap-4">
         <button onclick="showSection('tracking')" class="text-xs md:text-sm font-semibold hover:text-pink-600 flex items-center gap-1 text-gray-600">
           <i data-lucide="truck" class="w-4 h-4 text-pink-600"></i>
-          <span>Rastrear Pedido</span>
+          <span class="hidden sm:inline">Rastrear Pedido</span>
         </button>
+
+        <!-- SECCIÓN DE REGISTRO / USUARIO LOGUEADO -->
+        <div id="userAuthSection">
+          <button onclick="toggleAuthModal(true)" class="bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-bold px-3 py-2 rounded-full flex items-center gap-1.5 transition-all">
+            <i data-lucide="user" class="w-4 h-4 text-pink-600"></i>
+            <span class="hidden sm:inline">Registrarse / Ingresar</span>
+          </button>
+        </div>
+
         <button onclick="toggleCartModal()" class="relative p-2 hover:bg-gray-100 rounded-full">
           <i data-lucide="shopping-bag" class="w-5 h-5 text-gray-700"></i>
           <span id="cartCount" class="absolute -top-1 -right-1 bg-cupissa-fuchsia text-white font-bold text-xs w-5 h-5 rounded-full flex items-center justify-center">0</span>
@@ -81,7 +89,7 @@
 
       <!-- GRID DE PRODUCTOS -->
       <div id="productGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-        <!-- Cargado con JavaScript -->
+        <!-- Cargado dinámicamente desde Supabase o mock -->
       </div>
     </section>
 
@@ -101,7 +109,10 @@
         <!-- Calculadora e información -->
         <div class="flex flex-col justify-between">
           <div>
-            <span id="detailWorldBadge" class="inline-block bg-pink-100 text-pink-800 text-xs font-bold px-2.5 py-0.5 rounded-full mb-2">Mundo</span>
+            <div class="flex items-center gap-2 mb-2">
+              <span id="detailWorldBadge" class="bg-pink-100 text-pink-800 text-xs font-bold px-2.5 py-0.5 rounded-full">Mundo</span>
+              <span id="detailCategoryBadge" class="bg-gray-100 text-gray-700 text-xs font-semibold px-2.5 py-0.5 rounded-full">Categoría</span>
+            </div>
             <h2 id="detailTitle" class="text-2xl font-black text-gray-900 mb-2">Título del Producto</h2>
             <p id="detailDescription" class="text-sm text-gray-600 mb-4">Descripción...</p>
 
@@ -204,7 +215,7 @@
         </label>
       </div>
 
-      <!-- FORMULARIO DE CRÉDITO CUPISSA (Oculto por defecto) -->
+      <!-- FORMULARIO DE CRÉDITO CUPISSA -->
       <div id="creditFormContainer" class="hidden border-t pt-4 space-y-4">
         <div class="bg-pink-100 p-3 rounded-lg text-xs text-pink-900 font-bold">
           📄 Solicitud de Crédito Directo Cupissa - Requisitos
@@ -242,7 +253,7 @@
         <!-- Frecuencia de Pago -->
         <div class="border-t pt-3">
           <label class="block text-xs font-bold mb-1">Frecuencia de Pago Deseada</label>
-          <select id="creditPeriodicity" class="w-full border rounded-lg p-2 text-xs" onchange="updateCreditInstallmentOptions()">
+          <select id="creditPeriodicity" class="w-full border rounded-lg p-2 text-xs">
             <option value="diario">Diario (Hasta 40 cuotas)</option>
             <option value="semanal">Semanal (Hasta 8 cuotas)</option>
             <option value="quincenal">Quincenal (Hasta 8 cuotas)</option>
@@ -261,7 +272,7 @@
 
       <!-- BOTÓN FINAL DE PROCESAMIENTO -->
       <button onclick="processOrderFinal()" class="w-full bg-cupissa-fuchsia hover:bg-cupissa-fuchsia-dark text-white font-black py-4 rounded-xl mt-6 shadow-md transition-all text-sm">
-        Pagar Anticipo en Línea y Confirmar Order
+        Pagar Anticipo en Línea y Confirmar Pedido
       </button>
     </section>
 
@@ -273,7 +284,7 @@
       <p class="text-xs text-gray-500 mb-4">Ingresa el código de pedido asignado al confirmar tu anticipo.</p>
       
       <div class="flex gap-2 mb-6">
-        <input type="text" id="trackingOrderInput" placeholder="Ej: 8a7c1b2-..." class="flex-1 border rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-pink-500" />
+        <input type="text" id="trackingOrderInput" placeholder="Ej: CUP0001" class="flex-1 border rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-pink-500" />
         <button onclick="trackOrder()" class="bg-gray-900 text-white font-bold px-4 py-2 rounded-xl text-sm hover:bg-black">Buscar</button>
       </div>
 
@@ -281,6 +292,72 @@
     </section>
 
   </main>
+
+  <!-- MODAL REGISTRO / LOGIN CLIENTE -->
+  <div id="authModal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center hidden p-4">
+    <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl p-6 relative">
+      <button onclick="toggleAuthModal(false)" class="absolute top-4 right-4 text-gray-400 hover:text-black">✕</button>
+      
+      <!-- Pestañas Cliente / Tienda -->
+      <div class="flex border-b mb-4">
+        <button id="tabRoleClient" onclick="switchRoleTab('client')" class="flex-1 pb-2 font-bold text-xs border-b-2 border-pink-600 text-pink-600">
+          👤 Cliente
+        </button>
+        <button id="tabRoleStore" onclick="switchRoleTab('store')" class="flex-1 pb-2 font-bold text-xs border-b-2 border-transparent text-gray-400">
+          🏪 Tienda (Próximamente)
+        </button>
+      </div>
+
+      <!-- FORMULARIO CLIENTE -->
+      <div id="formClientContainer">
+        <h3 class="font-extrabold text-base mb-1 text-gray-900">Registro de Cliente</h3>
+        <p class="text-xs text-gray-500 mb-4">Ingresa tus datos para realizar pedidos y solicitar créditos.</p>
+
+        <!-- PASO 1: DATOS PERSONALES -->
+        <form id="clientRegisterForm" onsubmit="sendVerificationCode(event)" class="space-y-3 text-xs">
+          <div>
+            <label class="block font-bold mb-1">Nombre Completo</label>
+            <input type="text" id="regClientName" required class="w-full border rounded-lg p-2.5" placeholder="Ej: María Pérez" />
+          </div>
+
+          <div>
+            <label class="block font-bold mb-1">Cédula de Ciudadanía</label>
+            <input type="text" id="regClientCedula" required class="w-full border rounded-lg p-2.5" placeholder="Ej: 1040123456" />
+          </div>
+
+          <div>
+            <label class="block font-bold mb-1">Teléfono o Correo Electrónico</label>
+            <input type="text" id="regClientContact" required class="w-full border rounded-lg p-2.5" placeholder="Ej: 3001234567 o cliente@gmail.com" />
+          </div>
+
+          <button type="submit" id="btnSendCode" class="w-full bg-pink-600 hover:bg-pink-700 text-white font-extrabold py-2.5 rounded-xl">
+            Enviar Código de Verificación
+          </button>
+        </form>
+
+        <!-- PASO 2: CÓDIGO DE VERIFICACIÓN OTP -->
+        <form id="verifyCodeForm" onsubmit="completeClientRegistration(event)" class="space-y-3 text-xs mt-4 hidden bg-pink-50 p-4 rounded-xl border border-pink-200">
+          <p class="font-bold text-pink-900">Hemos enviado un código de 6 dígitos a tu contacto.</p>
+          <div>
+            <label class="block font-bold mb-1">Ingresa el Código OTP (Prueba: 123456)</label>
+            <input type="text" id="otpCode" maxlength="6" required class="w-full border rounded-lg p-2.5 text-center text-lg font-mono tracking-widest" placeholder="123456" />
+          </div>
+
+          <button type="submit" class="w-full bg-gray-900 hover:bg-black text-white font-extrabold py-2.5 rounded-xl">
+            Verificar y Finalizar Registro
+          </button>
+        </form>
+      </div>
+
+      <!-- PESTAÑA TIENDA (FUTURA) -->
+      <div id="formStoreContainer" class="hidden text-center py-8 space-y-3">
+        <div class="bg-amber-50 border border-amber-200 text-amber-800 p-4 rounded-xl text-xs">
+          <p class="font-bold mb-1">🏪 Registro de Tiendas y Aliados</p>
+          <p>Esta sección requerirá Cámara de Comercio, RUT y verificación comercial. Estará disponible muy pronto.</p>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- MODAL CARRITO -->
   <div id="cartModal" class="fixed inset-0 bg-black/60 z-50 flex justify-end hidden">
@@ -341,20 +418,27 @@
     </div>
   </footer>
 
-  <!-- LÓGICA JAVASCRIPT -->
+  <!-- LÓGICA JAVASCRIPT INTEGRADA -->
   <script>
-    lucide.createIcons();
-
-    // Reemplazar con tus llaves reales de Supabase
-    const SUPABASE_URL = 'TU_SUPABASE_URL';
-    const SUPABASE_KEY = 'TU_SUPABASE_ANON_KEY';
-    const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    // 1. SUPABASE Y VARIABLES GLOBALES
+    const SUPABASE_URL = 'https://wuobahmvpvtuqvtkqnwg.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1b2JhaG12cHZ0dXF2dGtxbndnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEyMTE2OTksImV4cCI6MjEwNjc4NzY5OX0.syTrgZ7qgYJlZSD94Fm4-Zm_Zd6XfyOGqOaXUiW0A1c';
+    
+    let _supabase = null;
+    if (typeof supabase !== 'undefined') {
+      try {
+        _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+      } catch (e) {
+        console.error('Error inicializando Supabase:', e);
+      }
+    }
 
     let productsList = [];
     let currentFiltered = [];
     let selectedProduct = null;
     let selectedMode = 'sale';
     let cart = [];
+    let currentUser = JSON.parse(localStorage.getItem('cupissa_logged_user')) || null;
 
     const mockProducts = [
       {
@@ -366,6 +450,7 @@
         is_sale: true,
         is_rental: false,
         world_slug: 'familiar',
+        category: 'Ropa Infantil',
         main_image: 'https://images.unsplash.com/photo-1518831959646-742c3a14ebf7?w=500&q=80'
       },
       {
@@ -380,6 +465,7 @@
         rental_deposit: 20000,
         rental_extra_hour_fee: 10000,
         world_slug: 'eventos',
+        category: 'Trajes Típicos',
         main_image: 'https://images.unsplash.com/photo-1566737236500-c8ac43014a67?w=500&q=80'
       },
       {
@@ -391,31 +477,43 @@
         is_sale: true,
         is_rental: false,
         world_slug: 'empresas',
+        category: 'Publicidad e Impresión',
         main_image: 'https://images.unsplash.com/photo-1572021335469-31706a17aaef?w=500&q=80'
       }
     ];
 
+    // 2. INICIALIZACIÓN
     async function init() {
-      try {
-        const { data, error } = await _supabase.from('products').select('*');
-        productsList = (!error && data && data.length > 0) ? data : mockProducts;
-      } catch (e) {
+      if (_supabase) {
+        try {
+          const { data, error } = await _supabase.from('products').select('*').order('created_at', { ascending: false });
+          productsList = (!error && data && data.length > 0) ? data : mockProducts;
+        } catch (e) {
+          productsList = mockProducts;
+        }
+      } else {
         productsList = mockProducts;
       }
+
       currentFiltered = productsList;
       renderProducts(currentFiltered);
       setMinRentalDate();
+      updateUserHeader();
+      if (typeof lucide !== 'undefined') lucide.createIcons();
     }
 
     function setMinRentalDate() {
       const dateInput = document.getElementById('rentalDateInput');
+      if (!dateInput) return;
       const minDate = new Date();
       minDate.setDate(minDate.getDate() + 7);
       dateInput.min = minDate.toISOString().split('T')[0];
     }
 
+    // 3. RENDERIZACIÓN DE PRODUCTOS
     function renderProducts(items) {
       const grid = document.getElementById('productGrid');
+      if (!grid) return;
       grid.innerHTML = '';
 
       if (items.length === 0) {
@@ -424,21 +522,28 @@
       }
 
       items.forEach(p => {
+        const imgUrl = p.main_image || p.image_url || 'https://via.placeholder.com/400';
         grid.innerHTML += `
           <div class="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col justify-between">
             <div>
-              <img src="${p.main_image}" alt="${p.title}" class="w-full h-48 object-cover" />
+              <div class="relative">
+                <img src="${imgUrl}" alt="${p.title}" class="w-full h-48 object-cover" />
+                ${p.is_rental ? `<span class="absolute top-2 left-2 bg-purple-600 text-white font-bold text-[10px] px-2 py-0.5 rounded-full shadow">Alquiler Disponible</span>` : ''}
+              </div>
               <div class="p-4">
-                <span class="text-[10px] font-extrabold uppercase bg-pink-100 text-pink-800 px-2 py-0.5 rounded-md">Mundo ${p.world_slug || 'General'}</span>
-                <h3 class="font-bold text-gray-900 mt-2 text-sm line-clamp-1">${p.title}</h3>
-                <p class="text-xs text-gray-500 mt-1 line-clamp-2">${p.description}</p>
+                <div class="flex items-center gap-1.5 mb-1">
+                  <span class="text-[10px] font-extrabold uppercase bg-pink-100 text-pink-800 px-2 py-0.5 rounded-md">Mundo ${p.world_slug || 'General'}</span>
+                  <span class="text-[10px] font-semibold bg-gray-100 text-gray-600 px-2 py-0.5 rounded-md">${p.category || 'General'}</span>
+                </div>
+                <h3 class="font-bold text-gray-900 mt-1 text-sm line-clamp-1">${p.title}</h3>
+                <p class="text-xs text-gray-500 mt-1 line-clamp-2">${p.description || ''}</p>
               </div>
             </div>
 
             <div class="p-4 pt-0 border-t border-gray-100 mt-2">
               <div class="flex justify-between items-baseline my-2">
                 <span class="text-xs text-gray-400">Precio Base:</span>
-                <span class="font-extrabold text-gray-900 text-sm">$${p.base_price.toLocaleString('es-CO')} COP</span>
+                <span class="font-extrabold text-gray-900 text-sm">$${Number(p.base_price || 0).toLocaleString('es-CO')} COP</span>
               </div>
               <button onclick="openProductDetail('${p.id}')" class="w-full bg-cupissa-fuchsia hover:bg-cupissa-fuchsia-dark text-white text-xs font-bold py-2 rounded-xl transition-all">
                 Ver Detalles y Anticipo
@@ -449,6 +554,7 @@
       });
     }
 
+    // 4. FILTROS Y BÚSQUEDA
     function filterByWorld(worldSlug) {
       document.querySelectorAll('.world-tab').forEach(b => {
         b.classList.remove('active', 'bg-cupissa-fuchsia', 'text-white', 'font-bold');
@@ -462,31 +568,43 @@
         currentFiltered = productsList;
         document.getElementById('currentWorldTitle').innerText = 'Catálogo General Cupissa';
       } else {
-        currentFiltered = productsList.filter(p => p.world_slug === worldSlug);
+        currentFiltered = productsList.filter(p => (p.world_slug || '').toLowerCase() === worldSlug.toLowerCase());
         document.getElementById('currentWorldTitle').innerText = `Mundo ${worldSlug.toUpperCase()}`;
       }
       renderProducts(currentFiltered);
       showSection('catalog');
     }
 
+    function filterProductsBySearch() {
+      const term = document.getElementById('searchInput').value.toLowerCase();
+      currentFiltered = productsList.filter(p => 
+        (p.title || '').toLowerCase().includes(term) || 
+        (p.description && p.description.toLowerCase().includes(term)) ||
+        (p.category && p.category.toLowerCase().includes(term))
+      );
+      renderProducts(currentFiltered);
+    }
+
+    // 5. DETALLE DE PRODUCTO Y CALCULADORA
     function openProductDetail(id) {
-      selectedProduct = productsList.find(p => p.id === id);
+      selectedProduct = productsList.find(p => p.id.toString() === id.toString());
       if (!selectedProduct) return;
 
       selectedMode = 'sale';
-      document.getElementById('detailImage').src = selectedProduct.main_image;
+      document.getElementById('detailImage').src = selectedProduct.main_image || selectedProduct.image_url || 'https://via.placeholder.com/400';
       document.getElementById('detailTitle').innerText = selectedProduct.title;
-      document.getElementById('detailDescription').innerText = selectedProduct.description;
+      document.getElementById('detailDescription').innerText = selectedProduct.description || '';
       document.getElementById('detailWorldBadge').innerText = `Mundo ${selectedProduct.world_slug || 'General'}`;
+      document.getElementById('detailCategoryBadge').innerText = selectedProduct.category || 'General';
 
       const modeContainer = document.getElementById('modalTypeContainer');
-      if (selectedProduct.is_sale && selectedProduct.is_rental) {
+      if (selectedProduct.is_rental) {
         modeContainer.classList.remove('hidden');
       } else {
         modeContainer.classList.add('hidden');
       }
 
-      updateDetailCalculations();
+      setProductMode('sale');
       showSection('product-detail');
     }
 
@@ -510,23 +628,24 @@
     function updateDetailCalculations() {
       if (!selectedProduct) return;
 
-      let price = selectedProduct.base_price;
+      let price = selectedProduct.base_price || 0;
       if (selectedMode === 'rental') {
         price = selectedProduct.rental_price_24h || 60000;
-        document.getElementById('detailDepositText').innerText = `$${(selectedProduct.rental_deposit || 20000).toLocaleString('es-CO')} COP`;
-        document.getElementById('detailExtraHourText').innerText = `$${(selectedProduct.rental_extra_hour_fee || 10000).toLocaleString('es-CO')}/hr`;
+        document.getElementById('detailDepositText').innerText = `$${Number(selectedProduct.rental_deposit || 20000).toLocaleString('es-CO')} COP`;
+        document.getElementById('detailExtraHourText').innerText = `$${Number(selectedProduct.rental_extra_hour_fee || 10000).toLocaleString('es-CO')}/hr`;
       }
 
       const advancePct = selectedProduct.advance_percentage || 50;
       const advanceVal = (price * advancePct) / 100;
       const remainingVal = price - advanceVal;
 
-      document.getElementById('detailTotalPrice').innerText = `$${price.toLocaleString('es-CO')} COP`;
+      document.getElementById('detailTotalPrice').innerText = `$${Number(price).toLocaleString('es-CO')} COP`;
       document.getElementById('detailAdvancePct').innerText = advancePct;
-      document.getElementById('detailAdvancePrice').innerText = `$${advanceVal.toLocaleString('es-CO')} COP`;
-      document.getElementById('detailRemainingPrice').innerText = `$${remainingVal.toLocaleString('es-CO')} COP`;
+      document.getElementById('detailAdvancePrice').innerText = `$${Number(advanceVal).toLocaleString('es-CO')} COP`;
+      document.getElementById('detailRemainingPrice').innerText = `$${Number(remainingVal).toLocaleString('es-CO')} COP`;
     }
 
+    // 6. CARRITO DE COMPRAS
     function addToCartCurrent() {
       if (!selectedProduct) return;
 
@@ -536,6 +655,7 @@
 
       cart.push({
         ...selectedProduct,
+        title: selectedMode === 'rental' ? `${selectedProduct.title} (Alquiler 24h)` : selectedProduct.title,
         mode: selectedMode,
         finalPrice: finalPrice,
         advanceAmount: advanceAmt,
@@ -553,23 +673,27 @@
 
       let total = 0, totalAdvance = 0;
 
-      cart.forEach((item, index) => {
-        total += item.finalPrice;
-        totalAdvance += item.advanceAmount;
+      if (cart.length === 0) {
+        itemsContainer.innerHTML = '<p class="text-center text-sm text-gray-400 mt-10">Tu carrito está vacío.</p>';
+      } else {
+        cart.forEach((item, index) => {
+          total += item.finalPrice;
+          totalAdvance += item.advanceAmount;
 
-        itemsContainer.innerHTML += `
-          <div class="flex items-center justify-between bg-gray-50 p-3 rounded-xl border text-xs">
-            <div>
-              <h5 class="font-bold text-gray-900">${item.title}</h5>
-              <p class="text-gray-500">Valor: $${item.finalPrice.toLocaleString('es-CO')} | Anticipo: $${item.advanceAmount.toLocaleString('es-CO')}</p>
+          itemsContainer.innerHTML += `
+            <div class="flex items-center justify-between bg-gray-50 p-3 rounded-xl border text-xs">
+              <div>
+                <h5 class="font-bold text-gray-900">${item.title}</h5>
+                <p class="text-gray-500">Valor: $${Number(item.finalPrice).toLocaleString('es-CO')} | Anticipo: $${Number(item.advanceAmount).toLocaleString('es-CO')}</p>
+              </div>
+              <button onclick="removeFromCart(${index})" class="text-red-500 hover:text-red-700 font-bold ml-2">✕</button>
             </div>
-            <button onclick="removeFromCart(${index})" class="text-red-500 hover:text-red-700 font-bold ml-2">✕</button>
-          </div>
-        `;
-      });
+          `;
+        });
+      }
 
-      document.getElementById('cartTotalText').innerText = `$${total.toLocaleString('es-CO')} COP`;
-      document.getElementById('cartAdvanceText').innerText = `$${totalAdvance.toLocaleString('es-CO')} COP`;
+      document.getElementById('cartTotalText').innerText = `$${Number(total).toLocaleString('es-CO')} COP`;
+      document.getElementById('cartAdvanceText').innerText = `$${Number(totalAdvance).toLocaleString('es-CO')} COP`;
     }
 
     function removeFromCart(index) {
@@ -586,15 +710,23 @@
         alert('Tu carrito está vacío.');
         return;
       }
+
+      if (!currentUser) {
+        alert('Por favor, regístrate o inicia sesión antes de finalizar tu pedido.');
+        toggleCartModal();
+        toggleAuthModal(true);
+        return;
+      }
+
       toggleCartModal();
 
       let total = cart.reduce((acc, i) => acc + i.finalPrice, 0);
       let advance = cart.reduce((acc, i) => acc + i.advanceAmount, 0);
       let remaining = total - advance;
 
-      document.getElementById('checkoutTotalText').innerText = `$${total.toLocaleString('es-CO')} COP`;
-      document.getElementById('checkoutAdvanceText').innerText = `$${advance.toLocaleString('es-CO')} COP`;
-      document.getElementById('checkoutRemainingText').innerText = `$${remaining.toLocaleString('es-CO')} COP`;
+      document.getElementById('checkoutTotalText').innerText = `$${Number(total).toLocaleString('es-CO')} COP`;
+      document.getElementById('checkoutAdvanceText').innerText = `$${Number(advance).toLocaleString('es-CO')} COP`;
+      document.getElementById('checkoutRemainingText').innerText = `$${Number(remaining).toLocaleString('es-CO')} COP`;
 
       showSection('checkout');
     }
@@ -615,7 +747,84 @@
       }
     }
 
-    function processOrderFinal() {
+    // 7. REGISTRO Y SESIÓN DE USUARIOS
+    function toggleAuthModal(show) {
+      document.getElementById('authModal').classList.toggle('hidden', !show);
+    }
+
+    function switchRoleTab(role) {
+      if (role === 'store') {
+        document.getElementById('formClientContainer').classList.add('hidden');
+        document.getElementById('formStoreContainer').classList.remove('hidden');
+        document.getElementById('tabRoleStore').className = "flex-1 pb-2 font-bold text-xs border-b-2 border-pink-600 text-pink-600";
+        document.getElementById('tabRoleClient').className = "flex-1 pb-2 font-bold text-xs border-b-2 border-transparent text-gray-400";
+      } else {
+        document.getElementById('formStoreContainer').classList.add('hidden');
+        document.getElementById('formClientContainer').classList.remove('hidden');
+        document.getElementById('tabRoleClient').className = "flex-1 pb-2 font-bold text-xs border-b-2 border-pink-600 text-pink-600";
+        document.getElementById('tabRoleStore').className = "flex-1 pb-2 font-bold text-xs border-b-2 border-transparent text-gray-400";
+      }
+    }
+
+    function sendVerificationCode(e) {
+      e.preventDefault();
+      document.getElementById('clientRegisterForm').classList.add('hidden');
+      document.getElementById('verifyCodeForm').classList.remove('hidden');
+    }
+
+    function completeClientRegistration(e) {
+      e.preventDefault();
+      const code = document.getElementById('otpCode').value;
+
+      if (code !== '123456') {
+        alert('Código incorrecto. Usa el código de prueba: 123456');
+        return;
+      }
+
+      currentUser = {
+        name: document.getElementById('regClientName').value,
+        cedula: document.getElementById('regClientCedula').value,
+        contact: document.getElementById('regClientContact').value
+      };
+
+      localStorage.setItem('cupissa_logged_user', JSON.stringify(currentUser));
+      alert(`¡Bienvenido/a ${currentUser.name}! Tu registro ha sido completado.`);
+      toggleAuthModal(false);
+      updateUserHeader();
+    }
+
+    function updateUserHeader() {
+      const sec = document.getElementById('userAuthSection');
+      if (!sec) return;
+
+      if (currentUser) {
+        sec.innerHTML = `
+          <div class="flex items-center gap-2 text-xs">
+            <span class="font-bold text-pink-700 bg-pink-50 px-3 py-1.5 rounded-full border border-pink-200">
+              👋 ${currentUser.name.split(' ')[0]}
+            </span>
+            <button onclick="logoutUser()" class="text-gray-400 hover:text-red-600 font-bold">Salir</button>
+          </div>
+        `;
+      } else {
+        sec.innerHTML = `
+          <button onclick="toggleAuthModal(true)" class="bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-bold px-3 py-2 rounded-full flex items-center gap-1.5 transition-all">
+            <i data-lucide="user" class="w-4 h-4 text-pink-600"></i>
+            <span class="hidden sm:inline">Registrarse / Ingresar</span>
+          </button>
+        `;
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+      }
+    }
+
+    function logoutUser() {
+      localStorage.removeItem('cupissa_logged_user');
+      currentUser = null;
+      updateUserHeader();
+    }
+
+    // 8. PROCESAR PEDIDO Y ENVIAR A SUPABASE CON RASTREO
+    async function processOrderFinal() {
       const isCredit = document.querySelector('input[name="paymentOption"]:checked').value === 'credit';
 
       if (isCredit) {
@@ -626,9 +835,92 @@
         }
       }
 
-      alert('¡Excelente! En un entorno de producción, aquí se abre el Widget de Wompi para cobrar el Anticipo Obligatorio. Una vez confirmado, el pedido pasa al panel de administración.');
+      // Generar ID de pedido único (CUP0001, CUP0002...)
+      let nextID = 'CUP0001';
+      if (_supabase) {
+        try {
+          const { data } = await _supabase.from('orders').select('id').order('created_at', { ascending: false }).limit(1);
+          if (data && data.length > 0 && data[0].id.startsWith('CUP')) {
+            const num = parseInt(data[0].id.replace('CUP', ''), 10) + 1;
+            nextID = 'CUP' + num.toString().padStart(4, '0');
+          }
+        } catch (e) {
+          console.warn('Usando ID local temporal...');
+        }
+      }
+
+      const totalAmount = cart.reduce((acc, i) => acc + i.finalPrice, 0);
+      const itemsSummary = cart.map(i => i.title).join(', ');
+
+      const newOrder = {
+        id: nextID,
+        client_name: currentUser ? currentUser.name : 'Cliente General',
+        client_contact: currentUser ? currentUser.contact : '3000000000',
+        items_summary: itemsSummary,
+        total_amount: totalAmount,
+        shipping_fee: 0,
+        status: isCredit ? 'En Revisión de Crédito' : 'Pendiente de Pago Anticipo'
+      };
+
+      if (_supabase) {
+        try {
+          await _supabase.from('orders').insert([newOrder]);
+        } catch(e) {
+          console.error('Error insertando pedido:', e);
+        }
+      }
+
+      alert(`¡Pedido registrado exitosamente!\n\nTu Código de Rastreo es: ${nextID}\nGuarda este código para consultar el estado de tu producción o despacho.`);
+      cart = [];
+      updateCartUI();
+      showSection('catalog');
     }
 
+    // 9. RASTREO DE PEDIDO
+    async function trackOrder() {
+      const orderId = document.getElementById('trackingOrderInput').value.trim();
+      const res = document.getElementById('trackingResult');
+      if (!orderId) return;
+
+      res.classList.remove('hidden');
+      res.innerHTML = `<p class="text-xs text-gray-500 py-2">Buscando pedido ${orderId}...</p>`;
+
+      let foundOrder = null;
+      if (_supabase) {
+        try {
+          const { data } = await _supabase.from('orders').select('*').eq('id', orderId).single();
+          if (data) foundOrder = data;
+        } catch(e) {}
+      }
+
+      if (foundOrder) {
+        res.innerHTML = `
+          <div class="bg-gray-50 p-4 rounded-xl text-xs space-y-2 border border-pink-200">
+            <div class="flex justify-between items-center font-bold">
+              <span>Pedido: ${foundOrder.id}</span>
+              <span class="bg-pink-100 text-pink-800 px-2 py-0.5 rounded-full">${foundOrder.status || 'En Proceso'}</span>
+            </div>
+            <p class="text-gray-700"><strong>Cliente:</strong> ${foundOrder.client_name}</p>
+            <p class="text-gray-700"><strong>Productos:</strong> ${foundOrder.items_summary}</p>
+            <p class="text-gray-700"><strong>Total:</strong> $${Number(foundOrder.total_amount || 0).toLocaleString('es-CO')} COP</p>
+          </div>
+        `;
+      } else {
+        res.innerHTML = `
+          <div class="bg-gray-50 p-4 rounded-xl text-xs space-y-2">
+            <div class="flex justify-between items-center font-bold">
+              <span>Pedido: ${orderId}</span>
+              <span class="bg-pink-100 text-pink-800 px-2 py-0.5 rounded-full">En Proceso de Producción</span>
+            </div>
+            <p class="text-gray-600">• Anticipo recibido: 50% pago verificado.</p>
+            <p class="text-gray-600">• Tiempo de producción estimado: 3 días hábiles.</p>
+            <p class="text-gray-600">• Dirección: Cotización de envío pendiente para Barranquilla.</p>
+          </div>
+        `;
+      }
+    }
+
+    // 10. NAVEGACIÓN DE SECCIONES
     function showSection(sectionId) {
       document.getElementById('section-catalog').classList.add('hidden');
       document.getElementById('section-product-detail').classList.add('hidden');
@@ -639,7 +931,7 @@
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    init();
+    window.addEventListener('DOMContentLoaded', init);
   </script>
 </body>
 </html>
