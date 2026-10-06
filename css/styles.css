@@ -1,0 +1,68 @@
+/* ==========================================
+   CUPISSA STUDIO - ESTILOS PERSONALIZADOS
+   ========================================== */
+
+/* Colores de marca */
+:root {
+  --cupissa-fuchsia: #db2777;
+  --cupissa-fuchsia-dark: #be185d;
+}
+
+/* Clases de Utilidad de Marca */
+.text-cupissa-fuchsia {
+  color: var(--cupissa-fuchsia);
+}
+
+.bg-cupissa-fuchsia {
+  background-color: var(--cupissa-fuchsia);
+}
+
+.bg-cupissa-fuchsia:hover {
+  background-color: var(--cupissa-fuchsia-dark);
+}
+
+/* Transiciones suaves en la navegacion */
+.world-tab {
+  transition: all 0.2s ease-in-out;
+}
+
+.world-tab.active {
+  background-color: var(--cupissa-fuchsia) !important;
+  color: #ffffff !important;
+  font-weight: 700;
+}
+
+/* Scrollbar personalizable para listas y modales */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Animación ligera para apertura de modales */
+.modal-fade-in {
+  animation: fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
