@@ -481,43 +481,79 @@ function switchRoleTab(role) {
 // ENVIAR CÓDIGO OTP REAL (EMAIL O TELÉFONO)
 let pendingRegisterData = {};
 
-async function sendVerificationCode(e) {
-  e.preventDefault();
-  
-  const contact = document.getElementById("regClientContact").value.trim();
-  const name = document.getElementById("regClientName").value.trim();
-  const cedula = document.getElementById("regClientCedula").value.trim();
+// ENVIAR CÓDIGO OTP (Email o Teléfono)
+async function sendVerificationCode(event) {
+    if (event) event.preventDefault();
+    
+    const nameInput = document.getElementById('regClientName');
+    const cedulaInput = document.getElementById('regClientCedula');
+    const contactInput = document.getElementById('regClientContact');
+    const btnSend = document.getElementById('btnSendCode');
 
-  pendingRegisterData = { name, cedula, contact };
-  const btn = document.getElementById("btnSendCode");
+    const name = nameInput ? nameInput.value.trim() : '';
+    const cedula = cedulaInput ? cedulaInput.value.trim() : '';
+    const contact = contactInput ? contactInput.value.trim() : '';
 
-  btn.disabled = true;
-  btn.textContent = "Enviando Código...";
-
-  try {
-    const isEmail = contact.includes("@");
-    let error;
-
-    if (isEmail) {
-      const res = await supabaseClient.auth.signInWithOtp({ email: contact });
-      error = res.error;
-    } else {
-      const res = await supabaseClient.auth.signInWithOtp({ phone: contact });
-      error = res.error;
+    if (!name || !cedula || !contact) {
+        alert('Por favor completa todos los campos obligatorios.');
+        return;
     }
 
-    if (error) throw error;
+    // Guardar datos temporales para cuando verifique el código
+    window.tempRegistrationData = { name, cedula, contact };
 
-    alert("Se ha enviado el código de verificación OTP a tu contacto.");
-    document.getElementById("clientRegisterForm").classList.add("hidden");
-    document.getElementById("verifyCodeForm").classList.remove("hidden");
-  } catch (err) {
-    console.error("Error al enviar OTP:", err);
-    alert("Error al enviar el código OTP: " + (err.message || "Verifica el contacto ingresado."));
-  } finally {
-    btn.disabled = false;
-    btn.textContent = "Enviar Código de Verificación";
-  }
+    if (btnSend) {
+        btnSend.disabled = true;
+        btnSend.innerText = 'Enviando Código...';
+    }
+
+    try {
+        const isEmail = contact.includes('@');
+
+        if (isEmail) {
+            // Envío por correo electrónico
+            const { data, error } = await supabaseClient.auth.signInWithOtp({
+                email: contact,
+                options: {
+                    shouldCreateUser: true
+                }
+            });
+
+            if (error) throw error;
+
+            alert(`¡Código enviado a ${contact}! Revisa tu bandeja de entrada o spam.`);
+        } else {
+            // Envío por teléfono (requiere formato internacional E.164, ej: +573001234567)
+            let formattedPhone = contact.replace(/\s+/g, '');
+            if (!formattedPhone.startsWith('+')) {
+                formattedPhone = '+57' + formattedPhone; // Ajusta el prefijo de tu país si es necesario
+            }
+
+            const { data, error } = await supabaseClient.auth.signInWithOtp({
+                phone: formattedPhone
+            });
+
+            if (error) throw error;
+
+            alert(`¡Código enviado por SMS a ${formattedPhone}!`);
+        }
+
+        // Mostrar formulario de verificación de código OTP
+        const regForm = document.getElementById('clientRegisterForm');
+        const verifyForm = document.getElementById('verifyCodeForm');
+
+        if (regForm) regForm.classList.add('hidden');
+        if (verifyForm) verifyForm.classList.remove('hidden');
+
+    } catch (err) {
+        console.error('Error enviando OTP:', err);
+        alert('Error al enviar el código OTP: ' + (err.message || err.error_description || 'Verifica los datos e intenta de nuevo.'));
+    } finally {
+        if (btnSend) {
+            btnSend.disabled = false;
+            btnSend.innerText = 'Enviar Código...';
+        }
+    }
 }
 
 // VERIFICAR CÓDIGO OTP Y CREAR PERFIL EN TABLA 'PROFILES'
