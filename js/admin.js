@@ -197,7 +197,7 @@ async function updateOrderStatus(orderId, newStatus) {
   }
 }
 
-// 4. CARGAR SOLICITUDES DE CRÉDITO REALES
+// 4. CARGAR SOLICITUDES DE CRÉDITO REALES DESDE LA TABLA 'CUPISSA_CREDITS'
 async function loadAdminCredits() {
   const tbody = document.getElementById("adminCreditsTable");
   if (!tbody) return;
