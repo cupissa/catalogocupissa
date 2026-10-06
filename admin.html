@@ -248,18 +248,18 @@
   </div>
 
   <script>
- // CONFIGURACIÓN DE SUPABASE
-const SUPABASE_URL = 'https://wuobahmvpvtuqvtkqnwg.supabase.co'; 
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1b2JhaG12cHZ0dXF2dGtxbndnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEyMTE2OTksImV4cCI6MjEwNjc4NzY5OX0.syTrgZ7qgYJlZSD94Fm4-Zm_Zd6XfyOGqOaXUiW0A1c';
+    // CONFIGURACIÓN DE SUPABASE
+    const SUPABASE_URL = 'https://wuobahmvpvtuqvtkqnwg.supabase.co'; 
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1b2JhaG12cHZ0dXF2dGtxbndnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEyMTE2OTksImV4cCI6MjEwNjc4NzY5OX0.syTrgZ7qgYJlZSD94Fm4-Zm_Zd6XfyOGqOaXUiW0A1c';
 
-let _supabase = null;
-if (typeof supabase !== 'undefined') {
-  try {
-    _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-  } catch(e) {
-    console.error('Error al inicializar Supabase:', e);
-  }
-}
+    let _supabase = null;
+    if (typeof supabase !== 'undefined') {
+      try {
+        _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+      } catch(e) {
+        console.error('Error al inicializar Supabase:', e);
+      }
+    }
 
     let adminProducts = [];
     let adminCredits = [];
@@ -282,7 +282,7 @@ if (typeof supabase !== 'undefined') {
       return 'CUP' + nextNum.toString().padStart(4, '0');
     }
 
-    // 3. CARGA DIRECTA Y OBLIGATORIA DESDE SUPABASE
+    // 3. CARGA DIRECTA DESDE SUPABASE REAL
     async function loadDataFromSupabase() {
       if (!_supabase) {
         console.warn('Supabase no configurado.');
@@ -292,8 +292,11 @@ if (typeof supabase !== 'undefined') {
       // Cargar Catálogo de Productos
       try {
         const { data, error } = await _supabase.from('products').select('*').order('created_at', { ascending: false });
-        if (error) throw error;
-        adminProducts = data || [];
+        if (!error && data) {
+          adminProducts = data;
+        } else {
+          adminProducts = [];
+        }
         renderProductsTable();
       } catch (err) {
         console.error('Error leyendo tabla products:', err.message);
@@ -305,9 +308,7 @@ if (typeof supabase !== 'undefined') {
         if (!error && data) {
           adminOrders = data;
         } else {
-          adminOrders = [
-            { id: 'CUP0001', client_name: 'María Pérez', items_summary: '1x Vestido Típico Marimonda', total_amount: 180000, shipping_fee: 12000, status: 'En Preparación' }
-          ];
+          adminOrders = [];
         }
         renderOrdersTable();
       } catch (err) {
@@ -320,20 +321,7 @@ if (typeof supabase !== 'undefined') {
         if (!error && data) {
           adminCredits = data;
         } else {
-          adminCredits = [
-            {
-              id: 'CRD-101',
-              client_name: 'Carlos Mendoza',
-              phone: '3009876543',
-              financed_amount: 240000,
-              items_detail: '2x Disfraces Infantiles + Tocado',
-              periodicity: 'quincenal',
-              installments: 4,
-              ref1: 'Laura Gómez (3011112233)',
-              ref2: 'Andrés Mendoza (3022223344)',
-              status: 'en_revision'
-            }
-          ];
+          adminCredits = [];
         }
         renderCreditsCards();
       } catch (err) {
@@ -453,8 +441,7 @@ if (typeof supabase !== 'undefined') {
         if (error) console.warn('Aviso guardado pedido:', error.message);
       }
 
-      adminOrders.unshift(newOrder);
-      renderOrdersTable();
+      await loadDataFromSupabase();
       alert(`Pedido registrado con ID de Rastreo: ${nextID}`);
     }
 
@@ -464,9 +451,7 @@ if (typeof supabase !== 'undefined') {
         if (_supabase) {
           await _supabase.from('orders').update({ status: newStatus }).eq('id', orderId);
         }
-        const order = adminOrders.find(o => (o.id || o.order_id) === orderId);
-        if (order) order.status = newStatus;
-        renderOrdersTable();
+        await loadDataFromSupabase();
       }
     }
 
@@ -477,12 +462,7 @@ if (typeof supabase !== 'undefined') {
         if (_supabase) {
           await _supabase.from('orders').update({ shipping_fee: parsedFee, status: 'Envío Cotizado' }).eq('id', orderId);
         }
-        const order = adminOrders.find(o => (o.id || o.order_id) === orderId);
-        if (order) {
-          order.shipping_fee = parsedFee;
-          order.status = 'Envío Cotizado';
-        }
-        renderOrdersTable();
+        await loadDataFromSupabase();
       }
     }
 
@@ -490,9 +470,7 @@ if (typeof supabase !== 'undefined') {
       if (_supabase) {
         await _supabase.from('credit_applications').update({ status: status }).eq('id', creditId);
       }
-      const cred = adminCredits.find(c => c.id === creditId);
-      if (cred) cred.status = status;
-      renderCreditsCards();
+      await loadDataFromSupabase();
       alert(`Solicitud de Crédito ${creditId} marcada como: ${status}`);
     }
 
@@ -503,7 +481,7 @@ if (typeof supabase !== 'undefined') {
       tbody.innerHTML = '';
 
       if (adminProducts.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="9" class="p-4 text-center text-gray-400 font-semibold">No se encontraron productos en Supabase. ¡Haz clic en "Crear Nuevo Producto"!</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="9" class="p-4 text-center text-gray-400 font-semibold">No se encontraron productos registrados en Supabase.</td></tr>`;
         return;
       }
 
@@ -532,6 +510,11 @@ if (typeof supabase !== 'undefined') {
       if (!container) return;
       container.innerHTML = '';
 
+      if (adminCredits.length === 0) {
+        container.innerHTML = `<p class="col-span-full text-center text-gray-400 py-8 font-semibold">No hay solicitudes de crédito pendientes en Supabase.</p>`;
+        return;
+      }
+
       adminCredits.forEach(c => {
         container.innerHTML += `
           <div class="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm text-xs space-y-2">
@@ -559,6 +542,13 @@ if (typeof supabase !== 'undefined') {
               <p>• ${c.ref2 || 'Ref 2 no ingresada'}</p>
             </div>
 
+            ${(c.id_front_url || c.id_back_url || c.selfie_url) ? `
+            <div class="flex gap-2 pt-1 text-[11px]">
+              ${c.id_front_url ? `<a href="${c.id_front_url}" target="_blank" class="text-pink-600 font-bold underline">Ver Cédula (F)</a>` : ''}
+              ${c.id_back_url ? `<a href="${c.id_back_url}" target="_blank" class="text-pink-600 font-bold underline">Ver Cédula (R)</a>` : ''}
+              ${c.selfie_url ? `<a href="${c.selfie_url}" target="_blank" class="text-pink-600 font-bold underline">Ver Selfie</a>` : ''}
+            </div>` : ''}
+
             <div class="flex gap-2 pt-2">
               <button onclick="updateCreditStatus('${c.id}', 'Aprobado')" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-2 rounded-xl">
                 Aprobar Crédito
@@ -576,6 +566,11 @@ if (typeof supabase !== 'undefined') {
       const tbody = document.getElementById('adminOrdersTableBody');
       if (!tbody) return;
       tbody.innerHTML = '';
+
+      if (adminOrders.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-gray-400 font-semibold">No hay pedidos registrados en Supabase.</td></tr>`;
+        return;
+      }
 
       adminOrders.forEach(o => {
         const orderId = o.id || o.order_id || 'CUP0000';
