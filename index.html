@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Cupissa - Eventos, Regalos y Alquiler</title>
+  <title>Cupissa - Inicio</title>
 
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -31,7 +31,7 @@
   
   <!-- Supabase JS Client -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/styles.css?v=1.1">
 </head>
 <body class="bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100 min-h-screen flex flex-col transition-colors duration-200">
 
@@ -40,7 +40,7 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
       
       <!-- Logo Superior Izquierdo -->
-      <a href="#" onclick="showSection('catalog'); filterByWorld('all');" class="flex items-center space-x-2 shrink-0">
+      <a href="index.html" class="flex items-center space-x-2 shrink-0">
         <img src="logo.png" alt="Cupissa Logo" class="h-10 w-auto object-contain">
       </a>
 
@@ -50,17 +50,20 @@
           <input 
             type="text" 
             id="searchInput" 
-            onkeyup="filterProductsBySmartSearch()"
             placeholder="Buscar en Cupissa (ej. Sillas, Cajas, Eventos)..." 
             class="w-full bg-gray-100 dark:bg-gray-700 text-xs text-gray-800 dark:text-gray-100 rounded-xl pl-9 pr-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all placeholder-gray-400"
           >
           <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-xs text-gray-400"></i>
         </div>
-        <div id="searchResultFeedback" class="absolute right-3 top-2.5 text-[10px] text-gray-400 font-bold hidden"></div>
       </div>
 
       <!-- Iconos Navbar -->
       <div class="flex items-center space-x-1 sm:space-x-3 shrink-0">
+        <a href="catalogo.html" class="text-xs font-bold text-gray-700 dark:text-gray-200 hover:text-brand-600 transition-colors flex items-center gap-1.5 py-2 px-2.5 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700">
+          <i class="fa-solid fa-store text-brand-600"></i>
+          <span>Catálogo</span>
+        </a>
+
         <a href="rastreo.html" class="text-xs font-bold text-gray-700 dark:text-gray-200 hover:text-brand-600 transition-colors hidden lg:flex items-center gap-1.5 py-2 px-2.5 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700">
           <i class="fa-solid fa-truck-fast text-brand-600"></i>
           <span>Rastrear Pedido</span>
@@ -95,133 +98,151 @@
   </header>
 
   <!-- CONTENIDO PRINCIPAL -->
-  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-16">
 
-    <!-- SECCIÓN 1: CATÁLOGO -->
-    <section id="section-catalog">
-      <div class="border-b border-gray-200 dark:border-gray-700 mb-6">
-        <nav class="flex space-x-6 overflow-x-auto pb-2 scrollbar-none" aria-label="Mundos">
-          <button id="tab-all" onclick="filterByWorld('all')" class="world-tab active text-xs font-bold whitespace-nowrap pb-2 text-gray-600 dark:text-gray-300 hover:text-brand-600">
-            <i class="fa-solid fa-border-all mr-1.5"></i>Todos los Mundos
-          </button>
-          <button id="tab-familiar" onclick="filterByWorld('familiar')" class="world-tab text-xs font-bold whitespace-nowrap pb-2 text-gray-600 dark:text-gray-300 hover:text-brand-600">
-            <i class="fa-solid fa-heart mr-1.5"></i>Mundo Familiar y Regalos
-          </button>
-          <button id="tab-eventos" onclick="filterByWorld('eventos')" class="world-tab text-xs font-bold whitespace-nowrap pb-2 text-gray-600 dark:text-gray-300 hover:text-brand-600">
-            <i class="fa-solid fa-champagne-glasses mr-1.5"></i>Mundo Eventos y Fiestas
-          </button>
-          <button id="tab-empresas" onclick="filterByWorld('empresas')" class="world-tab text-xs font-bold whitespace-nowrap pb-2 text-gray-600 dark:text-gray-300 hover:text-brand-600">
-            <i class="fa-solid fa-briefcase mr-1.5"></i>Mundo Empresas y B2B
-          </button>
-        </nav>
-      </div>
-
-      <div class="flex justify-between items-center mb-6">
-        <h2 id="currentWorldTitle" class="text-lg font-black text-gray-900 dark:text-white">
-          Catálogo General Cupissa
-        </h2>
-      </div>
-
-      <div id="productGrid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"></div>
-    </section>
-
-    <!-- SECCIÓN 2: DETALLE DE PRODUCTO -->
-    <section id="section-product-detail" class="hidden">
-      <button onclick="showSection('catalog')" class="mb-4 text-xs font-bold text-brand-600 dark:text-brand-400 hover:underline flex items-center gap-1">
-        <i class="fa-solid fa-arrow-left"></i> Volver al Catálogo
-      </button>
-
-      <div class="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700/60 p-6 shadow-sm grid grid-cols-1 md:grid-cols-2 gap-8">
-        <div>
-          <img id="detailImage" src="" alt="Producto" class="w-full h-80 object-cover rounded-2xl bg-gray-100 dark:bg-gray-700" />
-        </div>
-        <div class="flex flex-col justify-between">
-          <div>
-            <div class="flex items-center gap-2 mb-2">
-              <span id="detailWorldBadge" class="bg-brand-50 dark:bg-brand-950/40 text-brand-700 dark:text-brand-300 text-[10px] font-extrabold px-2.5 py-1 rounded-md uppercase"></span>
-              <span id="detailCategoryBadge" class="bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-[10px] font-bold px-2.5 py-1 rounded-md"></span>
-            </div>
-            <h1 id="detailTitle" class="text-xl font-black text-gray-900 dark:text-white mb-2"></h1>
-            <p id="detailDescription" class="text-xs text-gray-500 dark:text-gray-400 mb-6 leading-relaxed"></p>
-
-            <div id="modalTypeContainer" class="hidden mb-6">
-              <label class="block text-xs font-extrabold text-gray-700 dark:text-gray-300 mb-2">Modalidad requerida:</label>
-              <div class="grid grid-cols-2 gap-3">
-                <button type="button" id="btnSelectSale" onclick="setProductMode('sale')" class="border-2 border-brand-500 bg-brand-50 dark:bg-brand-950/40 text-brand-700 dark:text-brand-300 font-bold py-2 rounded-lg text-sm">Venta</button>
-                <button type="button" id="btnSelectRental" onclick="setProductMode('rental')" class="border-2 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 py-2 rounded-lg text-sm">Alquiler</button>
-              </div>
-            </div>
-
-            <div id="rentalConfig" class="hidden mb-6 p-4 bg-gray-50 dark:bg-gray-700/40 rounded-2xl border border-gray-100 dark:border-gray-600 space-y-3">
-              <div>
-                <label class="block text-[11px] font-bold text-gray-600 dark:text-gray-300 mb-1">Fecha del Evento:</label>
-                <input type="date" id="rentalDateInput" class="w-full bg-white dark:bg-gray-800 text-xs p-2 rounded-lg border border-gray-200 dark:border-gray-600">
-              </div>
-              <div class="flex justify-between text-xs text-gray-500 dark:text-gray-400">
-                <span>Depósito en Garantía:</span>
-                <span id="detailDepositText" class="font-bold text-gray-800 dark:text-gray-200">$0 COP</span>
-              </div>
-              <div class="flex justify-between text-xs text-gray-500 dark:text-gray-400">
-                <span>Hora adicional:</span>
-                <span id="detailExtraHourText" class="font-bold text-gray-800 dark:text-gray-200">$0 COP</span>
-              </div>
-            </div>
-
-            <div class="p-4 bg-brand-50/50 dark:bg-gray-700/30 rounded-2xl border border-brand-100 dark:border-gray-600 space-y-2 mb-6">
-              <div class="flex justify-between items-baseline">
-                <span class="text-xs text-gray-500 dark:text-gray-400 font-bold">Precio Total:</span>
-                <span id="detailTotalPrice" class="text-base font-black text-brand-600 dark:text-brand-400">$0 COP</span>
-              </div>
-              <div class="flex justify-between items-baseline">
-                <span class="text-xs text-gray-500 dark:text-gray-400 font-bold">Anticipo (<span id="detailAdvancePct">50</span>%):</span>
-                <span id="detailAdvancePrice" class="text-xs font-bold text-gray-800 dark:text-gray-200">$0 COP</span>
-              </div>
-              <div class="flex justify-between items-baseline pt-2 border-t border-gray-200 dark:border-gray-600">
-                <span class="text-xs text-gray-500 dark:text-gray-400 font-bold">Saldo al Entregar:</span>
-                <span id="detailRemainingPrice" class="text-xs font-bold text-gray-800 dark:text-gray-200">$0 COP</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="flex gap-3">
-            <button type="button" onclick="addToCartCurrent()" class="flex-1 bg-brand-600 hover:bg-brand-700 text-white font-extrabold py-3 rounded-xl text-xs transition-all shadow-md">
-              <i class="fa-solid fa-cart-plus mr-1.5"></i>Agregar al Carrito
-            </button>
-            <button type="button" onclick="toggleFavoriteCurrent()" class="p-3 border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-xl text-gray-400 hover:text-brand-600">
-              <i class="fa-solid fa-heart text-base"></i>
-            </button>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- SECCIÓN 3: CHECKOUT -->
-    <section id="section-checkout" class="hidden">
-      <button onclick="showSection('catalog')" class="mb-4 text-xs font-bold text-brand-600 dark:text-brand-400 hover:underline flex items-center gap-1">
-        <i class="fa-solid fa-arrow-left"></i> Volver al Catálogo
-      </button>
-
-      <div class="max-w-xl mx-auto bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700/60 p-6 shadow-sm">
-        <h2 class="text-lg font-black text-gray-900 dark:text-white mb-4">Resumen de la Orden</h2>
+    <!-- 1. HERO INTERACTIVO -->
+    <section class="relative bg-gradient-to-br from-gray-900 via-gray-800 to-brand-950 rounded-3xl p-6 md:p-12 overflow-hidden shadow-2xl border border-gray-800">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center relative z-10">
         
-        <div class="space-y-3 mb-6">
-          <div class="flex justify-between text-xs">
-            <span class="text-gray-500 dark:text-gray-400">Total Productos:</span>
-            <span id="checkoutTotalText" class="font-bold">$0 COP</span>
-          </div>
-          <div class="flex justify-between text-xs text-brand-600 font-bold">
-            <span>Anticipo Requerido hoy:</span>
-            <span id="checkoutAdvanceText">$0 COP</span>
-          </div>
-          <div class="flex justify-between text-xs pt-2 border-t border-gray-100 dark:border-gray-700">
-            <span class="text-gray-500 dark:text-gray-400">Saldo pendiente:</span>
-            <span id="checkoutRemainingText" class="font-bold">$0 COP</span>
+        <!-- Lado Izquierdo: Textos y Botones -->
+        <div class="space-y-6 text-center lg:text-left">
+          <span class="inline-block bg-brand-600/20 text-brand-400 border border-brand-500/30 font-bold text-xs px-3 py-1.5 rounded-full uppercase tracking-wider">
+            Ecosistema Integral Cupissa
+          </span>
+          <h1 class="text-3xl sm:text-5xl font-black text-white leading-tight">
+            Todo para tus eventos, detalles y proyectos
+          </h1>
+          <p class="text-sm sm:text-base text-gray-300 max-w-xl mx-auto lg:mx-0">
+            Comercio, alquiler de mobiliario, fabricación a medida y crédito directo en Barranquilla. Hacemos realidad cada una de tus ideas.
+          </p>
+          
+          <div class="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start pt-2">
+            <a href="catalogo.html" class="bg-brand-600 hover:bg-brand-700 text-white font-extrabold px-6 py-3.5 rounded-2xl text-xs sm:text-sm transition-all shadow-lg shadow-brand-600/30 flex items-center justify-center gap-2">
+              <i class="fa-solid fa-store"></i>
+              Explorar Catálogo
+            </a>
+            <a href="https://wa.me/573147671380" target="_blank" rel="noopener noreferrer" class="bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold px-6 py-3.5 rounded-2xl text-xs sm:text-sm transition-all shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-2">
+              <i class="fa-brands fa-whatsapp text-lg"></i>
+              Asesoría Personalizada
+            </a>
           </div>
         </div>
 
-        <button type="button" onclick="alert('Redirigiendo a pasarela de pago...')" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-extrabold py-3 rounded-xl text-xs transition-all shadow-md">
-          Pagar Anticipo
-        </button>
+        <!-- Lado Derecho: Slider / Galería de Productos -->
+        <div class="relative w-full h-64 sm:h-80 md:h-96 rounded-2xl overflow-hidden bg-gray-800/50 border border-gray-700 shadow-inner group">
+          <div id="heroSlider" class="w-full h-full relative">
+            <img id="heroSlideImg" src="hero-banner.png" alt="Productos Destacados Cupissa" class="w-full h-full object-cover transition-all duration-700 ease-in-out">
+            <div class="absolute inset-0 bg-gradient-to-t from-gray-950/80 via-transparent to-transparent flex items-end p-4 sm:p-6">
+              <p id="heroSlideCaption" class="text-white font-bold text-xs sm:text-sm drop-shadow-md">
+                Variedad y calidad en cada detalle para tus fechas especiales.
+              </p>
+            </div>
+          </div>
+          
+          <!-- Controles Slider -->
+          <button type="button" onclick="prevHeroSlide()" class="absolute left-3 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/70 text-white w-8 h-8 rounded-full flex items-center justify-center transition-all opacity-0 group-hover:opacity-100">
+            <i class="fa-solid fa-chevron-left text-xs"></i>
+          </button>
+          <button type="button" onclick="nextHeroSlide()" class="absolute right-3 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/70 text-white w-8 h-8 rounded-full flex items-center justify-center transition-all opacity-0 group-hover:opacity-100">
+            <i class="fa-solid fa-chevron-right text-xs"></i>
+          </button>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- 2. NUESTROS MUNDOS -->
+    <section class="space-y-6">
+      <div class="text-center md:text-left">
+        <h2 class="text-xl sm:text-2xl font-black text-gray-900 dark:text-white">
+          Explora nuestros Mundos
+        </h2>
+        <p class="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
+          Encuentra soluciones categorizadas según tus necesidades específicas
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
+        <!-- Mundo Familiar -->
+        <a href="catalogo.html?mundo=familiar" class="group bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700/60 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
+          <div class="w-12 h-12 bg-pink-100 dark:bg-pink-950/50 text-pink-600 dark:text-pink-400 rounded-2xl flex items-center justify-center text-xl font-bold mb-4 group-hover:scale-110 transition-transform">
+            <i class="fa-solid fa-heart"></i>
+          </div>
+          <h3 class="text-base font-black text-gray-900 dark:text-white mb-2 group-hover:text-brand-600 transition-colors">
+            Mundo Familiar y Regalos
+          </h3>
+          <p class="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+            Detalles únicos, obsequios personalizados y sorpresas inolvidables para compartir en familia.
+          </p>
+        </a>
+
+        <!-- Mundo Eventos -->
+        <a href="catalogo.html?mundo=eventos" class="group bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700/60 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
+          <div class="w-12 h-12 bg-purple-100 dark:bg-purple-950/50 text-purple-600 dark:text-purple-400 rounded-2xl flex items-center justify-center text-xl font-bold mb-4 group-hover:scale-110 transition-transform">
+            <i class="fa-solid fa-champagne-glasses"></i>
+          </div>
+          <h3 class="text-base font-black text-gray-900 dark:text-white mb-2 group-hover:text-brand-600 transition-colors">
+            Mundo Eventos y Fiestas
+          </h3>
+          <p class="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+            Alquiler de mobiliario, montaje de estructuras, sonido y ambientación profesional para tus fechas mágicas.
+          </p>
+        </a>
+
+        <!-- Mundo Empresas -->
+        <a href="catalogo.html?mundo=empresas" class="group bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700/60 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
+          <div class="w-12 h-12 bg-blue-100 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 rounded-2xl flex items-center justify-center text-xl font-bold mb-4 group-hover:scale-110 transition-transform">
+            <i class="fa-solid fa-briefcase"></i>
+          </div>
+          <h3 class="text-base font-black text-gray-900 dark:text-white mb-2 group-hover:text-brand-600 transition-colors">
+            Mundo Empresas y B2B
+          </h3>
+          <p class="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+            Fabricación a medida, dotación corporativa, pedidos al por mayor y financiamiento institucional.
+          </p>
+        </a>
+      </div>
+    </section>
+
+    <!-- 3. PRODUCTOS DESTACADOS DE LA TEMPORADA -->
+    <section class="space-y-6">
+      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-2 border-b border-gray-200 dark:border-gray-700 pb-4">
+        <div>
+          <span class="text-[10px] font-extrabold text-brand-600 dark:text-brand-400 uppercase tracking-widest">Especial de Temporada</span>
+          <h2 id="seasonTitle" class="text-xl sm:text-2xl font-black text-gray-900 dark:text-white">
+            Productos Destacados
+          </h2>
+        </div>
+        <a href="catalogo.html" class="text-xs font-bold text-brand-600 dark:text-brand-400 hover:underline flex items-center gap-1">
+          Ver todo el catálogo <i class="fa-solid fa-arrow-right text-[10px]"></i>
+        </a>
+      </div>
+
+      <!-- Grid de productos dinámicos de temporada desde Supabase -->
+      <div id="seasonProductGrid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+        <!-- Cargando skeleton o estado inicial -->
+        <div class="col-span-full py-8 text-center text-xs text-gray-400">
+          <i class="fa-solid fa-circle-notch fa-spin text-lg text-brand-600 mb-2"></i>
+          <p>Cargando lo mejor de la temporada...</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. BANNER PUBLICITARIO: CRÉDITO CUPISSA -->
+    <section class="bg-gradient-to-r from-brand-700 via-pink-600 to-purple-800 rounded-3xl p-8 sm:p-12 text-white shadow-xl relative overflow-hidden">
+      <div class="absolute -right-10 -bottom-10 w-60 h-60 bg-white/10 rounded-full blur-2xl pointer-events-none"></div>
+      <div class="relative z-10 max-w-2xl space-y-4">
+        <span class="bg-white/20 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider">Financiamiento Directo</span>
+        <h2 class="text-3xl sm:text-5xl font-black leading-none tracking-tight">CRÉDITO CUPISSA</h2>
+        <p class="text-xs sm:text-sm text-pink-100 font-medium leading-relaxed">
+          Haz realidad tu evento o adquiere tus productos en cuotas flexibles sin complicaciones. Aprobación ágil para tus proyectos.
+        </p>
+        <div class="pt-2">
+          <a href="https://wa.me/573147671380?text=Hola,%20deseo%20solicitar%20informaci%C3%B3n%20sobre%20el%20Cr%C3%A9dito%20Cupissa" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 bg-white text-brand-700 hover:bg-gray-100 font-black px-6 py-3 rounded-2xl text-xs transition-all shadow-md hover:scale-105">
+            <i class="fa-solid fa-credit-card"></i>
+            Solicitar Crédito
+          </a>
+        </div>
       </div>
     </section>
 
@@ -314,7 +335,7 @@
           <span>Anticipo Total:</span>
           <span id="cartAdvanceText">$0 COP</span>
         </div>
-        <button type="button" onclick="goToCheckout()" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-extrabold py-2.5 rounded-xl text-xs transition-all mt-2">
+        <button type="button" onclick="alert('Redirigiendo al proceso de pago...')" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-extrabold py-2.5 rounded-xl text-xs transition-all mt-2">
           Procesar Reserva
         </button>
       </div>
@@ -374,11 +395,6 @@
             <input type="password" id="regClientPassword" required class="w-full bg-gray-50 dark:bg-gray-700 text-xs p-2.5 rounded-xl border border-gray-200 dark:border-gray-600">
           </div>
 
-          <div class="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl border border-gray-200 dark:border-gray-600">
-            <label id="mathCaptchaQuestion" class="block text-[11px] font-bold text-gray-700 dark:text-gray-300 mb-1"></label>
-            <input type="number" id="mathCaptchaInput" required placeholder="Tu respuesta" class="w-full bg-white dark:bg-gray-800 text-xs p-2 rounded-lg border border-gray-200 dark:border-gray-600">
-          </div>
-
           <button type="submit" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-extrabold py-2.5 rounded-xl text-xs transition-all shadow-md">
             Crear Cuenta
           </button>
@@ -393,11 +409,11 @@
     </div>
   </div>
 
-  <!-- SCRIPTS -->
-  <script src="js/config.js"></script>
-  <script src="js/auth.js"></script>
-  <script src="js/favorites.js"></script>
-  <script src="js/cart.js"></script>
-  <script src="js/app.js"></script>
+  <!-- SCRIPTS DE NAVEGACIÓN Y LÓGICA -->
+  <script src="js/config.js?v=1.1"></script>
+  <script src="js/auth.js?v=1.1"></script>
+  <script src="js/favorites.js?v=1.1"></script>
+  <script src="js/cart.js?v=1.1"></script>
+  <script src="js/app.js?v=1.1"></script>
 </body>
 </html>
