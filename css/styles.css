@@ -1,51 +1,49 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+/* Custom Styles Cupissa SAS */
 
-body {
-  font-family: 'Plus Jakarta Sans', sans-serif;
+/* Smooth scroll general */
+html {
+  scroll-behavior: smooth;
 }
 
-/* Tabs Activas de los Mundos */
+/* Ocultar barra de desplazamiento en contenedores horizontales */
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Transiciones para imágenes del Hero */
+#heroSlideImg {
+  will-change: opacity, transform;
+  transition: opacity 0.4s ease-in-out, transform 0.4s ease-in-out;
+}
+
+/* Pestañas activas e inactivas */
 .world-tab {
-  border-bottom: 2px solid transparent;
   transition: all 0.2s ease-in-out;
 }
 
 .world-tab.active {
-  border-color: #db2777;
   color: #db2777;
-  font-weight: 800;
+  border-bottom: 2px solid #db2777;
 }
 
-/* Transición suave para cambio de tema */
-html.dark body {
-  background-color: #0f172a;
-  color: #f8fafc;
+/* Efectos hover para tarjetas de producto y mundos */
+.product-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-/* Scrollbar personalizada */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+.product-card:hover {
+  transform: translateY(-2px);
 }
 
-::-webkit-scrollbar-track {
-  background: transparent;
+/* Personalización de inputs en modo oscuro */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(0.5);
 }
 
-::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 9999px;
-}
-
-html.dark ::-webkit-scrollbar-thumb {
-  background: #334155;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
-}
-
-/* Efectos suaves en botones e íconos */
-button {
-  touch-action: manipulation;
+.dark input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
 }
