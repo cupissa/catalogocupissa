@@ -1,689 +1,603 @@
-/* ==========================================
-   CUPISSA - LÓGICA DE TIENDA Y CLIENTE
-   ========================================== */
+// VARIABLES GLOBALMENTE DISPONIBLES
+let products = [];
+let cart = [];
+let favorites = [];
+let currentWorld = 'all';
+let currentProductMode = 'sale';
+let selectedProduct = null;
+let mathCaptchaAnswer = 0;
 
-let captchaCorrectAnswer = 0;
-
-document.addEventListener("DOMContentLoaded", () => {
-  loadProductsFromSupabase();
-  checkActiveSession();
+// INICIALIZACIÓN DE LA APLICACIÓN
+document.addEventListener('DOMContentLoaded', async () => {
+  initTheme();
+  loadCartFromStorage();
+  loadFavoritesFromStorage();
   generateMathCaptcha();
+  await loadProducts();
+  checkUserSession();
 });
 
-// GENERAR CAPTCHA DE SUMA MATEMÁTICA
-function generateMathCaptcha() {
-  const num1 = Math.floor(Math.random() * 10) + 1;
-  const num2 = Math.floor(Math.random() * 10) + 1;
-  captchaCorrectAnswer = num1 + num2;
+/* ==========================================================================
+   1. GESTIÓN DE TEMA (CLARO / OSCURO)
+   ========================================================================== */
+function initTheme() {
+  const savedTheme = localStorage.getItem('cupissa_theme');
+  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
   
-  const questionElem = document.getElementById("mathCaptchaQuestion");
-  if (questionElem) {
-    questionElem.textContent = `${num1} + ${num2} = ?`;
+  if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
+    document.documentElement.classList.add('dark');
+    updateThemeIcon(true);
+  } else {
+    document.documentElement.classList.remove('dark');
+    updateThemeIcon(false);
   }
 }
 
-// 1. CARGAR PRODUCTOS DESDE SUPABASE
-async function loadProductsFromSupabase() {
+window.toggleTheme = function() {
+  const isDark = document.documentElement.classList.toggle('dark');
+  localStorage.setItem('cupissa_theme', isDark ? 'dark' : 'light');
+  updateThemeIcon(isDark);
+};
+
+function updateThemeIcon(isDark) {
+  const icon = document.getElementById('themeIcon');
+  if (icon) {
+    icon.className = isDark ? "fa-solid fa-moon text-lg text-yellow-400" : "fa-solid fa-sun text-lg text-amber-500";
+  }
+}
+
+/* ==========================================================================
+   2. CARGA Y FILTRADO DE PRODUCTOS
+   ========================================================================== */
+async function loadProducts() {
   try {
     const { data, error } = await supabaseClient
-      .from("products")
-      .select("*")
-      .order("created_at", { ascending: false });
+      .from('products')
+      .select('*')
+      .eq('is_active', true);
 
     if (error) throw error;
-
-    currentProducts = data || [];
-    renderProducts(currentProducts);
+    products = data || [];
+    renderProductGrid(products);
   } catch (err) {
-    console.error("Error al cargar productos:", err);
+    console.error("Error cargando productos de Supabase:", err);
+    // Productos de contingencia si no hay conexión a BD
+    products = [
+      {
+        id: '1',
+        title: 'Caja Regalo Sorpresa Ejecutiva',
+        world: 'familiar',
+        category: 'Regalos',
+        sale_price: 120000,
+        advance_percentage: 50,
+        type: 'sale',
+        image_url: 'https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=500&q=80',
+        description: 'Elegante arreglo personalizado para ocasiones especiales.'
+      },
+      {
+        id: '2',
+        title: 'Silla VIP para Eventos',
+        world: 'eventos',
+        category: 'Alquiler Mobiliario',
+        rental_price_per_day: 15000,
+        rental_deposit: 30000,
+        extra_hour_price: 3000,
+        advance_percentage: 30,
+        type: 'rental',
+        image_url: 'https://images.unsplash.com/photo-1503602642458-232111445657?w=500&q=80',
+        description: 'Mobiliario de lujo ideal para eventos, bodas y fiestas corporativas.'
+      }
+    ];
+    renderProductGrid(products);
   }
 }
 
-// 2. RENDERIZAR GRID DE PRODUCTOS
-function renderProducts(products) {
-  const container = document.getElementById("productGrid");
-  if (!container) return;
+window.filterByWorld = function(world) {
+  currentWorld = world;
+  
+  document.querySelectorAll('.world-tab').forEach(tab => {
+    tab.classList.remove('active', 'border-brand-600', 'text-brand-600');
+  });
+  
+  const activeTab = document.getElementById(`tab-${world}`);
+  if (activeTab) activeTab.classList.add('active');
 
-  if (products.length === 0) {
-    container.innerHTML = `<p class="col-span-full text-center py-10 text-gray-400 text-sm">No hay productos disponibles en este momento.</p>`;
+  const titleEl = document.getElementById('currentWorldTitle');
+  const titles = {
+    'all': 'Catálogo General Cupissa',
+    'familiar': 'Mundo Familiar y Regalos',
+    'eventos': 'Mundo Eventos y Fiestas',
+    'empresas': 'Mundo Empresas y B2B'
+  };
+  if (titleEl) titleEl.textContent = titles[world] || 'Catálogo General';
+
+  const filtered = world === 'all' ? products : products.filter(p => p.world === world);
+  renderProductGrid(filtered);
+};
+
+window.filterProductsBySmartSearch = function() {
+  const query = document.getElementById('searchInput').value.toLowerCase().trim();
+  const feedback = document.getElementById('searchResultFeedback');
+
+  if (!query) {
+    if (feedback) feedback.classList.add('hidden');
+    filterByWorld(currentWorld);
     return;
   }
 
-  container.innerHTML = products
-    .map(
-      (prod) => `
-    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all overflow-hidden flex flex-col justify-between">
-      <div>
-        <div class="relative h-48 overflow-hidden bg-gray-100">
-          <img src="${prod.image_url || 'https://via.placeholder.com/300'}" alt="${prod.title}" class="w-full h-full object-cover" />
-          <span class="absolute top-2 left-2 bg-pink-100 text-pink-800 text-[10px] font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider">
-            ${prod.world}
-          </span>
+  const filtered = products.filter(p => {
+    return p.title?.toLowerCase().includes(query) ||
+           p.category?.toLowerCase().includes(query) ||
+           p.world?.toLowerCase().includes(query);
+  });
+
+  if (feedback) {
+    feedback.textContent = `Resultados: ${filtered.length}`;
+    feedback.classList.remove('hidden');
+  }
+
+  renderProductGrid(filtered);
+};
+
+function renderProductGrid(items) {
+  const grid = document.getElementById('productGrid');
+  if (!grid) return;
+
+  if (items.length === 0) {
+    grid.innerHTML = `
+      <div class="col-span-full text-center py-12">
+        <i class="fa-solid fa-box-open text-4xl text-gray-300 dark:text-gray-600 mb-3"></i>
+        <p class="text-xs text-gray-500 dark:text-gray-400">No se encontraron productos en esta categoría.</p>
+      </div>
+    `;
+    return;
+  }
+
+  grid.innerHTML = items.map(p => {
+    const isFav = favorites.some(fav => fav.id === p.id);
+    const price = p.type === 'rental' ? (p.rental_price_per_day || 0) : (p.sale_price || 0);
+    
+    return `
+      <div class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/60 p-4 shadow-sm hover:shadow-md transition-all flex flex-col justify-between group">
+        <div>
+          <div class="relative w-full h-44 bg-gray-100 dark:bg-gray-700 rounded-xl overflow-hidden mb-3">
+            <img src="${p.image_url || 'https://via.placeholder.com/300'}" alt="${p.title}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+            <button type="button" onclick="toggleFavorite('${p.id}', event)" class="absolute top-2 right-2 p-2 bg-white/80 dark:bg-gray-800/80 backdrop-blur-md rounded-full shadow-sm hover:bg-white dark:hover:bg-gray-800 transition-all">
+              <i class="fa-solid fa-heart ${isFav ? 'text-brand-600' : 'text-gray-400 dark:text-gray-500'} text-xs"></i>
+            </button>
+            <span class="absolute bottom-2 left-2 bg-brand-600 text-white text-[9px] font-extrabold px-2 py-0.5 rounded-md uppercase">
+              ${p.type === 'rental' ? 'Alquiler' : 'Venta'}
+            </span>
+          </div>
+          <span class="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider block mb-1">${p.category || 'General'}</span>
+          <h3 class="font-extrabold text-xs text-gray-900 dark:text-white line-clamp-2 mb-2">${p.title}</h3>
         </div>
-        <div class="p-4">
-          <span class="text-[11px] font-bold text-gray-400 block mb-1">${prod.category}</span>
-          <h3 class="font-bold text-gray-900 text-base mb-1 line-clamp-1">${prod.title}</h3>
-          <p class="text-xs text-gray-500 mb-3 line-clamp-2">${prod.description || ''}</p>
+        <div>
+          <div class="flex justify-between items-baseline mb-3">
+            <span class="text-xs font-black text-brand-600 dark:text-brand-400">$${Number(price).toLocaleString()} COP</span>
+            <span class="text-[10px] text-gray-400">Anticipo: ${p.advance_percentage || 50}%</span>
+          </div>
+          <button type="button" onclick="openProductDetail('${p.id}')" class="w-full bg-gray-100 dark:bg-gray-700 hover:bg-brand-600 hover:text-white dark:hover:bg-brand-600 text-gray-800 dark:text-gray-200 font-bold py-2 rounded-xl text-xs transition-all">
+            Ver Detalle
+          </button>
         </div>
       </div>
-      <div class="p-4 pt-0 border-t border-gray-50 mt-auto">
-        <div class="flex justify-between items-baseline my-2">
-          <span class="text-xs text-gray-400 font-medium">Desde</span>
-          <span class="text-base font-black text-gray-900">$${Number(prod.price).toLocaleString()} COP</span>
+    `;
+  }).join('');
+}
+
+/* ==========================================================================
+   3. DETALLE DE PRODUCTO
+   ========================================================================== */
+window.openProductDetail = function(productId) {
+  selectedProduct = products.find(p => p.id === productId);
+  if (!selectedProduct) return;
+
+  document.getElementById('detailImage').src = selectedProduct.image_url || 'https://via.placeholder.com/500';
+  document.getElementById('detailTitle').textContent = selectedProduct.title;
+  document.getElementById('detailDescription').textContent = selectedProduct.description || 'Sin descripción disponible.';
+  document.getElementById('detailWorldBadge').textContent = selectedProduct.world || 'General';
+  document.getElementById('detailCategoryBadge').textContent = selectedProduct.category || 'Producto';
+
+  const modalTypeContainer = document.getElementById('modalTypeContainer');
+
+  if (selectedProduct.type === 'both') {
+    if (modalTypeContainer) modalTypeContainer.classList.remove('hidden');
+    setProductMode('sale');
+  } else {
+    if (modalTypeContainer) modalTypeContainer.classList.add('hidden');
+    setProductMode(selectedProduct.type || 'sale');
+  }
+
+  showSection('product-detail');
+};
+
+window.setProductMode = function(mode) {
+  currentProductMode = mode;
+  const rentalConfig = document.getElementById('rentalConfig');
+  const btnSale = document.getElementById('btnSelectSale');
+  const btnRental = document.getElementById('btnSelectRental');
+
+  if (mode === 'rental') {
+    if (rentalConfig) rentalConfig.classList.remove('hidden');
+    if (btnRental) btnRental.className = "border-2 border-brand-500 bg-brand-50 dark:bg-brand-950/40 text-brand-700 dark:text-brand-300 font-bold py-2 rounded-lg text-sm";
+    if (btnSale) btnSale.className = "border-2 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 py-2 rounded-lg text-sm";
+  } else {
+    if (rentalConfig) rentalConfig.classList.add('hidden');
+    if (btnSale) btnSale.className = "border-2 border-brand-500 bg-brand-50 dark:bg-brand-950/40 text-brand-700 dark:text-brand-300 font-bold py-2 rounded-lg text-sm";
+    if (btnRental) btnRental.className = "border-2 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 py-2 rounded-lg text-sm";
+  }
+
+  updateProductPriceCalculations();
+};
+
+function updateProductPriceCalculations() {
+  if (!selectedProduct) return;
+
+  const isRental = currentProductMode === 'rental';
+  const totalPrice = isRental ? (selectedProduct.rental_price_per_day || 0) : (selectedProduct.sale_price || 0);
+  const pct = selectedProduct.advance_percentage || 50;
+  const advance = (totalPrice * pct) / 100;
+  const remaining = totalPrice - advance;
+
+  document.getElementById('detailTotalPrice').textContent = `$${Number(totalPrice).toLocaleString()} COP`;
+  document.getElementById('detailAdvancePct').textContent = pct;
+  document.getElementById('detailAdvancePrice').textContent = `$${Number(advance).toLocaleString()} COP`;
+  document.getElementById('detailRemainingPrice').textContent = `$${Number(remaining).toLocaleString()} COP`;
+
+  if (isRental) {
+    document.getElementById('detailDepositText').textContent = `$${Number(selectedProduct.rental_deposit || 0).toLocaleString()} COP`;
+    document.getElementById('detailExtraHourText').textContent = `$${Number(selectedProduct.extra_hour_price || 0).toLocaleString()} COP`;
+  }
+}
+
+/* ==========================================================================
+   4. FAVORITOS
+   ========================================================================== */
+function loadFavoritesFromStorage() {
+  const saved = localStorage.getItem('cupissa_favorites');
+  favorites = saved ? JSON.parse(saved) : [];
+  updateFavBadge();
+}
+
+function saveFavoritesToStorage() {
+  localStorage.setItem('cupissa_favorites', JSON.stringify(favorites));
+  updateFavBadge();
+}
+
+window.toggleFavorite = function(productId, event) {
+  if (event) event.stopPropagation();
+  
+  const p = products.find(prod => prod.id === productId);
+  if (!p) return;
+
+  const index = favorites.findIndex(fav => fav.id === productId);
+  if (index > -1) {
+    favorites.splice(index, 1);
+  } else {
+    favorites.push(p);
+  }
+
+  saveFavoritesToStorage();
+  renderProductGrid(products);
+  renderFavoritesList();
+};
+
+window.toggleFavoriteCurrent = function() {
+  if (selectedProduct) {
+    toggleFavorite(selectedProduct.id);
+  }
+};
+
+function updateFavBadge() {
+  const badge = document.getElementById('favCount');
+  if (badge) badge.textContent = favorites.length;
+}
+
+window.toggleFavoritesModal = function(show) {
+  const modal = document.getElementById('favoritesModal');
+  if (!modal) return;
+
+  if (show) {
+    renderFavoritesList();
+    modal.classList.remove('hidden');
+  } else {
+    modal.classList.add('hidden');
+  }
+};
+
+function renderFavoritesList() {
+  const list = document.getElementById('favoritesItemsList');
+  if (!list) return;
+
+  if (favorites.length === 0) {
+    list.innerHTML = `
+      <div class="text-center py-8">
+        <i class="fa-regular fa-heart text-3xl text-gray-300 dark:text-gray-600 mb-2"></i>
+        <p class="text-xs text-gray-400">Aún no tienes favoritos agregados.</p>
+      </div>
+    `;
+    return;
+  }
+
+  list.innerHTML = favorites.map(p => {
+    const price = p.type === 'rental' ? (p.rental_price_per_day || 0) : (p.sale_price || 0);
+    return `
+      <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl border border-gray-100 dark:border-gray-600">
+        <div class="flex items-center gap-3">
+          <img src="${p.image_url || 'https://via.placeholder.com/100'}" alt="${p.title}" class="w-12 h-12 object-cover rounded-lg" />
+          <div>
+            <h4 class="font-bold text-xs text-gray-800 dark:text-white line-clamp-1">${p.title}</h4>
+            <span class="text-[11px] text-brand-600 dark:text-brand-400 font-bold">$${Number(price).toLocaleString()} COP</span>
+          </div>
         </div>
-        <button onclick="viewProductDetail('${prod.id}')" class="w-full bg-gray-900 hover:bg-black text-white text-xs font-bold py-2.5 rounded-xl transition-all">
-          Ver Ficha y Opciones
+        <button type="button" onclick="toggleFavorite('${p.id}')" class="text-gray-400 hover:text-red-500 p-2">
+          <i class="fa-solid fa-trash text-xs"></i>
         </button>
       </div>
-    </div>
-  `
-    )
-    .join("");
-
-  if (window.lucide) lucide.createIcons();
+    `;
+  }).join('');
 }
 
-// 3. FILTROS Y NAVEGACIÓN DE SECCIONES
-function filterByWorld(world) {
-  document.querySelectorAll(".world-tab").forEach((tab) => tab.classList.remove("active"));
-  const activeTab = document.getElementById(`tab-${world}`);
-  if (activeTab) activeTab.classList.add("active");
-
-  const titleElem = document.getElementById("currentWorldTitle");
-
-  if (world === "all") {
-    if (titleElem) titleElem.textContent = "Catálogo General Cupissa";
-    renderProducts(currentProducts);
-  } else {
-    const titles = {
-      familiar: "Mundo Familiar y Regalos",
-      eventos: "Mundo Eventos y Fiestas",
-      empresas: "Mundo Empresas y B2B",
-    };
-    if (titleElem) titleElem.textContent = titles[world] || "Catálogo";
-
-    const filtered = currentProducts.filter((p) => p.world === world);
-    renderProducts(filtered);
-  }
+/* ==========================================================================
+   5. CARRITO
+   ========================================================================== */
+function loadCartFromStorage() {
+  const saved = localStorage.getItem('cupissa_cart');
+  cart = saved ? JSON.parse(saved) : [];
+  updateCartBadge();
 }
 
-function filterProductsBySearch() {
-  const query = document.getElementById("searchInput").value.toLowerCase();
-  const filtered = currentProducts.filter(
-    (p) =>
-      p.title.toLowerCase().includes(query) ||
-      p.category.toLowerCase().includes(query) ||
-      p.world.toLowerCase().includes(query)
-  );
-  renderProducts(filtered);
+function saveCartToStorage() {
+  localStorage.setItem('cupissa_cart', JSON.stringify(cart));
+  updateCartBadge();
 }
 
-function showSection(sectionName) {
-  document.getElementById("section-catalog").classList.add("hidden");
-  document.getElementById("section-product-detail").classList.add("hidden");
-  document.getElementById("section-checkout").classList.add("hidden");
-  document.getElementById("section-tracking").classList.add("hidden");
-
-  document.getElementById(`section-${sectionName}`).classList.remove("hidden");
-  window.scrollTo({ top: 0, behavior: "smooth" });
-}
-
-// 4. DETALLE DE PRODUCTO Y CALCULADORA
-function viewProductDetail(productId) {
-  selectedProduct = currentProducts.find((p) => p.id === productId);
+window.addToCartCurrent = function() {
   if (!selectedProduct) return;
 
-  document.getElementById("detailImage").src = selectedProduct.image_url || 'https://via.placeholder.com/400';
-  document.getElementById("detailTitle").textContent = selectedProduct.title;
-  document.getElementById("detailDescription").textContent = selectedProduct.description || 'Sin descripción';
-  document.getElementById("detailWorldBadge").textContent = selectedProduct.world.toUpperCase();
-  document.getElementById("detailCategoryBadge").textContent = selectedProduct.category;
+  const isRental = currentProductMode === 'rental';
+  const price = isRental ? (selectedProduct.rental_price_per_day || 0) : (selectedProduct.sale_price || 0);
+  const pct = selectedProduct.advance_percentage || 50;
 
-  const allowRental = selectedProduct.allow_rental || false;
-  const modalContainer = document.getElementById("modalTypeContainer");
-
-  if (allowRental) {
-    modalContainer.classList.remove("hidden");
-  } else {
-    modalContainer.classList.add("hidden");
-  }
-
-  setProductMode("sale");
-  showSection("product-detail");
-}
-
-function setProductMode(mode) {
-  currentMode = mode;
-  const btnSale = document.getElementById("btnSelectSale");
-  const btnRental = document.getElementById("btnSelectRental");
-  const rentalConfig = document.getElementById("rentalConfig");
-
-  if (mode === "sale") {
-    btnSale.className = "border-2 border-pink-500 bg-pink-50 text-pink-800 font-bold py-2 rounded-lg text-sm";
-    btnRental.className = "border-2 border-gray-200 text-gray-600 hover:border-pink-500 py-2 rounded-lg text-sm";
-    rentalConfig.classList.add("hidden");
-  } else {
-    btnRental.className = "border-2 border-pink-500 bg-pink-50 text-pink-800 font-bold py-2 rounded-lg text-sm";
-    btnSale.className = "border-2 border-gray-200 text-gray-600 hover:border-pink-500 py-2 rounded-lg text-sm";
-    rentalConfig.classList.remove("hidden");
-
-    const minDate = new Date();
-    minDate.setDate(minDate.getDate() + 7);
-    const dateInput = document.getElementById("rentalDateInput");
-    if (dateInput) {
-      dateInput.min = minDate.toISOString().split("T")[0];
-      dateInput.value = minDate.toISOString().split("T")[0];
-    }
-
-    document.getElementById("detailDepositText").textContent = `$${Number(selectedProduct.rental_deposit || 0).toLocaleString()} COP`;
-    document.getElementById("detailExtraHourText").textContent = `$${Number(selectedProduct.extra_hour_fee || 0).toLocaleString()} COP`;
-  }
-
-  updateDetailPrices();
-}
-
-function updateDetailPrices() {
-  if (!selectedProduct) return;
-
-  const total = Number(selectedProduct.price);
-  const advancePct = Number(selectedProduct.advance_pct || 50);
-  const advancePrice = (total * advancePct) / 100;
-  const remainingPrice = total - advancePrice;
-
-  document.getElementById("detailTotalPrice").textContent = `$${total.toLocaleString()} COP`;
-  document.getElementById("detailAdvancePct").textContent = advancePct;
-  document.getElementById("detailAdvancePrice").textContent = `$${advancePrice.toLocaleString()} COP`;
-  document.getElementById("detailRemainingPrice").textContent = `$${remainingPrice.toLocaleString()} COP`;
-}
-
-// 5. CARRITO DE COMPRAS
-function addToCartCurrent() {
-  if (!selectedProduct) return;
-
-  const total = Number(selectedProduct.price);
-  const advancePct = Number(selectedProduct.advance_pct || 50);
-  const advance = (total * advancePct) / 100;
-
-  const item = {
+  const cartItem = {
     id: selectedProduct.id,
     title: selectedProduct.title,
-    mode: currentMode,
-    totalPrice: total,
-    advancePrice: advance,
-    rentalDate: currentMode === "rental" ? document.getElementById("rentalDateInput").value : null,
+    mode: currentProductMode,
+    price: price,
+    advancePercentage: pct,
+    advancePrice: (price * pct) / 100,
+    rentalDate: isRental ? (document.getElementById('rentalDateInput')?.value || null) : null
   };
 
-  currentCart.push(item);
-  updateCartUI();
+  cart.push(cartItem);
+  saveCartToStorage();
   toggleCartModal(true);
+};
+
+window.removeFromCart = function(index) {
+  cart.splice(index, 1);
+  saveCartToStorage();
+  renderCartList();
+};
+
+function updateCartBadge() {
+  const badge = document.getElementById('cartCount');
+  if (badge) badge.textContent = cart.length;
 }
 
-function updateCartUI() {
-  document.getElementById("cartCount").textContent = currentCart.length;
+window.toggleCartModal = function(show) {
+  const modal = document.getElementById('cartModal');
+  if (!modal) return;
 
-  const container = document.getElementById("cartItemsList");
-  if (currentCart.length === 0) {
-    container.innerHTML = `<p class="text-center text-sm text-gray-400 mt-10">Tu carrito está vacío.</p>`;
-    document.getElementById("cartTotalText").textContent = "$0 COP";
-    document.getElementById("cartAdvanceText").textContent = "$0 COP";
+  if (show) {
+    renderCartList();
+    modal.classList.remove('hidden');
+  } else {
+    modal.classList.add('hidden');
+  }
+};
+
+function renderCartList() {
+  const list = document.getElementById('cartItemsList');
+  const totalEl = document.getElementById('cartTotalText');
+  const advanceEl = document.getElementById('cartAdvanceText');
+  if (!list) return;
+
+  if (cart.length === 0) {
+    list.innerHTML = `
+      <div class="text-center py-8">
+        <i class="fa-solid fa-bag-shopping text-3xl text-gray-300 dark:text-gray-600 mb-2"></i>
+        <p class="text-xs text-gray-400">Tu carrito está vacío.</p>
+      </div>
+    `;
+    if (totalEl) totalEl.textContent = '$0 COP';
+    if (advanceEl) advanceEl.textContent = '$0 COP';
     return;
   }
 
   let totalSum = 0;
   let advanceSum = 0;
 
-  container.innerHTML = currentCart
-    .map((item, idx) => {
-      totalSum += item.totalPrice;
-      advanceSum += item.advancePrice;
-      return `
-      <div class="flex justify-between items-center bg-gray-50 p-3 rounded-xl border border-gray-100 text-xs">
+  list.innerHTML = cart.map((item, idx) => {
+    totalSum += item.price;
+    advanceSum += item.advancePrice;
+    return `
+      <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl border border-gray-100 dark:border-gray-600">
         <div>
-          <h4 class="font-bold text-gray-900">${item.title}</h4>
-          <span class="text-gray-500">${item.mode === 'rental' ? 'Alquiler (7 Días)' : 'Compra'}</span>
-          ${item.rentalDate ? `<span class="block text-[10px] text-blue-600">Fecha: ${item.rentalDate}</span>` : ''}
-          <span class="block font-semibold text-pink-700 mt-1">Anticipo: $${item.advancePrice.toLocaleString()} COP</span>
+          <h4 class="font-bold text-xs text-gray-800 dark:text-white">${item.title}</h4>
+          <span class="text-[10px] text-gray-400 capitalize">Modo: ${item.mode}</span>
+          <div class="text-[11px] font-bold text-brand-600">$${Number(item.price).toLocaleString()} COP</div>
         </div>
-        <button onclick="removeFromCart(${idx})" class="text-red-500 hover:text-red-700 font-bold text-sm p-1">✕</button>
+        <button type="button" onclick="removeFromCart(${idx})" class="text-gray-400 hover:text-red-500 p-2">
+          <i class="fa-solid fa-xmark text-xs"></i>
+        </button>
       </div>
     `;
-    })
-    .join("");
+  }).join('');
 
-  document.getElementById("cartTotalText").textContent = `$${totalSum.toLocaleString()} COP`;
-  document.getElementById("cartAdvanceText").textContent = `$${advanceSum.toLocaleString()} COP`;
+  if (totalEl) totalEl.textContent = `$${Number(totalSum).toLocaleString()} COP`;
+  if (advanceEl) advanceEl.textContent = `$${Number(advanceSum).toLocaleString()} COP`;
 }
 
-function removeFromCart(index) {
-  currentCart.splice(index, 1);
-  updateCartUI();
-}
-
-function toggleCartModal(forceOpen = null) {
-  const modal = document.getElementById("cartModal");
-  if (forceOpen !== null) {
-    modal.classList.toggle("hidden", !forceOpen);
-  } else {
-    modal.classList.toggle("hidden");
-  }
-}
-
-// 6. CHECKOUT Y CREACIÓN DE PEDIDOS EN SUPABASE
-function goToCheckout() {
-  if (currentCart.length === 0) {
-    alert("Agrega al menos un producto al carrito.");
-    return;
-  }
+window.goToCheckout = function() {
+  if (cart.length === 0) return;
   toggleCartModal(false);
 
-  let totalSum = 0;
-  let advanceSum = 0;
-  currentCart.forEach((item) => {
-    totalSum += item.totalPrice;
-    advanceSum += item.advancePrice;
-  });
+  let totalSum = cart.reduce((acc, i) => acc + i.price, 0);
+  let advanceSum = cart.reduce((acc, i) => acc + i.advancePrice, 0);
 
-  const remainingSum = totalSum - advanceSum;
+  document.getElementById('checkoutTotalText').textContent = `$${Number(totalSum).toLocaleString()} COP`;
+  document.getElementById('checkoutAdvanceText').textContent = `$${Number(advanceSum).toLocaleString()} COP`;
+  document.getElementById('checkoutRemainingText').textContent = `$${Number(totalSum - advanceSum).toLocaleString()} COP`;
 
-  document.getElementById("checkoutTotalText").textContent = `$${totalSum.toLocaleString()} COP`;
-  document.getElementById("checkoutAdvanceText").textContent = `$${advanceSum.toLocaleString()} COP`;
-  document.getElementById("checkoutRemainingText").textContent = `$${remainingSum.toLocaleString()} COP`;
+  showSection('checkout');
+};
 
-  const hasNonCreditItem = currentCart.some(cartItem => {
-    const prod = currentProducts.find(p => p.id === cartItem.id);
-    return prod && prod.allow_credit === false;
-  });
+/* ==========================================================================
+   6. AUTENTICACIÓN Y REGISTRO
+   ========================================================================== */
+window.openAuthModal = function() {
+  toggleAuthModal(true);
+};
 
-  const optCreditLabel = document.getElementById("optPayCredit");
-  if (hasNonCreditItem) {
-    optCreditLabel.style.opacity = "0.5";
-    optCreditLabel.style.pointerEvents = "none";
-    toggleCheckoutMethod('direct');
-  } else {
-    optCreditLabel.style.opacity = "1";
-    optCreditLabel.style.pointerEvents = "auto";
+window.toggleAuthModal = function(show) {
+  const modal = document.getElementById('authModal');
+  if (modal) {
+    if (show) modal.classList.remove('hidden');
+    else modal.classList.add('hidden');
   }
+};
 
-  showSection("checkout");
+window.switchAuthMode = function(mode) {
+  const formReg = document.getElementById('formRegisterContainer');
+  const formLog = document.getElementById('formLoginContainer');
+  const tabReg = document.getElementById('tabRoleRegister');
+  const tabLog = document.getElementById('tabRoleLogin');
+
+  if (mode === 'register') {
+    if (formReg) formReg.classList.remove('hidden');
+    if (formLog) formLog.classList.add('hidden');
+    if (tabReg) tabReg.className = "flex-1 pb-3 font-bold text-xs border-b-2 border-brand-600 text-brand-600";
+    if (tabLog) tabLog.className = "flex-1 pb-3 font-bold text-xs border-b-2 border-transparent text-gray-400";
+  } else {
+    if (formReg) formReg.classList.add('hidden');
+    if (formLog) formLog.classList.remove('hidden');
+    if (tabLog) tabLog.className = "flex-1 pb-3 font-bold text-xs border-b-2 border-brand-600 text-brand-600";
+    if (tabReg) tabReg.className = "flex-1 pb-3 font-bold text-xs border-b-2 border-transparent text-gray-400";
+  }
+};
+
+function generateMathCaptcha() {
+  const n1 = Math.floor(Math.random() * 9) + 1;
+  const n2 = Math.floor(Math.random() * 9) + 1;
+  mathCaptchaAnswer = n1 + n2;
+  const qEl = document.getElementById('mathCaptchaQuestion');
+  if (qEl) qEl.textContent = `¿Cuánto es ${n1} + ${n2}?`;
 }
 
-function toggleCheckoutMethod(method) {
-  const creditContainer = document.getElementById("creditFormContainer");
-  const optDirect = document.getElementById("optPayDirect");
-  const optCredit = document.getElementById("optPayCredit");
-
-  if (method === "credit") {
-    creditContainer.classList.remove("hidden");
-    optCredit.className = "border-2 p-4 rounded-xl cursor-pointer flex items-start gap-3 border-pink-500 bg-pink-50";
-    optDirect.className = "border-2 p-4 rounded-xl cursor-pointer flex items-start gap-3 border-gray-200";
-  } else {
-    creditContainer.classList.add("hidden");
-    optDirect.className = "border-2 p-4 rounded-xl cursor-pointer flex items-start gap-3 border-pink-500 bg-pink-50";
-    optCredit.className = "border-2 p-4 rounded-xl cursor-pointer flex items-start gap-3 border-gray-200";
-  }
-}
-
-async function uploadDocument(file, path) {
-  if (!file) return null;
-  const fileExt = file.name.split('.').pop();
-  const fileName = `${path}_${Date.now()}.${fileExt}`;
+window.handleClientRegister = async function(e) {
+  e.preventDefault();
+  const ansInput = parseInt(document.getElementById('mathCaptchaInput').value, 10);
   
-  const { data, error } = await supabaseClient.storage
-    .from('documents')
-    .upload(fileName, file);
-
-  if (error) {
-    console.error("Error al subir archivo:", error);
-    return null;
-  }
-
-  const { data: publicUrlData } = supabaseClient.storage
-    .from('documents')
-    .getPublicUrl(fileName);
-
-  return publicUrlData.publicUrl;
-}
-
-async function processOrderFinal() {
-  const selectedPaymentOpt = document.querySelector('input[name="paymentOption"]:checked');
-  const isCredit = selectedPaymentOpt && selectedPaymentOpt.value === "credit";
-  const btnProcess = document.getElementById("btnProcessOrder");
-
-  let totalSum = 0;
-  let advanceSum = 0;
-  currentCart.forEach((item) => {
-    totalSum += item.totalPrice;
-    advanceSum += item.advancePrice;
-  });
-
-  const remainingSum = totalSum - advanceSum;
-  const orderCode = "CUP" + Math.floor(1000 + Math.random() * 9000);
-
-  btnProcess.disabled = true;
-  btnProcess.textContent = "Procesando Pedido...";
-
-  try {
-    const { data: orderData, error: orderError } = await supabaseClient
-      .from("orders")
-      .insert([
-        {
-          order_code: orderCode,
-          user_id: currentUser ? currentUser.id : null,
-          total_price: totalSum,
-          advance_amount: advanceSum,
-          remaining_amount: remainingSum,
-          payment_method: isCredit ? "credit" : "direct",
-          items: currentCart,
-          status: "pending_payment"
-        }
-      ])
-      .select()
-      .single();
-
-    if (orderError) throw orderError;
-
-    if (isCredit) {
-      const consent = document.getElementById("contractConsent").checked;
-      if (!consent) {
-        alert("Debes aceptar los términos del crédito y la firma digital.");
-        btnProcess.disabled = false;
-        btnProcess.textContent = "Pagar Anticipo en Línea y Confirmar Pedido";
-        return;
-      }
-
-      const idFront = document.getElementById("idFrontFile").files[0];
-      const idBack = document.getElementById("idBackFile").files[0];
-      const selfie = document.getElementById("selfieFile").files[0];
-
-      const urlFront = await uploadDocument(idFront, `id_front_${orderCode}`);
-      const urlBack = await uploadDocument(idBack, `id_back_${orderCode}`);
-      const urlSelfie = await uploadDocument(selfie, `selfie_${orderCode}`);
-
-      const { error: creditError } = await supabaseClient
-        .from("cupissa_credits")
-        .insert([
-          {
-            order_id: orderData.id,
-            user_id: currentUser ? currentUser.id : null,
-            requested_amount: remainingSum,
-            periodicity: document.getElementById("creditPeriodicity").value,
-            installments: Number(document.getElementById("creditInstallments").value),
-            ref1_name: document.getElementById("ref1Name").value,
-            ref1_phone: document.getElementById("ref1Phone").value,
-            ref2_name: document.getElementById("ref2Name").value,
-            ref2_phone: document.getElementById("ref2Phone").value,
-            id_front_url: urlFront,
-            id_back_url: urlBack,
-            selfie_url: urlSelfie,
-            status: "pending"
-          }
-        ]);
-
-      if (creditError) throw creditError;
-    }
-
-    alert(`¡Pedido Registrado Exitosamente!\nCódigo de Pedido: ${orderCode}\nPuedes realizar el seguimiento desde el panel de rastreo.`);
-
-    currentCart = [];
-    updateCartUI();
-    showSection("catalog");
-  } catch (err) {
-    console.error("Error al procesar pedido:", err);
-    alert("Ocurrió un error al registrar el pedido en la base de datos.");
-  } finally {
-    btnProcess.disabled = false;
-    btnProcess.textContent = "Pagar Anticipo en Línea y Confirmar Pedido";
-  }
-}
-
-// 7. RASTREO REAL DESDE TABLA ORDERS
-async function trackOrder() {
-  const code = document.getElementById("trackingOrderInput").value.trim().toUpperCase();
-  const resContainer = document.getElementById("trackingResult");
-
-  if (!code) {
-    alert("Por favor ingresa un código de pedido.");
-    return;
-  }
-
-  resContainer.classList.remove("hidden");
-  resContainer.innerHTML = `<p class="text-xs text-gray-500">Buscando pedido...</p>`;
-
-  try {
-    const { data, error } = await supabaseClient
-      .from("orders")
-      .select("*")
-      .eq("order_code", code)
-      .single();
-
-    if (error || !data) {
-      resContainer.innerHTML = `<p class="text-xs text-red-500 font-bold">No se encontró ningún pedido con el código ${code}.</p>`;
-      return;
-    }
-
-    const statusMap = {
-      pending_payment: "Pendiente de Anticipo",
-      paid: "Anticipo Verificado / En Proceso",
-      in_production: "En Fabricación",
-      delivered: "Entregado"
-    };
-
-    resContainer.innerHTML = `
-      <div class="bg-emerald-50 border border-emerald-200 p-4 rounded-xl text-xs space-y-1">
-        <p class="font-bold text-emerald-900">Estado: <span class="uppercase">${statusMap[data.status] || data.status}</span></p>
-        <p class="text-emerald-700">Código: <strong>${data.order_code}</strong></p>
-        <p class="text-gray-600">Total: <strong>$${Number(data.total_price).toLocaleString()} COP</strong></p>
-        <p class="text-gray-600">Anticipo: <strong>$${Number(data.advance_amount).toLocaleString()} COP</strong></p>
-      </div>
-    `;
-  } catch (err) {
-    console.error("Error al rastrear pedido:", err);
-  }
-}
-
-// 8. AUTENTICACIÓN Y REDIRECCIÓN ADMIN / CLIENTE
-function toggleAuthModal(show) {
-  document.getElementById("authModal").classList.toggle("hidden", !show);
-}
-
-function switchAuthMode(mode) {
-  const tabReg = document.getElementById("tabRoleRegister");
-  const tabLog = document.getElementById("tabRoleLogin");
-  const formReg = document.getElementById("formRegisterContainer");
-  const formLog = document.getElementById("formLoginContainer");
-
-  if (mode === "register") {
-    tabReg.className = "flex-1 pb-2 font-bold text-xs border-b-2 border-pink-600 text-pink-600";
-    tabLog.className = "flex-1 pb-2 font-bold text-xs border-b-2 border-transparent text-gray-400";
-    formReg.classList.remove("hidden");
-    formLog.classList.add("hidden");
-  } else {
-    tabLog.className = "flex-1 pb-2 font-bold text-xs border-b-2 border-pink-600 text-pink-600";
-    tabReg.className = "flex-1 pb-2 font-bold text-xs border-b-2 border-transparent text-gray-400";
-    formLog.classList.remove("hidden");
-    formReg.classList.add("hidden");
-  }
-}
-
-async function handleClientRegister(e) {
-  e.preventDefault();
-
-  // Validación de la Suma / Código Anti-Robot
-  const captchaInputVal = document.getElementById("mathCaptchaInput").value.trim();
-  if (parseInt(captchaInputVal, 10) !== captchaCorrectAnswer) {
-    alert("La respuesta de la verificación anti-robot es incorrecta. Por favor, inténtalo de nuevo.");
+  if (ansInput !== mathCaptchaAnswer) {
+    alert("La respuesta a la verificación matemática es incorrecta.");
     generateMathCaptcha();
-    document.getElementById("mathCaptchaInput").value = "";
     return;
   }
 
-  const name = document.getElementById("regClientName").value.trim();
-  const cedula = document.getElementById("regClientCedula").value.trim();
-  const contact = document.getElementById("regClientContact").value.trim();
-  const password = document.getElementById("regClientPassword").value;
-  const btn = document.getElementById("btnRegister");
-
-  if (!name || !cedula || !contact || !password) {
-    alert("Por favor completa todos los campos.");
-    return;
-  }
-
-  btn.disabled = true;
-  btn.textContent = "Registrando...";
+  const fname = document.getElementById('regClientFirstName').value;
+  const lname = document.getElementById('regClientLastName').value;
+  const email = document.getElementById('regClientEmail').value;
+  const pass = document.getElementById('regClientPassword').value;
 
   try {
-    const isEmail = contact.includes("@");
-    
-    // Configuración robusta para el registro de Auth en Supabase
-    let authOptions = {
-      email: isEmail ? contact : `${contact.replace(/\D/g, '')}@cupissclient.com`,
-      password: password,
-      options: {
-        data: {
-          full_name: name,
-          cedula: cedula,
-          contact: contact
-        }
-      }
-    };
+    const { data, error } = await supabaseClient.auth.signUp({
+      email: email,
+      password: pass,
+      options: { data: { first_name: fname, last_name: lname } }
+    });
 
-    const { data, error } = await supabaseClient.auth.signUp(authOptions);
     if (error) throw error;
 
-    currentUser = data.user || (data.session ? data.session.user : null);
-
-    if (currentUser) {
-      const { error: profileError } = await supabaseClient
-        .from("profiles")
-        .upsert([
-          {
-            id: currentUser.id,
-            full_name: name,
-            cedula: cedula,
-            contact: contact
-          }
-        ]);
-
-      if (profileError) {
-        console.error("Error al guardar perfil en tabla profiles:", profileError);
-      }
-    }
-
-    alert("¡Registro exitoso! Bienvenido/a a Cupissa.");
-    updateAuthUI(true, name || contact);
+    alert("¡Cuenta creada exitosamente!");
     toggleAuthModal(false);
+    checkUserSession();
   } catch (err) {
-    console.error("Error en registro:", err);
-    alert("Error al registrarse: " + (err.message || "Verifica los datos e intenta de nuevo."));
-  } finally {
-    btn.disabled = false;
-    btn.textContent = "Registrarse";
-    generateMathCaptcha();
+    alert("Error al registrarse: " + err.message);
   }
-}
+};
 
-async function handleClientLogin(e) {
+window.handleClientLogin = async function(e) {
   e.preventDefault();
-
-  const contact = document.getElementById("loginContact").value.trim();
-  const password = document.getElementById("loginPassword").value;
-  const btn = document.getElementById("btnLogin");
-
-  if (!contact || !password) {
-    alert("Por favor completa los campos.");
-    return;
-  }
-
-  // VALIDACIÓN DE ADMIN DIRECTO DESDE EL LOGIN DE CLIENTES
-  if (contact === "daviddeiner956@gmail.com" && password === "Deiner123") {
-    sessionStorage.setItem("cupissa_admin_logged", "true");
-    alert("Credenciales de Administrador correctas. Redirigiendo al panel...");
-    window.location.href = "admin.html";
-    return;
-  }
-
-  btn.disabled = true;
-  btn.textContent = "Iniciando sesión...";
+  const email = document.getElementById('loginEmail').value;
+  const pass = document.getElementById('loginPassword').value;
 
   try {
-    const isEmail = contact.includes("@");
-    let loginPayload = { password };
+    const { data, error } = await supabaseClient.auth.signInWithPassword({
+      email: email,
+      password: pass
+    });
 
-    if (isEmail) {
-      loginPayload.email = contact;
-    } else {
-      let phoneFormatted = contact.replace(/\s+/g, '');
-      if (!phoneFormatted.startsWith('+')) {
-        phoneFormatted = '+57' + phoneFormatted;
-      }
-      loginPayload.phone = phoneFormatted;
-    }
-
-    const { data, error } = await supabaseClient.auth.signInWithPassword(loginPayload);
     if (error) throw error;
 
-    currentUser = data.user;
-
-    const { data: profile } = await supabaseClient
-      .from("profiles")
-      .select("full_name")
-      .eq("id", currentUser.id)
-      .single();
-
-    const name = profile ? profile.full_name : contact;
-
-    alert("¡Inicio de sesión exitoso!");
-    updateAuthUI(true, name);
     toggleAuthModal(false);
+    checkUserSession();
   } catch (err) {
-    console.error("Error en login:", err);
-    alert("Credenciales incorrectas o usuario no encontrado.");
-  } finally {
-    btn.disabled = false;
-    btn.textContent = "Ingresar";
+    alert("Error al iniciar sesión: " + err.message);
   }
-}
+};
 
-async function checkActiveSession() {
+window.loginWithGoogle = async function() {
+  try {
+    const { error } = await supabaseClient.auth.signInWithOAuth({ provider: 'google' });
+    if (error) throw error;
+  } catch (err) {
+    alert("Error al ingresar con Google: " + err.message);
+  }
+};
+
+async function checkUserSession() {
   const { data: { session } } = await supabaseClient.auth.getSession();
+  const authSec = document.getElementById('userAuthSection');
+  if (!authSec) return;
+
   if (session && session.user) {
-    currentUser = session.user;
-
-    const { data: profile } = await supabaseClient
-      .from("profiles")
-      .select("full_name")
-      .eq("id", currentUser.id)
-      .single();
-
-    const name = profile ? profile.full_name : currentUser.email || currentUser.phone;
-    updateAuthUI(true, name);
-  }
-}
-
-function updateAuthUI(isLoggedIn, userName = "") {
-  const section = document.getElementById("userAuthSection");
-  if (!section) return;
-
-  if (isLoggedIn) {
-    section.innerHTML = `
+    const name = session.user.user_metadata?.first_name || 'Mi Cuenta';
+    authSec.innerHTML = `
       <div class="flex items-center gap-2">
-        <span class="text-xs font-bold text-gray-800">Hola, ${userName}</span>
-        <button onclick="logoutUser()" class="text-xs text-red-600 font-bold hover:underline">Salir</button>
+        <span class="text-xs font-bold text-gray-700 dark:text-gray-200">${name}</span>
+        <button type="button" onclick="logout()" class="text-xs text-gray-400 hover:text-brand-600 p-1">
+          <i class="fa-solid fa-right-from-bracket"></i>
+        </button>
       </div>
     `;
   } else {
-    section.innerHTML = `
-      <button onclick="toggleAuthModal(true)" class="flex items-center space-x-2 text-sm font-medium text-gray-700 hover:text-brand-600 transition-colors py-2 px-3 rounded-lg hover:bg-gray-50">
-        <i class="fa-regular fa-user text-lg"></i>
-        <span class="hidden sm:inline">Iniciar Sesión</span>
+    authSec.innerHTML = `
+      <button type="button" onclick="openAuthModal()" class="flex items-center space-x-1.5 text-xs font-bold text-white bg-brand-600 hover:bg-brand-700 transition-all py-2 px-3 rounded-xl shadow-sm">
+        <i class="fa-regular fa-user"></i>
+        <span class="hidden sm:inline">Ingresar</span>
       </button>
     `;
   }
 }
 
-async function logoutUser() {
+window.logout = async function() {
   await supabaseClient.auth.signOut();
-  currentUser = null;
-  updateAuthUI(false);
-  alert("Sesión cerrada correctamente.");
-}
+  checkUserSession();
+};
+
+/* ==========================================================================
+   7. CONTROL DE VISTAS Y SECCIONES
+   ========================================================================== */
+window.showSection = function(sectionName) {
+  const sections = ['catalog', 'product-detail', 'checkout'];
+  sections.forEach(s => {
+    const el = document.getElementById(`section-${s}`);
+    if (el) {
+      if (s === sectionName) el.classList.remove('hidden');
+      else el.classList.add('hidden');
+    }
+  });
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+};
