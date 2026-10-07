@@ -1,121 +1,166 @@
-// Función para inicializar el tema al cargar
+// Variable global para almacenar el tema y slides del Hero
+let currentHeroSlide = 0;
+const heroSlides = [
+  {
+    image: 'hero-banner.png',
+    caption: 'Variedad y calidad en cada detalle para tus fechas especiales.'
+  },
+  {
+    image: 'hero-banner-2.png', // Puedes agregar imágenes de respaldo o dinámicas
+    caption: 'Mobiliario exclusivo y decoración personalizada para eventos.'
+  }
+];
+
+// 1. Inicialización de Tema Claro/Oscuro (Corrige el error de la consola)
 function initTheme() {
   const savedTheme = localStorage.getItem('theme');
+  const themeIcon = document.getElementById('themeIcon');
+
   if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
     document.documentElement.classList.add('dark');
+    if (themeIcon) {
+      themeIcon.classList.remove('fa-sun');
+      themeIcon.classList.add('fa-moon');
+    }
   } else {
     document.documentElement.classList.remove('dark');
+    if (themeIcon) {
+      themeIcon.classList.remove('fa-moon');
+      themeIcon.classList.add('fa-sun');
+    }
   }
 }
 
-// Evento al cargar el DOM
+function toggleTheme() {
+  const isDark = document.documentElement.classList.toggle('dark');
+  localStorage.setItem('theme', isDark ? 'dark' : 'light');
+  
+  const themeIcon = document.getElementById('themeIcon');
+  if (themeIcon) {
+    if (isDark) {
+      themeIcon.classList.remove('fa-sun');
+      themeIcon.classList.add('fa-moon');
+    } else {
+      themeIcon.classList.remove('fa-moon');
+      themeIcon.classList.add('fa-sun');
+    }
+  }
+}
+
+// 2. Control del Hero Interactivo (Slider)
+function renderHeroSlide(index) {
+  const slideImg = document.getElementById('heroSlideImg');
+  const slideCaption = document.getElementById('heroSlideCaption');
+
+  if (!slideImg || !slideCaption || heroSlides.length === 0) return;
+
+  if (index >= heroSlides.length) currentHeroSlide = 0;
+  else if (index < 0) currentHeroSlide = heroSlides.length - 1;
+  else currentHeroSlide = index;
+
+  slideImg.style.opacity = '0.3';
+  setTimeout(() => {
+    slideImg.src = heroSlides[currentHeroSlide].image;
+    slideCaption.textContent = heroSlides[currentHeroSlide].caption;
+    slideImg.style.opacity = '1';
+  }, 200);
+}
+
+function nextHeroSlide() {
+  renderHeroSlide(currentHeroSlide + 1);
+}
+
+function prevHeroSlide() {
+  renderHeroSlide(currentHeroSlide - 1);
+}
+
+// 3. Carga de Productos Destacados de la Temporada desde Supabase
+async function loadSeasonalProducts() {
+  const container = document.getElementById('seasonProductGrid');
+  const seasonTitle = document.getElementById('seasonTitle');
+  if (!container) return;
+
+  try {
+    // Definimos la temporada activa (puedes ajustar el término según Supabase: 'navidad', 'carnaval', etc.)
+    const activeSeason = 'navidad'; 
+
+    if (seasonTitle) {
+      seasonTitle.textContent = `Especial de Temporada - ${activeSeason.toUpperCase()}`;
+    }
+
+    // Consulta a Supabase filtrando por temporada activa y limitando a máximo 5 productos
+    let { data: products, error } = await supabaseClient
+      .from('products')
+      .select('*')
+      .eq('temporada', activeSeason)
+      .limit(5);
+
+    if (error) throw error;
+
+    // Si no hay productos de esa temporada específica, trae los primeros 5 destacados
+    if (!products || products.length === 0) {
+      let fallback = await supabaseClient
+        .from('products')
+        .select('*')
+        .limit(5);
+      products = fallback.data || [];
+    }
+
+    if (products.length === 0) {
+      container.innerHTML = `
+        <div class="col-span-full text-center py-6 text-gray-400 text-xs">
+          No hay productos destacados disponibles en este momento.
+        </div>`;
+      return;
+    }
+
+    container.innerHTML = products.map(prod => `
+      <div class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/60 p-3 shadow-sm hover:shadow-md transition-all flex flex-col justify-between group">
+        <div>
+          <div class="relative w-full h-36 rounded-xl overflow-hidden mb-3 bg-gray-100 dark:bg-gray-700">
+            <img src="${prod.imagen || 'hero-banner.png'}" alt="${prod.nombre}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+            ${prod.temporada ? `<span class="absolute top-2 left-2 bg-brand-600 text-white text-[9px] font-extrabold px-2 py-0.5 rounded-full uppercase">${prod.temporada}</span>` : ''}
+          </div>
+          <h4 class="text-xs font-bold text-gray-800 dark:text-gray-100 line-clamp-1 mb-1">${prod.nombre}</h4>
+          <p class="text-[11px] font-black text-brand-600 dark:text-brand-400 mb-2">
+            $${Number(prod.precio || 0).toLocaleString('es-CO')} COP
+          </p>
+        </div>
+        <a href="catalogo.html?id=${prod.id}" class="w-full bg-gray-100 dark:bg-gray-700 hover:bg-brand-600 hover:text-white text-gray-700 dark:text-gray-200 font-bold text-[11px] py-1.5 rounded-lg text-center transition-colors block">
+          Ver Detalle
+        </a>
+      </div>
+    `).join('');
+
+  } catch (err) {
+    console.error('Error al cargar productos de temporada:', err);
+    container.innerHTML = `
+      <div class="col-span-full text-center py-6 text-red-400 text-xs">
+        No se pudieron cargar los productos de la temporada.
+      </div>`;
+  }
+}
+
+// 4. Búsqueda directa desde el Navbar del Home al Catálogo
+function initSmartSearch() {
+  const searchInput = document.getElementById('searchInput');
+  if (!searchInput) return;
+
+  searchInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter' && searchInput.value.trim() !== '') {
+      window.location.href = `catalogo.html?search=${encodeURIComponent(searchInput.value.trim())}`;
+    }
+  });
+}
+
+// Inicialización general al cargar el DOM
 document.addEventListener('DOMContentLoaded', () => {
   initTheme();
-  // ... resto de tu código
+  loadSeasonalProducts();
+  initSmartSearch();
+
+  // Cambio automático del Hero cada 6 segundos
+  setInterval(() => {
+    nextHeroSlide();
+  }, 6000);
 });
-
-document.addEventListener('DOMContentLoaded', async () => {
-  initTheme();
-  loadCartFromStorage();
-  loadFavoritesFromStorage();
-  generateMathCaptcha();
-  await loadProducts();
-  checkUserSession();
-});
-
-async function loadProducts() {
-  try {
-    const { data, error } = await supabaseClient.from('products').select('*').eq('is_active', true);
-    if (error) throw error;
-    products = data || [];
-  } catch (err) {
-    products = [
-      { id: '1', title: 'Caja Regalo Sorpresa', world: 'familiar', category: 'Regalos', sale_price: 120000, type: 'sale', advance_percentage: 50 },
-      { id: '2', title: 'Silla VIP para Eventos', world: 'eventos', category: 'Mobiliario', rental_price_per_day: 15000, type: 'rental', advance_percentage: 30 }
-    ];
-  }
-  renderProductGrid(products);
-}
-
-window.filterByWorld = function(world) {
-  currentWorld = world;
-  document.querySelectorAll('.world-tab').forEach(tab => tab.classList.remove('active'));
-  const activeTab = document.getElementById(`tab-${world}`);
-  if (activeTab) activeTab.classList.add('active');
-
-  const filtered = world === 'all' ? products : products.filter(p => p.world === world);
-  renderProductGrid(filtered);
-};
-
-window.filterProductsBySmartSearch = function() {
-  const query = document.getElementById('searchInput').value.toLowerCase().trim();
-  if (!query) {
-    filterByWorld(currentWorld);
-    return;
-  }
-  const filtered = products.filter(p => p.title?.toLowerCase().includes(query));
-  renderProductGrid(filtered);
-};
-
-function renderProductGrid(items) {
-  const grid = document.getElementById('productGrid');
-  if (!grid) return;
-
-  if (items.length === 0) {
-    grid.innerHTML = `<div class="col-span-full text-center py-12 text-xs text-gray-400">Sin productos.</div>`;
-    return;
-  }
-
-  grid.innerHTML = items.map(p => {
-    const isFav = favorites.some(fav => fav.id === p.id);
-    const price = p.type === 'rental' ? (p.rental_price_per_day || 0) : (p.sale_price || 0);
-
-    return `
-      <div class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-4 flex flex-col justify-between">
-        <div>
-          <div class="relative w-full h-40 bg-gray-100 dark:bg-gray-700 rounded-xl overflow-hidden mb-3">
-            <img src="${p.image_url || 'https://via.placeholder.com/300'}" class="w-full h-full object-cover" />
-            <button type="button" onclick="toggleFavorite('${p.id}', event)" class="absolute top-2 right-2 p-2 bg-white/80 rounded-full">
-              <i class="fa-solid fa-heart ${isFav ? 'text-brand-600' : 'text-gray-400'} text-xs"></i>
-            </button>
-          </div>
-          <h3 class="font-extrabold text-xs text-gray-900 dark:text-white line-clamp-2 mb-2">${p.title}</h3>
-        </div>
-        <div>
-          <div class="text-xs font-black text-brand-600 mb-2">$${Number(price).toLocaleString()} COP</div>
-          <button type="button" onclick="openProductDetail('${p.id}')" class="w-full bg-gray-100 dark:bg-gray-700 hover:bg-brand-600 hover:text-white font-bold py-2 rounded-xl text-xs transition-all">Ver Detalle</button>
-        </div>
-      </div>
-    `;
-  }).join('');
-}
-
-window.openProductDetail = function(productId) {
-  selectedProduct = products.find(p => p.id === productId);
-  if (!selectedProduct) return;
-
-  document.getElementById('detailImage').src = selectedProduct.image_url || 'https://via.placeholder.com/500';
-  document.getElementById('detailTitle').textContent = selectedProduct.title;
-  document.getElementById('detailDescription').textContent = selectedProduct.description || 'Sin descripción.';
-
-  setProductMode(selectedProduct.type || 'sale');
-  showSection('product-detail');
-};
-
-window.setProductMode = function(mode) {
-  currentProductMode = mode;
-  const isRental = mode === 'rental';
-  const totalPrice = isRental ? (selectedProduct?.rental_price_per_day || 0) : (selectedProduct?.sale_price || 0);
-  const pct = selectedProduct?.advance_percentage || 50;
-
-  document.getElementById('detailTotalPrice').textContent = `$${Number(totalPrice).toLocaleString()} COP`;
-  document.getElementById('detailAdvancePrice').textContent = `$${Number((totalPrice * pct) / 100).toLocaleString()} COP`;
-};
-
-window.showSection = function(sectionName) {
-  ['catalog', 'product-detail', 'checkout'].forEach(s => {
-    const el = document.getElementById(`section-${s}`);
-    if (el) el.classList.toggle('hidden', s !== sectionName);
-  });
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-};
