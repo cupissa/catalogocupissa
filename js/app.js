@@ -1,3 +1,19 @@
+// Función para inicializar el tema al cargar
+function initTheme() {
+  const savedTheme = localStorage.getItem('theme');
+  if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+    document.documentElement.classList.add('dark');
+  } else {
+    document.documentElement.classList.remove('dark');
+  }
+}
+
+// Evento al cargar el DOM
+document.addEventListener('DOMContentLoaded', () => {
+  initTheme();
+  // ... resto de tu código
+});
+
 document.addEventListener('DOMContentLoaded', async () => {
   initTheme();
   loadCartFromStorage();
