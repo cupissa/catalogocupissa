@@ -1,17 +1,25 @@
-// Variable global para almacenar el tema y slides del Hero
+// Variable global para almacenar el tema y las diapositivas del Hero
 let currentHeroSlide = 0;
+
+// ==========================================
+// CONFIGURA AQUÍ TUS IMÁGENES Y LEYENDAS
+// ==========================================
 const heroSlides = [
   {
-    image: 'hero-banner.png',
+    image: 'hero-banner.jpg', // Reemplaza con la ruta de tu primera imagen (ej: 'images/banner1.jpg')
     caption: 'Variedad y calidad en cada detalle para tus fechas especiales.'
   },
   {
-    image: 'hero-banner-2.png', // Puedes agregar imágenes de respaldo o dinámicas
+    image: 'hero-banner-2.jpg', // Reemplaza con la ruta de tu segunda imagen (ej: 'images/banner2.jpg')
     caption: 'Mobiliario exclusivo y decoración personalizada para eventos.'
+  },
+  {
+    image: 'hero-banner-3.jpg', // Puedes agregar más diapositivas duplicando esta estructura
+    caption: 'Soluciones integrales, fabricación a medida y crédito directo.'
   }
 ];
 
-// 1. Inicialización de Tema Claro/Oscuro (Corrige el error de la consola)
+// 1. Inicialización de Tema Claro/Oscuro
 function initTheme() {
   const savedTheme = localStorage.getItem('theme');
   const themeIcon = document.getElementById('themeIcon');
@@ -47,7 +55,7 @@ function toggleTheme() {
   }
 }
 
-// 2. Control del Hero Interactivo (Slider)
+// 2. Control del Hero Interactivo (Slider con Transición)
 function renderHeroSlide(index) {
   const slideImg = document.getElementById('heroSlideImg');
   const slideCaption = document.getElementById('heroSlideCaption');
@@ -58,7 +66,8 @@ function renderHeroSlide(index) {
   else if (index < 0) currentHeroSlide = heroSlides.length - 1;
   else currentHeroSlide = index;
 
-  slideImg.style.opacity = '0.3';
+  // Transición suave al cambiar la imagen
+  slideImg.style.opacity = '0.2';
   setTimeout(() => {
     slideImg.src = heroSlides[currentHeroSlide].image;
     slideCaption.textContent = heroSlides[currentHeroSlide].caption;
@@ -81,14 +90,12 @@ async function loadSeasonalProducts() {
   if (!container) return;
 
   try {
-    // Definimos la temporada activa (puedes ajustar el término según Supabase: 'navidad', 'carnaval', etc.)
     const activeSeason = 'navidad'; 
 
     if (seasonTitle) {
       seasonTitle.textContent = `Especial de Temporada - ${activeSeason.toUpperCase()}`;
     }
 
-    // Consulta a Supabase filtrando por temporada activa y limitando a máximo 5 productos
     let { data: products, error } = await supabaseClient
       .from('products')
       .select('*')
@@ -97,7 +104,6 @@ async function loadSeasonalProducts() {
 
     if (error) throw error;
 
-    // Si no hay productos de esa temporada específica, trae los primeros 5 destacados
     if (!products || products.length === 0) {
       let fallback = await supabaseClient
         .from('products')
@@ -141,7 +147,7 @@ async function loadSeasonalProducts() {
   }
 }
 
-// 4. Búsqueda directa desde el Navbar del Home al Catálogo
+// 4. Búsqueda directa desde el Navbar
 function initSmartSearch() {
   const searchInput = document.getElementById('searchInput');
   if (!searchInput) return;
@@ -159,7 +165,7 @@ document.addEventListener('DOMContentLoaded', () => {
   loadSeasonalProducts();
   initSmartSearch();
 
-  // Cambio automático del Hero cada 6 segundos
+  // Rotación automática del Hero cada 6 segundos
   setInterval(() => {
     nextHeroSlide();
   }, 6000);
