@@ -14,4 +14,4 @@ function generateMathCaptcha() {
   if (inputEl) {
     inputEl.value = '';
   }
-}
+} 
