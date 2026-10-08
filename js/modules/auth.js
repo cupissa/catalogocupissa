@@ -17,11 +17,8 @@ window.closeAuthModal = function() {
 };
 
 window.toggleAuthModal = function(show) {
-  if (show) {
-    window.openAuthModal();
-  } else {
-    window.closeAuthModal();
-  }
+  if (show) window.openAuthModal();
+  else window.closeAuthModal();
 };
 
 window.switchAuthMode = function(mode) {
@@ -62,26 +59,37 @@ window.handleClientRegister = async function(e) {
   const pass = document.getElementById('regClientPassword').value;
 
   try {
+    // 1. Crear usuario en Supabase Auth
     const { data: authData, error: authError } = await supabaseClient.auth.signUp({
       email,
       password: pass,
-      options: { data: { first_name: fname, last_name: lname } }
+      options: { 
+        data: { 
+          first_name: fname, 
+          last_name: lname 
+        } 
+      }
     });
+
     if (authError) throw authError;
 
-    if (authData?.user) {
-      await createUserProfile(authData.user.id, {
-        first_name: fname,
-        last_name: lname,
-        email: email
+    // 2. Si no se inició sesión automáticamente, forzamos el login inmediato
+    if (!authData.session) {
+      const { error: loginError } = await supabaseClient.auth.signInWithPassword({
+        email,
+        password: pass
       });
+      if (loginError) throw loginError;
     }
 
     if (typeof showToast === 'function') showToast("¡Cuenta creada exitosamente!");
     else alert("¡Cuenta creada exitosamente!");
+
     window.closeAuthModal();
-    window.checkUserSession();
+    await window.checkUserSession();
+
   } catch (err) {
+    console.error("Error en registro:", err);
     if (typeof showToast === 'function') showToast(err.message, "error");
     else alert(err.message);
   }
@@ -96,7 +104,7 @@ window.handleClientLogin = async function(e) {
     const { error } = await supabaseClient.auth.signInWithPassword({ email, password: pass });
     if (error) throw error;
     window.closeAuthModal();
-    window.checkUserSession();
+    await window.checkUserSession();
   } catch (err) {
     if (typeof showToast === 'function') showToast(err.message, "error");
     else alert(err.message);
@@ -116,11 +124,30 @@ window.checkUserSession = async function() {
   if (!authSec) return;
 
   if (session && session.user) {
-    const name = session.user.user_metadata?.first_name || 'Mi Cuenta';
+    let clientName = session.user.user_metadata?.first_name;
+
+    // Si no está en metadata, consultar en la tabla 'profile'
+    if (!clientName) {
+      try {
+        const { data: prof } = await supabaseClient
+          .from('profile')
+          .select('first_name')
+          .eq('id', session.user.id)
+          .maybeSingle();
+        if (prof && prof.first_name) clientName = prof.first_name;
+      } catch (err) {
+        console.warn('Error leyendo profile:', err);
+      }
+    }
+
+    clientName = clientName || 'Mi Cuenta';
+
     authSec.innerHTML = `
       <div class="flex items-center gap-2">
-        <span class="text-xs font-bold text-gray-700 dark:text-gray-200">${name}</span>
-        <button type="button" onclick="logout()" class="text-xs text-gray-400 hover:text-brand-600 p-1">
+        <span class="text-xs font-bold text-gray-700 dark:text-gray-200">
+          <i class="fa-solid fa-user text-brand-600 mr-1"></i>${clientName}
+        </span>
+        <button type="button" onclick="logout()" class="text-xs text-gray-400 hover:text-brand-600 p-1" title="Cerrar Sesión">
           <i class="fa-solid fa-right-from-bracket"></i>
         </button>
       </div>
@@ -137,5 +164,10 @@ window.checkUserSession = async function() {
 
 window.logout = async function() {
   await supabaseClient.auth.signOut();
-  window.checkUserSession();
+  await window.checkUserSession();
 };
+
+// Comprobar la sesión automáticamente al cargar la página
+document.addEventListener('DOMContentLoaded', () => {
+  window.checkUserSession();
+});
