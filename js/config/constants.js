@@ -20,4 +20,4 @@ const heroSlides = [
     image: 'images/hero-banner-3.jpg',
     caption: 'Soluciones integrales, fabricación a medida y crédito directo.'
   }
-];
+]; 
