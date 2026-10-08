@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CUPISSA - Sistema Operativo, CRM & Contabilidad Inteligente</title>
+    
+    <link rel="icon" type="image/png" href="images/logo.png">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <link rel="stylesheet" href="css/admin.css?v=1.2">
+</head>
+<body class="bg-slate-100 text-slate-800 font-sans antialiased pb-20">
+
+    <div id="toast-container" class="fixed bottom-5 right-5 z-50 space-y-2 pointer-events-none"></div>
+
+    <header class="bg-indigo-900 text-white shadow-md sticky top-0 z-40 no-print">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex flex-col sm:flex-row justify-between items-center gap-3">
+            <div class="flex items-center justify-between w-full sm:w-auto">
+                <div class="flex items-center gap-2">
+                    <span class="text-xl">👑</span>
+                    <div>
+                        <h1 class="text-base font-extrabold tracking-wide">CUPISSA S.A.S.</h1>
+                        <p class="text-[10px] text-indigo-200">Panel Gerencial & CRM</p>
+                    </div>
+                </div>
+            </div>
+            <nav class="flex flex-wrap gap-1 text-xs justify-center sm:justify-end w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0">
+                <button onclick="switchTab('dashboard')" id="btn-tab-dashboard" class="px-2.5 py-1.5 rounded-lg bg-indigo-800 font-medium transition whitespace-nowrap">📊 Dashboard</button>
+                <button onclick="switchTab('pedidos')" id="btn-tab-pedidos" class="px-2.5 py-1.5 rounded-lg hover:bg-indigo-800 font-medium transition whitespace-nowrap">📦 Pedidos & CRM</button>
+                <button onclick="switchTab('inventario')" id="btn-tab-inventario" class="px-2.5 py-1.5 rounded-lg hover:bg-indigo-800 font-medium transition whitespace-nowrap">📋 Inventario</button>
+                <button onclick="switchTab('contabilidad')" id="btn-tab-contabilidad" class="px-2.5 py-1.5 rounded-lg hover:bg-indigo-800 font-medium transition whitespace-nowrap">💰 Flujo de Caja & Deudas</button>
+                <button onclick="switchTab('reportes')" id="btn-tab-reportes" class="px-2.5 py-1.5 rounded-lg hover:bg-indigo-800 font-medium transition whitespace-nowrap">📈 Reportes PDF</button>
+            </nav>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto p-2 sm:p-6 space-y-4 sm:space-y-6">
+
+        <!-- ================= DASHBOARD ================= -->
+        <section id="tab-dashboard" class="space-y-4 sm:space-y-6 animate-fade-in">
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex justify-between items-center">
+                    <div>
+                        <h3 class="text-[10px] sm:text-xs font-bold text-slate-400 uppercase">Ventas del Mes</h3>
+                        <p id="stat-ventas-mes" class="text-xl sm:text-2xl font-black text-indigo-600 mt-1">$0</p>
+                    </div>
+                    <div class="p-2.5 bg-indigo-50 rounded-xl text-indigo-600 font-bold text-lg">💵</div>
+                </div>
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex justify-between items-center">
+                    <div>
+                        <h3 class="text-[10px] sm:text-xs font-bold text-slate-400 uppercase">Cuentas por Cobrar</h3>
+                        <p id="stat-por-cobrar" class="text-xl sm:text-2xl font-black text-amber-600 mt-1">$0</p>
+                    </div>
+                    <div class="p-2.5 bg-amber-50 rounded-xl text-amber-600 font-bold text-lg">⏳</div>
+                </div>
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex justify-between items-center">
+                    <div>
+                        <h3 class="text-[10px] sm:text-xs font-bold text-slate-400 uppercase">Saldo Efectivo</h3>
+                        <p id="stat-saldo-efectivo" class="text-xl sm:text-2xl font-black text-emerald-600 mt-1">$0</p>
+                    </div>
+                    <div class="p-2.5 bg-emerald-50 rounded-xl text-emerald-600 font-bold text-lg">💵</div>
+                </div>
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex justify-between items-center">
+                    <div>
+                        <h3 class="text-[10px] sm:text-xs font-bold text-slate-400 uppercase">Nequi / Bancos</h3>
+                        <p id="stat-saldo-bancos" class="text-xl sm:text-2xl font-black text-blue-600 mt-1">$0</p>
+                    </div>
+                    <div class="p-2.5 bg-blue-50 rounded-xl text-blue-600 font-bold text-lg">📱</div>
+                </div>
+            </div>
+
+            <!-- AVISOS VISUALES DE DEUDAS VENCIDAS O PROXIMAS -->
+            <div id="banner-deudas-proximas" class="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-2xl shadow-sm hidden">
+                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                    <div class="flex items-start gap-3">
+                        <span class="text-2xl pt-1">⚠️</span>
+                        <div>
+                            <h3 class="font-bold text-slate-800 text-sm uppercase tracking-wider">¡Atención con tus deudas!</h3>
+                            <div id="texto-alerta-deudas" class="text-xs text-slate-700 mt-1 space-y-1"></div>
+                        </div>
+                    </div>
+                    <div class="flex gap-2 w-full sm:w-auto">
+                        <a id="btn-enviar-correo-deudas" href="#" target="_blank" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-xl font-bold text-xs whitespace-nowrap shadow flex items-center justify-center gap-1 w-full sm:w-auto transition">
+                            📧 Enviar Reporte a DAVIDDEINER956@GMAIL.COM
+                        </a>
+                        <button onclick="switchTab('contabilidad')" class="bg-slate-800 hover:bg-slate-900 text-white px-3 py-2 rounded-xl font-bold text-xs whitespace-nowrap shadow w-full sm:w-auto transition">
+                            Ver Deudas
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- GRAFICO DIARIO DE FLUJO DE CAJA -->
+            <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200">
+                <h2 class="text-base sm:text-lg font-bold text-slate-800 mb-3">📈 Ingresos vs Egresos (Movimiento Diario)</h2>
+                <div class="relative w-full h-64 sm:h-80">
+                    <canvas id="chart-flujo-diario"></canvas>
+                </div>
+            </div>
+
+            <div class="bg-gradient-to-r from-indigo-900 to-indigo-800 p-4 sm:p-5 rounded-2xl shadow-md text-white space-y-3">
+                <div class="flex items-center gap-2">
+                    <span class="text-xl">🔍</span>
+                    <div>
+                        <h2 class="text-sm sm:text-base font-bold">Buscador Inteligente (Cliente o Producto)</h2>
+                        <p class="text-[11px] text-indigo-200">Consulta instantánea de pedidos, deudas, compras, stock y modalidades</p>
+                    </div>
+                </div>
+                <div class="relative">
+                    <input type="text" id="input-buscador-global-360" oninput="ejecutarBuscadorGlobal360()" placeholder="Escribe el nombre del cliente, teléfono o referencia/nombre de producto..." class="w-full p-3 pl-4 rounded-xl text-sm text-slate-900 bg-white font-medium shadow focus:outline-none focus:ring-2 focus:ring-indigo-400">
+                    <div id="resultado-buscador-global-box" class="absolute z-40 w-full bg-white text-slate-800 rounded-xl shadow-2xl mt-2 p-4 hidden max-h-96 overflow-y-auto border border-slate-200 text-xs"></div>
+                </div>
+            </div>
+
+            <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                    <div>
+                        <h2 class="text-base sm:text-lg font-bold text-slate-800">🚨 Alertas Urgentes de Pedidos</h2>
+                        <p class="text-xs text-slate-400">Pedidos pendientes que requieren atención</p>
+                    </div>
+                    <input type="text" id="buscador-alertas" oninput="cargarPedidosAdmin()" placeholder="🔍 Filtrar alertas..." class="p-2 border rounded-xl text-xs w-full sm:w-64 bg-slate-50">
+                </div>
+                <div class="overflow-x-auto border rounded-xl">
+                    <table class="w-full text-left border-collapse sheets-table">
+                        <thead>
+                            <tr><th>Ref</th><th>Cliente</th><th>Entrega</th><th>Saldo Pend.</th><th>Urgencia</th><th>Acción</th></tr>
+                        </thead>
+                        <tbody id="tabla-alertas-dashboard" class="text-xs"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= PEDIDOS & CRM ================= -->
+        <section id="tab-pedidos" class="hidden space-y-4 sm:space-y-6 animate-fade-in">
+            <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-4 border-b pb-3">
+                    <div>
+                        <h2 class="text-base sm:text-lg font-bold text-indigo-700">➕ Crear Pedido Real / CRM</h2>
+                        <p class="text-xs text-slate-400">Selecciona un cliente existente para evitar duplicidad</p>
+                    </div>
+                    <div class="w-full sm:w-72">
+                        <select id="select-cliente-existente" onchange="autocompletarClienteExistente()" class="p-2 border rounded-xl w-full text-xs bg-indigo-50 font-semibold text-indigo-800 border-indigo-200">
+                            <option value="">👤 Seleccionar cliente registrado...</option>
+                        </select>
+                    </div>
+                </div>
+
+                <form id="form-pedido-admin" class="space-y-4">
+                    <input type="hidden" id="cli-id-seleccionado">
+                    <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                        <div>
+                            <label class="text-[11px] font-semibold text-slate-500">Nombre del Cliente *</label>
+                            <input type="text" id="cli-nombre" placeholder="Nombre completo" required class="p-2.5 border rounded-xl w-full text-xs mt-1 bg-slate-50">
+                        </div>
+                        <div>
+                            <label class="text-[11px] font-semibold text-slate-500">Teléfono / WhatsApp *</label>
+                            <input type="text" id="cli-telefono" placeholder="3101234567" required oninput="buscarClientePorTelefono()" class="p-2.5 border rounded-xl w-full text-xs mt-1 bg-slate-50">
+                        </div>
+                        <div>
+                            <label class="text-[11px] font-semibold text-slate-500">Dirección</label>
+                            <input type="text" id="cli-direccion" placeholder="Calle 50 # 20-10" class="p-2.5 border rounded-xl w-full text-xs mt-1 bg-slate-50">
+                        </div>
+                        <div>
+                            <label class="text-[11px] font-semibold text-slate-500">Correo / C.C. (Opcional)</label>
+                            <input type="text" id="cli-email-cc" placeholder="correo@mail.com / C.C." class="p-2.5 border rounded-xl w-full text-xs mt-1 bg-slate-50">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                        <div>
+                            <label class="text-[11px] font-semibold text-slate-500">Tipo Operación</label>
+                            <select id="ped-tipo" class="p-2.5 border rounded-xl w-full text-xs mt-1 font-semibold text-indigo-600 bg-indigo-50">
+                                <option value="Venta Contado">Venta Contado</option>
+                                <option value="Crédito / Fiado">Crédito / Fiado</option>
+                                <option value="Personalizado (Sin Stock)">Personalizado (Bajo Pedido)</option>
+                                <option value="Alquiler">Alquiler de Vestuario</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-[11px] font-semibold text-slate-500">Fecha Agendamiento</label>
+                            <input type="date" id="ped-fecha-agendamiento" class="p-2.5 border rounded-xl w-full text-xs mt-1 bg-slate-50" required>
+                        </div>
+                        <div>
+                            <label class="text-[11px] font-semibold text-slate-500">Fecha Entrega</label>
+                            <input type="date" id="ped-fecha-entrega" class="p-2.5 border rounded-xl w-full text-xs mt-1 bg-slate-50" required>
+                        </div>
+                    </div>
+
+                    <div class="border p-3 sm:p-4 rounded-xl bg-slate-50 space-y-3">
+                        <h3 class="font-bold text-xs text-slate-600 uppercase">Productos (Catálogo Supabase o Personalizados)</h3>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                            <div class="sm:col-span-2 relative">
+                                <input type="text" id="buscador-prod-pedido" placeholder="🔍 Buscar producto en catálogo..." oninput="filtrarInvPedido()" class="p-2.5 border rounded-xl w-full bg-white text-xs">
+                                <div id="sugerencias-inv-box" class="absolute z-30 w-full bg-white border rounded-xl shadow-xl mt-1 max-h-48 overflow-y-auto hidden"></div>
+                            </div>
+                            <select id="select-tipo-precio" onchange="actualizarPrecioItem()" class="p-2.5 border rounded-xl bg-white text-xs font-semibold">
+                                <option value="detal">Precio Detal</option>
+                                <option value="mayorista">Precio Mayorista</option>
+                            </select>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-4 gap-2 items-center">
+                            <input type="text" id="item-nombre" placeholder="Nombre del producto / ítem" class="p-2.5 border rounded-xl bg-white text-xs sm:col-span-2">
+                            <input type="text" id="item-precio" placeholder="Precio Unitario ($)" class="p-2.5 border rounded-xl bg-amber-50 font-bold text-indigo-700 text-xs">
+                            <div class="flex items-center gap-2">
+                                <input type="number" id="item-cantidad" value="1" min="1" step="any" class="p-2.5 border rounded-xl w-16 text-xs text-center bg-white">
+                                <button type="button" onclick="agregarItemPedidoAdmin()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2.5 rounded-xl text-xs font-bold w-full shadow transition">+ Agregar</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h4 class="font-bold text-xs mb-2 text-slate-700">Ítems en este pedido:</h4>
+                        <div class="border rounded-xl overflow-hidden">
+                            <table class="w-full text-left border-collapse sheets-table">
+                                <thead>
+                                    <tr><th>Ítem</th><th>Cant</th><th>Precio U.</th><th>Subtotal</th><th>Acción</th></tr>
+                                </thead>
+                                <tbody id="tabla-carrito-admin">
+                                    <tr><td colspan="5" class="p-4 text-center text-slate-400 text-xs">No hay ítems agregados.</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 border-t pt-3">
+                        <div>
+                            <label class="text-[11px] font-semibold text-slate-500">Costo Producción ($)</label>
+                            <input type="text" id="ped-costo-manual" value="0" class="p-2.5 border rounded-xl w-full text-xs mt-1 bg-slate-50">
+                        </div>
+                        <div>
+                            <label class="text-[11px] font-semibold text-slate-500">Domicilio / Envío ($)</label>
+                            <input type="text" id="ped-domicilio" value="0" oninput="calcularTotalAdmin()" class="p-2.5 border rounded-xl w-full text-xs mt-1 bg-slate-50">
+                        </div>
+                        <div>
+                            <label class="text-[11px] font-semibold text-slate-500">Anticipo / Abono ($)</label>
+                            <input type="text" id="ped-anticipo" value="0" oninput="calcularTotalAdmin()" class="p-2.5 border rounded-xl w-full text-xs mt-1 font-bold text-emerald-600 bg-slate-50">
+                        </div>
+                        <div>
+                            <label class="text-[11px] font-semibold text-slate-500">Método de Pago</label>
+                            <select id="ped-metodo" class="p-2.5 border rounded-xl w-full text-xs mt-1 bg-slate-50">
+                                <option value="Efectivo">Efectivo</option>
+                                <option value="Nequi">Nequi</option>
+                                <option value="Bre-B">Bre-B</option>
+                                <option value="Bancolombia">Bancolombia</option>
+                                <option value="Addi">Addi</option>
+                                <option value="Wompi">Wompi</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-[11px] font-semibold text-slate-500">Descontar Stock Auto</label>
+                            <select id="ped-descontar-stock" class="p-2.5 border rounded-xl w-full text-xs mt-1 font-bold text-slate-700 bg-slate-50">
+                                <option value="si">Sí (Automático)</option>
+                                <option value="no">No (Manual)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col sm:flex-row justify-between items-center bg-indigo-50 p-4 rounded-xl gap-3">
+                        <div>
+                            <p class="text-xs text-indigo-700 font-semibold">TOTAL PEDIDO: <span id="lbl-total-admin" class="text-lg font-black">$0</span></p>
+                            <p class="text-xs text-amber-700 font-semibold">SALDO PENDIENTE: <span id="lbl-saldo-admin" class="text-sm font-bold">$0</span></p>
+                        </div>
+                        <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-xl font-bold shadow transition w-full sm:w-auto text-xs">💾 Guardar Pedido Definitivo</button>
+                    </div>
+                </form>
+            </div>
+            
+            <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                    <h2 class="text-base sm:text-lg font-bold text-slate-800">Listado General & Historial CRM</h2>
+                    <div class="flex flex-wrap gap-2 w-full sm:w-auto">
+                        <select id="filtro-estado-pedidos" onchange="cargarPedidosAdmin()" class="p-2.5 border rounded-xl text-xs bg-slate-50 font-semibold">
+                            <option value="todos">Todos los Estados</option>
+                            <option value="Pendiente">Pendientes</option>
+                            <option value="Fabricando">Fabricando</option>
+                            <option value="Entregado">Entregados</option>
+                            <option value="Finalizado">Finalizados</option>
+                            <option value="Cancelado">Cancelados</option>
+                        </select>
+                        <input type="text" id="buscador-pedidos-gral" placeholder="🔍 Buscar cliente o ref..." oninput="cargarPedidosAdmin()" class="p-2.5 border rounded-xl text-xs w-full sm:w-64 bg-slate-50">
+                    </div>
+                </div>
+                <div class="overflow-x-auto border rounded-xl">
+                    <table class="w-full text-left border-collapse sheets-table">
+                        <thead>
+                            <tr><th>Ref / Fechas</th><th>Cliente & Contacto</th><th>Operación / Estado</th><th>Financiero</th><th>Acciones 360°</th></tr>
+                        </thead>
+                        <tbody id="tabla-pedidos-gral" class="text-xs"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= INVENTARIO SUPABASE ================= -->
+        <section id="tab-inventario" class="hidden space-y-4 sm:space-y-6 animate-fade-in">
+            <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-base sm:text-lg font-bold text-indigo-700">📦 Registrar / Editar Producto en Supabase</h2>
+                    <span class="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-1 rounded-full">Sincronizado Supabase</span>
+                </div>
+                <form id="form-producto-admin" class="grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs">
+                    <input type="hidden" id="prod-id-edit">
+                    <div>
+                        <label class="font-semibold text-slate-500">Nombre del Producto *</label>
+                        <input type="text" id="prod-nombre" placeholder="Nombre completo" required class="p-2.5 border rounded-xl w-full mt-1 bg-slate-50">
+                    </div>
+                    <div>
+                        <label class="font-semibold text-slate-500">Mundo / Categoría *</label>
+                        <input type="text" id="prod-mundo" placeholder="Ej: TEXTIL, CALZADO" required class="p-2.5 border rounded-xl w-full mt-1 bg-slate-50">
+                    </div>
+                    <div>
+                        <label class="font-semibold text-slate-500">Origen de Compra</label>
+                        <select id="prod-origen" class="p-2.5 border rounded-xl font-semibold w-full mt-1 bg-slate-50">
+                            <option value="Colombia">Colombia</option>
+                            <option value="Venezuela">Venezuela</option>
+                            <option value="Online (Temu u otro)">Online (Temu / Otro)</option>
+                        </select>
+                    </div>
+                    <div class="flex items-center gap-2 pt-5">
+                        <input type="checkbox" id="prod-sin-stock" class="w-4 h-4 text-indigo-600 rounded">
+                        <label for="prod-sin-stock" class="font-bold text-slate-600">Sin Stock (Bajo Pedido)</label>
+                    </div>
+                    <div>
+                        <label class="font-semibold text-slate-500">Stock Actual</label>
+                        <input type="number" id="prod-stock" value="10" placeholder="0" class="p-2.5 border rounded-xl w-full mt-1 bg-slate-50">
+                    </div>
+                    <div>
+                        <label class="font-semibold text-slate-500">Precio Detal ($) *</label>
+                        <input type="text" id="prod-detal" placeholder="0" required class="p-2.5 border rounded-xl w-full mt-1 font-bold text-indigo-700 bg-slate-50">
+                    </div>
+                    <div>
+                        <label class="font-semibold text-slate-500">Precio Mayorista ($) *</label>
+                        <input type="text" id="prod-mayor" placeholder="0" required class="p-2.5 border rounded-xl w-full mt-1 font-bold text-amber-700 bg-slate-50">
+                    </div>
+                    <div class="flex items-end gap-2 pt-1 sm:pt-0">
+                        <button type="submit" id="btn-guardar-prod" class="bg-indigo-600 hover:bg-indigo-700 text-white p-2.5 rounded-xl font-bold w-full transition shadow">💾 Guardar Catálogo</button>
+                        <button type="button" id="btn-cancelar-edit-prod" onclick="cancelarEdicionProd()" class="hidden bg-slate-300 hover:bg-slate-400 p-2.5 rounded-xl font-bold">Cancelar</button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                    <div>
+                        <h2 class="text-base sm:text-lg font-bold text-slate-800">Catálogo Supabase (<span id="count-productos-inv">0</span>)</h2>
+                        <p class="text-xs text-slate-400">Suma stock directo (+ / -) y edita en tiempo real</p>
+                    </div>
+                    <div class="flex flex-wrap gap-2 w-full sm:w-auto">
+                        <select id="filtro-origen-inv" onchange="cargarInventarioAdmin()" class="p-2.5 border rounded-xl text-xs bg-slate-50 font-semibold">
+                            <option value="todos">Todos los Orígenes</option>
+                            <option value="Venezuela">Venezuela</option>
+                            <option value="Colombia">Colombia</option>
+                            <option value="Online">Online / Temu</option>
+                        </select>
+                        <input type="text" id="buscador-inventario" placeholder="🔍 Buscar producto..." oninput="cargarInventarioAdmin()" class="p-2.5 border rounded-xl text-xs w-full sm:w-64 bg-slate-50">
+                    </div>
+                </div>
+                <div class="overflow-x-auto border rounded-xl">
+                    <table class="w-full text-left border-collapse sheets-table">
+                        <thead>
+                            <tr><th>Ref / Origen</th><th>Producto & Mundo</th><th>Stock (+ / -)</th><th>Precios (Detal / Mayor)</th><th>Acciones</th></tr>
+                        </thead>
+                        <tbody id="tabla-inventario-admin" class="text-xs"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= FLUJO DE CAJA & DEUDAS ================= -->
+        <section id="tab-contabilidad" class="hidden space-y-4 sm:space-y-6 animate-fade-in">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                <!-- MOVIMIENTO MANUAL (FLUJO DE CAJA) CON FECHA Y VÍNCULO A PEDIDOS Y DEUDAS ACTIVAS -->
+                <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200">
+                    <h2 class="text-base sm:text-lg font-bold mb-3 text-indigo-700">💸 Flujo de Caja (Nequi / Efectivo)</h2>
+                    <form id="form-caja-manual" class="space-y-3 text-xs">
+                        <div>
+                            <label class="font-semibold text-slate-500">Fecha del Movimiento *</label>
+                            <input type="date" id="caja-fecha" required class="p-2.5 border rounded-xl w-full font-bold mt-1 bg-slate-50">
+                        </div>
+                        <div>
+                            <label class="font-semibold text-slate-500">Tipo Movimiento</label>
+                            <select id="caja-tipo" onchange="toggleRelacionPedido();" class="p-2.5 border rounded-xl w-full font-bold mt-1 bg-slate-50">
+                                <option value="INGRESO">INGRESO Manual / Pago de Pedido</option>
+                                <option value="EGRESO">EGRESO / Gasto o Pago de Deuda</option>
+                            </select>
+                        </div>
+                        
+                        <!-- SECCIÓN PARA RELACIONAR PEDIDO (ABONO/PAGO) -->
+                        <div id="seccion-relacionar-pedido" class="p-3 bg-indigo-50 border border-indigo-200 rounded-xl space-y-2">
+                            <label class="font-bold text-indigo-900">🔗 Relacionar con Pedido Entregado (Opcional)</label>
+                            <select id="caja-pedido-relacionado" onchange="autocompletarMontoPedido()" class="p-2 border rounded-xl w-full bg-white font-semibold">
+                                <option value="">-- Seleccionar pedido para abonar/pagar --</option>
+                            </select>
+                            <p class="text-[10px] text-indigo-600">Al seleccionar un pedido, se marcará automáticamente como abonado o pagado en el sistema.</p>
+                        </div>
+
+                        <!-- SECCIÓN PARA RELACIONAR DEUDA ACTIVA (NUEVO) -->
+                        <div id="seccion-relacionar-deuda" class="p-3 bg-amber-50 border border-amber-200 rounded-xl space-y-2 hidden">
+                            <label class="font-bold text-amber-900">🔗 Relacionar con Deuda Activa (Opcional)</label>
+                            <select id="caja-deuda-relacionada" onchange="autocompletarMontoDeuda()" class="p-2 border rounded-xl w-full bg-white font-semibold">
+                                <option value="">-- Seleccionar deuda a pagar --</option>
+                            </select>
+                            <p class="text-[10px] text-amber-700">Selecciona la deuda activa registrada para registrar el egreso correctamente.</p>
+                        </div>
+
+                        <div>
+                            <label class="font-semibold text-slate-500">Concepto *</label>
+                            <input type="text" id="caja-concepto" placeholder="Ej: Abono saldo pendiente, Compra insumos" required class="p-2.5 border rounded-xl w-full bg-slate-50 mt-1">
+                        </div>
+                        <div>
+                            <label class="font-semibold text-slate-500">Tercero / Proveedor / Cliente</label>
+                            <input type="text" id="caja-tercero" placeholder="Nombre del tercero" class="p-2.5 border rounded-xl w-full bg-slate-50 mt-1">
+                        </div>
+                        <div>
+                            <label class="font-semibold text-slate-500">Método de Pago</label>
+                            <select id="caja-metodo" class="p-2.5 border rounded-xl w-full mt-1 bg-slate-50">
+                                <option value="Efectivo">Efectivo</option>
+                                <option value="Nequi">Nequi</option>
+                                <option value="Bre-B">Bre-B</option>
+                                <option value="Bancolombia">Bancolombia</option>
+                                <option value="Addi">Addi</option>
+                                <option value="Wompi">Wompi</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="font-semibold text-slate-500">Valor ($) * (Soporta céntimos, ej: 595,963.15)</label>
+                            <input type="text" id="caja-valor" placeholder="0.00" required class="p-2.5 border rounded-xl w-full font-bold text-indigo-700 bg-slate-50 mt-1">
+                        </div>
+                        <div>
+                            <label class="font-semibold text-slate-500">Descripción opcional</label>
+                            <textarea id="caja-desc" placeholder="Detalles adicionales..." class="p-2.5 border rounded-xl w-full bg-slate-50 mt-1"></textarea>
+                        </div>
+                        <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white p-3 rounded-xl font-bold w-full transition shadow">Registrar Movimiento de Caja</button>
+                    </form>
+                </div>
+
+                <!-- REGISTRO DE DEUDAS MENSUALES (SIN CAMPO DE MÉTODO DE PAGO) -->
+                <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200">
+                    <h2 class="text-base sm:text-lg font-bold mb-3 text-amber-700">📌 Registrar Deuda / Obligación Activa</h2>
+                    <form id="form-deuda-mensual" class="space-y-3 text-xs">
+                        <input type="text" id="deuda-concepto" placeholder="Concepto Deuda (Ej: Arriendo, Proveedor X)" required class="p-2.5 border rounded-xl w-full bg-slate-50">
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="font-semibold text-slate-500">Monto a Pagar ($)</label>
+                                <input type="text" id="deuda-monto" placeholder="0.00" required class="p-2.5 border rounded-xl w-full font-bold text-amber-700 bg-slate-50 mt-1">
+                            </div>
+                            <div>
+                                <label class="font-semibold text-slate-500">Día de Pago (Cada mes)</label>
+                                <input type="number" id="deuda-dia" min="1" max="31" placeholder="Ej: 15" required class="p-2.5 border rounded-xl w-full font-bold bg-slate-50 mt-1">
+                            </div>
+                        </div>
+                        <button type="submit" class="bg-amber-600 hover:bg-amber-700 text-white p-3 rounded-xl font-bold w-full transition shadow mt-3">Guardar Deuda Activa</button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
+                    <h2 class="text-base sm:text-lg font-bold text-slate-800">📊 Balances de Caja & Descarga</h2>
+                    <div class="space-y-3 text-xs">
+                        <div class="flex justify-between border-b pb-2"><span>Saldo Efectivo Actual:</span> <span id="bal-efectivo" class="font-bold text-emerald-600 text-sm">$0</span></div>
+                        <div class="flex justify-between border-b pb-2"><span>Saldo Nequi / Bancos:</span> <span id="bal-bancos" class="font-bold text-blue-600 text-sm">$0</span></div>
+                        <div class="flex justify-between border-b pb-2"><span>Impuesto 4x1000 Acumulado:</span> <span id="bal-4x1000" class="font-bold text-red-600">$0</span></div>
+                    </div>
+                    <div class="pt-2">
+                        <button onclick="descargarMovimientosMes()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl font-bold w-full text-xs shadow transition">📥 Descargar Movimientos de Caja (CSV)</button>
+                    </div>
+                </div>
+
+                <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200 space-y-3">
+                    <h2 class="text-base sm:text-lg font-bold text-slate-800">📋 Deudas Mensuales Activas</h2>
+                    <div class="overflow-x-auto border rounded-xl max-h-60 overflow-y-auto">
+                        <table class="w-full text-left border-collapse sheets-table text-xs">
+                            <thead>
+                                <tr><th>Concepto</th><th>Monto</th><th>Día Pago</th><th>Acción</th></tr>
+                            </thead>
+                            <tbody id="tabla-deudas-mensuales"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200 space-y-3">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                    <div>
+                        <h2 class="text-base sm:text-lg font-bold text-slate-800">📜 Historial Exclusivo de Flujo de Caja</h2>
+                        <p class="text-[11px] text-slate-400">Puedes editar directamente el valor del 4x1000 en cada celda y presionar 💾 para guardar los ajustes del banco.</p>
+                    </div>
+                    <div class="flex gap-2 w-full sm:w-auto">
+                        <select id="filtro-metodo-caja" onchange="cargarContabilidad()" class="p-2.5 border rounded-xl text-xs bg-slate-50 font-semibold">
+                            <option value="todos">Todos los Métodos</option>
+                            <option value="Nequi">Nequi</option>
+                            <option value="Efectivo">Efectivo</option>
+                            <option value="Bancolombia">Bancolombia</option>
+                            <option value="Addi">Addi</option>
+                            <option value="Wompi">Wompi</option>
+                        </select>
+                        <input type="text" id="buscador-caja" placeholder="🔍 Buscar movimiento..." oninput="cargarContabilidad()" class="p-2.5 border rounded-xl text-xs w-full sm:w-64 bg-slate-50">
+                    </div>
+                </div>
+                <div class="overflow-x-auto border rounded-xl">
+                    <table class="w-full text-left border-collapse sheets-table text-xs">
+                        <thead>
+                            <tr><th>Fecha Mov.</th><th>Tipo</th><th>Concepto / Tercero</th><th>Método</th><th>Valor</th><th>Editar 4x1000</th></tr>
+                        </thead>
+                        <tbody id="tabla-caja-historial"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= REPORTES PDF GERENCIALES ================= -->
+        <section id="tab-reportes" class="hidden space-y-4 sm:space-y-6 animate-fade-in">
+            <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 no-print">
+                <div>
+                    <h2 class="text-base sm:text-lg font-bold">Reportes PDF Gerenciales & Deudas</h2>
+                    <p class="text-xs text-slate-400">Selecciona el reporte oficial requerido para impresión</p>
+                </div>
+                <div class="flex flex-wrap gap-2 w-full sm:w-auto">
+                    <button onclick="cambiarTipoReportePDF('consolidado')" id="btn-rep-cons" class="px-3 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold shadow">📋 Consolidado General</button>
+                    <button onclick="cambiarTipoReportePDF('detallado')" id="btn-rep-det" class="px-3 py-2 bg-slate-200 text-slate-700 rounded-xl text-xs font-bold">📄 Detalle de Pedidos & Stock</button>
+                    <button onclick="cambiarTipoReportePDF('deudas')" id="btn-rep-deudas" class="px-3 py-2 bg-slate-200 text-slate-700 rounded-xl text-xs font-bold">📌 Reporte de Deudas</button>
+                    <button onclick="window.print()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-xs font-bold shadow flex items-center gap-1">🖨 Imprimir PDF</button>
+                </div>
+            </div>
+
+            <div id="printable-area" class="bg-white p-6 sm:p-8 rounded-2xl shadow-sm border space-y-6 text-slate-800">
+                <div class="text-center border-b pb-4">
+                    <h2 class="text-xl sm:text-2xl font-black text-indigo-700">CUPISSA S.A.S. - INFORME OFICIAL GERENCIAL</h2>
+                    <p class="text-xs text-slate-400 mt-1" id="fecha-reporte-pdf"></p>
+                </div>
+                <div id="vista-pdf-consolidado" class="space-y-6">
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs border-b pb-4">
+                        <div><strong>Ventas del Mes:</strong> <br><span id="rep-ventas" class="text-sm font-bold text-indigo-600">$0</span></div>
+                        <div><strong>Cuentas por Cobrar:</strong> <br><span id="rep-cobrar" class="text-sm font-bold text-amber-600">$0</span></div>
+                        <div><strong>Caja Efectivo:</strong> <br><span id="rep-efectivo" class="text-sm font-bold text-emerald-600">$0</span></div>
+                        <div><strong>Caja Bancos:</strong> <br><span id="rep-bancos" class="text-sm font-bold text-blue-600">$0</span></div>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-xs text-slate-700 mb-2 uppercase">Estado de Inventario (Supabase)</h3>
+                        <div class="border rounded-xl overflow-hidden">
+                            <table class="w-full text-left border-collapse sheets-table text-xs">
+                                <thead><tr><th>Ref</th><th>Producto</th><th>Origen</th><th>Stock</th><th>Precio Detal</th></tr></thead>
+                                <tbody id="tabla-reporte-inv"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div id="vista-pdf-detallado" class="space-y-6 hidden">
+                    <div>
+                        <h3 class="font-bold text-xs text-indigo-900 mb-2 uppercase">📦 Detalle de Pedidos, Stock Inicial, Ventas y Estado</h3>
+                        <div class="border rounded-xl overflow-hidden">
+                            <table class="w-full text-left border-collapse sheets-table text-[11px]">
+                                <thead><tr><th>Ref / Fecha</th><th>Cliente & Teléfono</th><th>Modalidad</th><th>Detalle Productos</th><th>Pagos / Deuda</th></tr></thead>
+                                <tbody id="tabla-reporte-pedidos-detallado"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div id="vista-pdf-deudas" class="space-y-6 hidden">
+                    <div>
+                        <h3 class="font-bold text-xs text-amber-900 mb-2 uppercase">📌 Reporte Oficial de Deudas y Obligaciones Mensuales</h3>
+                        <div class="border rounded-xl overflow-hidden">
+                            <table class="w-full text-left border-collapse sheets-table text-[11px]">
+                                <thead><tr><th>Concepto</th><th>Monto</th><th>Día de Pago</th></tr></thead>
+                                <tbody id="tabla-reporte-deudas-pdf"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- MODAL SUMAR LOTES -->
+    <div id="modal-sumar-lote" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-2xl max-w-sm w-full p-6 space-y-4 shadow-2xl text-xs">
+            <h3 class="text-base font-black text-indigo-700">📦 Sumar Lote de Stock</h3>
+            <p id="lbl-lote-prod-nombre" class="text-slate-500 font-bold"></p>
+            <input type="hidden" id="lote-prod-id">
+            <div>
+                <label class="font-semibold text-slate-600">Cantidad a Sumar (+)</label>
+                <input type="number" id="lote-cantidad" value="10" min="1" class="p-2.5 border rounded-xl w-full font-bold text-indigo-700 mt-1 bg-slate-50">
+            </div>
+            <div class="flex justify-end gap-2 pt-2">
+                <button type="button" onclick="cerrarModalLote()" class="px-4 py-2 bg-slate-200 rounded-xl font-bold">Cancelar</button>
+                <button type="button" onclick="confirmarSumarLote()" class="px-4 py-2 bg-emerald-600 text-white font-bold rounded-xl shadow">Sumar al Stock</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- CARGA DE SCRIPTS MODULARES -->
+    <script src="js/config/supabase.js?v=1.2"></script>
+    <script src="js/config/constants.js?v=1.2"></script>
+    <script src="js/utils/ui.js?v=1.2"></script>
+    <script src="js/modules/admin/admin-auth.js?v=1.2"></script>
+    <script src="js/modules/admin/admin-dashboard.js?v=1.2"></script>
+    <script src="js/modules/admin/admin-products.js?v=1.2"></script>
+    <script src="js/modules/admin/admin-orders.js?v=1.2"></script>
+    <script src="js/modules/admin/admin-categories.js?v=1.2"></script>
+    <script src="js/pages/admin-page.js?v=1.2"></script>
+
+</body>
+</html>
