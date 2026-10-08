@@ -559,4 +559,4 @@ function getFallbackProducts() {
       image_url: 'images/logo.png'
     }
   ];
-} 
+}
