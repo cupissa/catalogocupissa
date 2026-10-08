@@ -126,4 +126,4 @@ window.submitCheckoutOrder = async function() {
     // Limpiar carrito tras solicitud de crédito
     if (typeof window.clearCart === 'function') window.clearCart();
   }
-};
+}; 
