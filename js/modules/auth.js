@@ -62,12 +62,21 @@ window.handleClientRegister = async function(e) {
   const pass = document.getElementById('regClientPassword').value;
 
   try {
-    const { error } = await supabaseClient.auth.signUp({
+    const { data: authData, error: authError } = await supabaseClient.auth.signUp({
       email,
       password: pass,
       options: { data: { first_name: fname, last_name: lname } }
     });
-    if (error) throw error;
+    if (authError) throw authError;
+
+    if (authData?.user) {
+      await createUserProfile(authData.user.id, {
+        first_name: fname,
+        last_name: lname,
+        email: email
+      });
+    }
+
     if (typeof showToast === 'function') showToast("¡Cuenta creada exitosamente!");
     else alert("¡Cuenta creada exitosamente!");
     window.closeAuthModal();
