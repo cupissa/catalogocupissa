@@ -158,4 +158,4 @@ window.toggleCartModal = function(show) {
     if (show) modal.classList.remove('hidden');
     else modal.classList.add('hidden');
   }
-}; 
+};
