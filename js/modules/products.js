@@ -148,4 +148,4 @@ window.addCurrentProductToCart = function() {
 
   const modal = document.getElementById('productDetailModal');
   if (modal) modal.classList.add('hidden');
-}; 
+};
