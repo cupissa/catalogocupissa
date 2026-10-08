@@ -34,4 +34,4 @@ window.getUserProfile = async function(userId) {
     console.error('Error al obtener perfil:', err);
     return { data: null, error: err };
   }
-};
+}; 
