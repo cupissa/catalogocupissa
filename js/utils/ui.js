@@ -1,24 +1,24 @@
-function openModal(modalId) {
+window.openModal = function(modalId) {
   const modal = document.getElementById(modalId);
   if (modal) {
     modal.classList.remove('hidden');
     modal.classList.add('flex');
   }
-}
+};
 
-function closeModal(modalId) {
+window.closeModal = function(modalId) {
   const modal = document.getElementById(modalId);
   if (modal) {
     modal.classList.add('hidden');
     modal.classList.remove('flex');
   }
-}
+};
 
-function showToast(message, type = 'success') {
+window.showToast = function(message, type = 'success') {
   const toast = document.createElement('div');
   
-  toast.className = `fixed bottom-4 right-4 px-6 py-3 rounded shadow-lg text-white font-medium z-50 transition-opacity duration-300 ${
-    type === 'success' ? 'bg-green-500' : 'bg-red-600'
+  toast.className = `fixed bottom-4 right-4 px-6 py-3 rounded-xl shadow-lg text-white text-xs font-bold z-50 transition-all duration-300 ${
+    type === 'success' ? 'bg-emerald-600' : 'bg-red-600'
   }`;
   
   toast.textContent = message;
@@ -32,4 +32,4 @@ function showToast(message, type = 'success') {
       }
     }, 300);
   }, 3000);
-}
+};
