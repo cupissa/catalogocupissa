@@ -15,9 +15,19 @@ function saveFavoritesToStorage() {
 window.toggleFavoritesModal = function(show) {
   if (show) {
     renderFavoritesList();
-    openModal('favoritesModal');
+    if (typeof openModal === 'function') {
+      openModal('favoritesModal');
+    } else {
+      const modal = document.getElementById('favoritesModal');
+      if (modal) modal.classList.remove('hidden');
+    }
   } else {
-    closeModal('favoritesModal');
+    if (typeof closeModal === 'function') {
+      closeModal('favoritesModal');
+    } else {
+      const modal = document.getElementById('favoritesModal');
+      if (modal) modal.classList.add('hidden');
+    }
   }
 };
 
@@ -25,7 +35,12 @@ window.toggleFavorite = function(productId, event) {
   if (event) event.stopPropagation();
   if (!productId) return;
 
-  const p = products.find(prod => String(prod.id) === String(productId));
+  let sourceList = products || [];
+  if ((!sourceList || sourceList.length === 0) && typeof currentFilteredProducts !== 'undefined') {
+    sourceList = currentFilteredProducts;
+  }
+
+  const p = sourceList.find(prod => String(prod.id) === String(productId));
   const idx = favorites.findIndex(fav => String(fav.id) === String(productId));
 
   if (idx > -1) {
@@ -35,13 +50,13 @@ window.toggleFavorite = function(productId, event) {
       id: p.id,
       title: p.nombre || p.title || 'Producto',
       image_url: p.imagen || p.image_url || 'images/logo.png',
-      price: p.precio || p.sale_price || 0
+      price: p.precio || p.sale_price || p.rental_price_per_day || 0
     });
   }
 
   saveFavoritesToStorage();
-  if (typeof renderProductGrid === 'function' && products.length > 0) {
-    renderProductGrid(products);
+  if (typeof renderProductGrid === 'function' && sourceList.length > 0) {
+    renderProductGrid(sourceList);
   }
   renderFavoritesList();
 };
