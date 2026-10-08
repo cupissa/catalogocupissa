@@ -6,15 +6,15 @@ let currentHeroSlide = 0;
 // ==========================================
 const heroSlides = [
   {
-    image: 'hero-banner.jpg', // Reemplaza con la ruta de tu primera imagen (ej: 'images/banner1.jpg')
+    image: 'images/hero-banner.jpg', // Reemplaza con la ruta de tu primera imagen (ej: 'images/banner1.jpg')
     caption: 'Variedad y calidad en cada detalle para tus fechas especiales.'
   },
   {
-    image: 'hero-banner-2.jpg', // Reemplaza con la ruta de tu segunda imagen (ej: 'images/banner2.jpg')
+    image: 'images/hero-banner-2.jpg', // Reemplaza con la ruta de tu segunda imagen (ej: 'images/banner2.jpg')
     caption: 'Mobiliario exclusivo y decoración personalizada para eventos.'
   },
   {
-    image: 'hero-banner-3.jpg', // Puedes agregar más diapositivas duplicando esta estructura
+    image: 'images/hero-banner-3.jpg', // Puedes agregar más diapositivas duplicando esta estructura
     caption: 'Soluciones integrales, fabricación a medida y crédito directo.'
   }
 ];
