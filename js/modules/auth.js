@@ -170,4 +170,4 @@ window.logout = async function() {
 // Comprobar la sesión automáticamente al cargar la página
 document.addEventListener('DOMContentLoaded', () => {
   window.checkUserSession();
-}); 
+});
