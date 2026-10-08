@@ -3,15 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
- <head>
-  <meta charset="UTF-8">
   <title>Cupissa - Inicio</title>
   
-  <!-- Favicon para la pestaña del navegador -->
   <link rel="icon" type="image/png" href="images/logo.png">
   
-</head>
-  <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -32,25 +27,21 @@
     }
   </script>
 
-  <!-- FontAwesome Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   
-  <!-- Supabase JS Client -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <link rel="stylesheet" href="css/styles.css?v=1.1">
+  <link rel="stylesheet" href="css/main.css?v=1.1">
+  <link rel="stylesheet" href="css/components.css?v=1.1">
+  <link rel="stylesheet" href="css/theme.css?v=1.1">
 </head>
-<body class="bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100 min-h-screen flex flex-col transition-colors duration-200">
+<body class="bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100 min-h-screen flex flex-col transition-colors duration-200 overflow-x-hidden">
 
-  <!-- HEADER / NAVBAR -->
   <header class="sticky top-0 z-40 bg-white/90 dark:bg-gray-800/90 backdrop-blur-md border-b border-gray-100 dark:border-gray-700/60 shadow-sm">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
       
-      <!-- Logo Superior Izquierdo -->
       <a href="index.html" class="flex items-center space-x-2 shrink-0">
         <img src="images/logo.png" alt="Cupissa Logo" class="h-10 w-auto object-contain">
       </a>
 
-      <!-- Buscador -->
       <div class="flex-1 max-w-md hidden md:block relative">
         <div class="relative">
           <input 
@@ -63,7 +54,6 @@
         </div>
       </div>
 
-      <!-- Iconos Navbar -->
       <div class="flex items-center space-x-1 sm:space-x-3 shrink-0">
         <a href="catalogo.html" class="text-xs font-bold text-gray-700 dark:text-gray-200 hover:text-brand-600 transition-colors flex items-center gap-1.5 py-2 px-2.5 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700">
           <i class="fa-solid fa-store text-brand-600"></i>
@@ -75,7 +65,6 @@
           <span>Rastrear Pedido</span>
         </a>
 
-        <!-- 1. Ingresar / Usuario -->
         <div id="userAuthSection">
           <button type="button" onclick="openAuthModal()" class="flex items-center space-x-1.5 text-xs font-bold text-white bg-brand-600 hover:bg-brand-700 transition-all py-2 px-3 rounded-xl shadow-sm">
             <i class="fa-regular fa-user"></i>
@@ -83,19 +72,16 @@
           </button>
         </div>
 
-        <!-- 2. Favoritos -->
-        <button type="button" onclick="toggleFavoritesModal(true)" class="relative p-2 text-gray-600 dark:text-gray-300 hover:text-brand-600 transition-colors" title="Ver Favoritos">
+        <button type="button" onclick="window.toggleFavoritesModal(true)" class="relative p-2 text-gray-600 dark:text-gray-300 hover:text-brand-600 transition-colors" title="Ver Favoritos">
           <i class="fa-solid fa-heart text-lg text-gray-400 hover:text-brand-600 transition-colors"></i>
           <span id="favCount" class="absolute -top-1 -right-1 bg-brand-600 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">0</span>
         </button>
 
-        <!-- 3. Carrito -->
-        <button type="button" onclick="toggleCartModal(true)" class="relative p-2 text-gray-600 dark:text-gray-300 hover:text-brand-600 transition-colors" title="Ver Carrito">
+        <button type="button" onclick="window.toggleCartModal(true)" class="relative p-2 text-gray-600 dark:text-gray-300 hover:text-brand-600 transition-colors" title="Ver Carrito">
           <i class="fa-solid fa-bag-shopping text-lg"></i>
           <span id="cartCount" class="absolute -top-1 -right-1 bg-brand-600 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">0</span>
         </button>
 
-        <!-- 4. Sol / Luna -->
         <button type="button" id="themeToggleBtn" onclick="toggleTheme()" class="p-2 text-gray-600 dark:text-yellow-400 hover:text-brand-600 transition-colors rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700" title="Cambiar Tema">
           <i id="themeIcon" class="fa-solid fa-sun text-lg"></i>
         </button>
@@ -103,16 +89,13 @@
     </div>
   </header>
 
-  <!-- CONTENIDO PRINCIPAL -->
   <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-16">
 
-    <!-- 1. HERO INTERACTIVO -->
     <section class="relative bg-gradient-to-br from-gray-900 via-gray-800 to-brand-950 rounded-3xl p-6 md:p-12 overflow-hidden shadow-2xl border border-gray-800">
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center relative z-10">
         
-        <!-- Lado Izquierdo: Textos y Botones -->
         <div class="space-y-6 text-center lg:text-left">
-          <span class="inline-block bg-brand-600/20 text-brand-400 border border-brand-500/30 font-bold text-xs px-3 py-1.5 rounded-full uppercase tracking-wider">
+          <span class="inline-block bg-white text-brand-700 border border-brand-200 font-black text-xs px-3.5 py-1.5 rounded-full uppercase tracking-wider shadow-md">
             Ecosistema Integral Cupissa
           </span>
           <h1 class="text-3xl sm:text-5xl font-black text-white leading-tight">
@@ -134,10 +117,9 @@
           </div>
         </div>
 
-        <!-- Lado Derecho: Slider / Galería de Productos -->
         <div class="relative w-full h-64 sm:h-80 md:h-96 rounded-2xl overflow-hidden bg-gray-800/50 border border-gray-700 shadow-inner group">
           <div id="heroSlider" class="w-full h-full relative">
-            <img id="heroSlideImg" src="hero-banner.png" alt="Productos Destacados Cupissa" class="w-full h-full object-cover transition-all duration-700 ease-in-out">
+            <img id="heroSlideImg" src="images/hero-banner.jpg" alt="Productos Destacados Cupissa" class="w-full h-full object-cover transition-all duration-700 ease-in-out">
             <div class="absolute inset-0 bg-gradient-to-t from-gray-950/80 via-transparent to-transparent flex items-end p-4 sm:p-6">
               <p id="heroSlideCaption" class="text-white font-bold text-xs sm:text-sm drop-shadow-md">
                 Variedad y calidad en cada detalle para tus fechas especiales.
@@ -145,7 +127,6 @@
             </div>
           </div>
           
-          <!-- Controles Slider -->
           <button type="button" onclick="prevHeroSlide()" class="absolute left-3 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/70 text-white w-8 h-8 rounded-full flex items-center justify-center transition-all opacity-0 group-hover:opacity-100">
             <i class="fa-solid fa-chevron-left text-xs"></i>
           </button>
@@ -157,7 +138,6 @@
       </div>
     </section>
 
-    <!-- 2. NUESTROS MUNDOS -->
     <section class="space-y-6">
       <div class="text-center md:text-left">
         <h2 class="text-xl sm:text-2xl font-black text-gray-900 dark:text-white">
@@ -169,7 +149,6 @@
       </div>
 
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
-        <!-- Mundo Familiar -->
         <a href="catalogo.html?mundo=familiar" class="group bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700/60 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
           <div class="w-12 h-12 bg-pink-100 dark:bg-pink-950/50 text-pink-600 dark:text-pink-400 rounded-2xl flex items-center justify-center text-xl font-bold mb-4 group-hover:scale-110 transition-transform">
             <i class="fa-solid fa-heart"></i>
@@ -182,7 +161,6 @@
           </p>
         </a>
 
-        <!-- Mundo Eventos -->
         <a href="catalogo.html?mundo=eventos" class="group bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700/60 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
           <div class="w-12 h-12 bg-purple-100 dark:bg-purple-950/50 text-purple-600 dark:text-purple-400 rounded-2xl flex items-center justify-center text-xl font-bold mb-4 group-hover:scale-110 transition-transform">
             <i class="fa-solid fa-champagne-glasses"></i>
@@ -195,7 +173,6 @@
           </p>
         </a>
 
-        <!-- Mundo Empresas -->
         <a href="catalogo.html?mundo=empresas" class="group bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700/60 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
           <div class="w-12 h-12 bg-blue-100 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 rounded-2xl flex items-center justify-center text-xl font-bold mb-4 group-hover:scale-110 transition-transform">
             <i class="fa-solid fa-briefcase"></i>
@@ -210,7 +187,6 @@
       </div>
     </section>
 
-    <!-- 3. PRODUCTOS DESTACADOS DE LA TEMPORADA -->
     <section class="space-y-6">
       <div class="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-2 border-b border-gray-200 dark:border-gray-700 pb-4">
         <div>
@@ -224,9 +200,7 @@
         </a>
       </div>
 
-      <!-- Grid de productos dinámicos de temporada desde Supabase -->
       <div id="seasonProductGrid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-        <!-- Cargando skeleton o estado inicial -->
         <div class="col-span-full py-8 text-center text-xs text-gray-400">
           <i class="fa-solid fa-circle-notch fa-spin text-lg text-brand-600 mb-2"></i>
           <p>Cargando lo mejor de la temporada...</p>
@@ -234,7 +208,6 @@
       </div>
     </section>
 
-    <!-- 4. BANNER PUBLICITARIO: CRÉDITO CUPISSA -->
     <section class="bg-gradient-to-r from-brand-700 via-pink-600 to-purple-800 rounded-3xl p-8 sm:p-12 text-white shadow-xl relative overflow-hidden">
       <div class="absolute -right-10 -bottom-10 w-60 h-60 bg-white/10 rounded-full blur-2xl pointer-events-none"></div>
       <div class="relative z-10 max-w-2xl space-y-4">
@@ -254,12 +227,10 @@
 
   </main>
 
-  <!-- FOOTER -->
   <footer class="bg-[#0b1329] text-gray-300 mt-12 border-t border-gray-800 text-xs">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8">
         
-        <!-- Columna 1: Logo e Info Marca -->
         <div class="space-y-3">
           <img src="images/logo.png" alt="CUPISSA S.A.S." class="h-8 w-auto object-contain">
           <p class="text-gray-400 text-xs leading-relaxed">
@@ -267,7 +238,6 @@
           </p>
         </div>
 
-        <!-- Columna 2: Atención al Cliente -->
         <div class="space-y-2">
           <h4 class="text-white font-bold mb-3">Atención al Cliente</h4>
           <p class="flex items-center gap-2 text-gray-400">
@@ -280,23 +250,47 @@
           </p>
           <p class="flex items-center gap-2 text-gray-400">
             <i class="fa-solid fa-clock text-amber-400"></i>
-            <span>Horario: Recepción de pedidos 24h</span>
+            <span>Horario: Recepción 24h</span>
           </p>
         </div>
 
-        <!-- Columna 3: Términos y Políticas -->
         <div class="space-y-2">
           <h4 class="text-white font-bold mb-3">Términos y Políticas</h4>
           <ul class="space-y-1.5 text-gray-400">
-            <li><a href="#" class="hover:text-white transition-colors">Políticas de Anticipos no reembolsables</a></li>
-            <li><a href="#" class="hover:text-white transition-colors">Términos del Crédito Cupissa</a></li>
-            <li><a href="#" class="hover:text-white transition-colors">Tratamiento de Datos Personales</a></li>
+            <li><a href="#" class="hover:text-white transition-colors">Políticas de Anticipos</a></li>
+            <li><a href="#" class="hover:text-white transition-colors">Términos Crédito Cupissa</a></li>
+            <li><a href="#" class="hover:text-white transition-colors">Tratamiento de Datos</a></li>
+          </ul>
+        </div>
+
+        <div class="space-y-2">
+          <h4 class="text-white font-bold mb-3">Medios de Pago</h4>
+          <ul class="space-y-2 text-gray-400">
+            <li class="flex items-center gap-2">
+              <i class="fa-solid fa-mobile-screen-button text-purple-400"></i>
+              <span>NEQUI</span>
+            </li>
+            <li class="flex items-center gap-2">
+              <i class="fa-solid fa-credit-card text-emerald-400"></i>
+              <span>WOMPI</span>
+            </li>
+            <li class="flex items-center gap-2">
+              <i class="fa-solid fa-bolt text-amber-400"></i>
+              <span>ADDI</span>
+            </li>
+            <li class="flex items-center gap-2">
+              <i class="fa-solid fa-shield-halved text-pink-500"></i>
+              <span>CRÉDITOS CUPISSA</span>
+            </li>
+            <li class="flex items-center gap-2">
+              <i class="fa-solid fa-money-bill-wave text-green-400"></i>
+              <span>EFECTIVO</span>
+            </li>
           </ul>
         </div>
 
       </div>
 
-      <!-- Footer Parte Inferior -->
       <div class="border-t border-gray-800/80 mt-10 pt-6 flex flex-col md:flex-row justify-between items-center text-gray-500 gap-4">
         <p>&copy; 2026 CUPISSA S.A.S. Todos los derechos reservados.</p>
         <p>Diseñado y Desarrollado por <span class="text-pink-500 font-bold">Deiner Gonzalez</span></p>
@@ -304,54 +298,52 @@
     </div>
   </footer>
 
-  <!-- MODALES -->
-  <!-- Favoritos -->
-  <div id="favoritesModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
-    <div class="bg-white dark:bg-gray-800 rounded-3xl max-w-md w-full p-6 shadow-xl border border-gray-100 dark:border-gray-700 relative">
-      <div class="flex justify-between items-center mb-4">
-        <h3 class="font-black text-sm text-gray-900 dark:text-white flex items-center gap-2">
+  <div id="favoritesModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex justify-end hidden">
+    <div class="bg-white dark:bg-gray-800 h-full w-full max-w-md p-6 shadow-2xl border-l border-gray-100 dark:border-gray-700 flex flex-col justify-between relative z-50">
+      <div class="flex justify-between items-center mb-6 pb-4 border-b border-gray-100 dark:border-gray-700">
+        <h3 class="font-black text-base text-gray-900 dark:text-white flex items-center gap-2">
           <i class="fa-solid fa-heart text-brand-600"></i> Mis Favoritos
         </h3>
-        <button type="button" onclick="toggleFavoritesModal(false)" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
-          <i class="fa-solid fa-xmark"></i>
+        <button type="button" onclick="window.toggleFavoritesModal(false)" class="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700">
+          <i class="fa-solid fa-xmark text-lg"></i>
         </button>
       </div>
-      <div id="favoritesItemsList" class="space-y-3 max-h-80 overflow-y-auto mb-4"></div>
+      <div id="favoritesItemsList" class="space-y-3 overflow-y-auto flex-1 pr-1"></div>
     </div>
   </div>
 
-  <!-- Carrito -->
-  <div id="cartModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
-    <div class="bg-white dark:bg-gray-800 rounded-3xl max-w-md w-full p-6 shadow-xl border border-gray-100 dark:border-gray-700 relative">
-      <div class="flex justify-between items-center mb-4">
-        <h3 class="font-black text-sm text-gray-900 dark:text-white flex items-center gap-2">
-          <i class="fa-solid fa-bag-shopping text-brand-600"></i> Mi Carrito
-        </h3>
-        <button type="button" onclick="toggleCartModal(false)" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
-          <i class="fa-solid fa-xmark"></i>
-        </button>
-      </div>
-      <div id="cartItemsList" class="space-y-3 max-h-80 overflow-y-auto mb-4"></div>
-      <div class="border-t border-gray-100 dark:border-gray-700 pt-4 space-y-2">
-        <div class="flex justify-between text-xs">
-          <span class="text-gray-500">Total:</span>
-          <span id="cartTotalText" class="font-bold text-gray-900 dark:text-white">$0 COP</span>
+  <div id="cartModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex justify-end hidden">
+    <div class="bg-white dark:bg-gray-800 h-full w-full max-w-md p-6 shadow-2xl border-l border-gray-100 dark:border-gray-700 flex flex-col justify-between relative z-50">
+      <div class="flex-1 overflow-hidden flex flex-col">
+        <div class="flex justify-between items-center mb-6 pb-4 border-b border-gray-100 dark:border-gray-700">
+          <h3 class="font-black text-base text-gray-900 dark:text-white flex items-center gap-2">
+            <i class="fa-solid fa-bag-shopping text-brand-600"></i> Mi Carrito
+          </h3>
+          <button type="button" onclick="window.toggleCartModal(false)" class="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700">
+            <i class="fa-solid fa-xmark text-lg"></i>
+          </button>
         </div>
-        <div class="flex justify-between text-xs font-bold text-brand-600">
+        <div id="cartItemsList" class="space-y-3 overflow-y-auto flex-1 pr-1"></div>
+      </div>
+      <div class="border-t border-gray-100 dark:border-gray-700 pt-4 space-y-2 mt-4">
+        <div class="flex justify-between text-xs">
+          <span class="text-gray-500 dark:text-gray-400 font-bold">Total:</span>
+          <span id="cartTotalText" class="font-black text-gray-900 dark:text-white">$0 COP</span>
+        </div>
+        <div class="flex justify-between text-xs font-bold text-brand-600 dark:text-brand-400">
           <span>Anticipo Total:</span>
           <span id="cartAdvanceText">$0 COP</span>
         </div>
-        <button type="button" onclick="alert('Redirigiendo al proceso de pago...')" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-extrabold py-2.5 rounded-xl text-xs transition-all mt-2">
+        <button type="button" onclick="alert('Redirigiendo al proceso de pago...')" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-extrabold py-3 rounded-xl text-xs transition-all mt-2 shadow-md">
           Procesar Reserva
         </button>
       </div>
     </div>
   </div>
 
-  <!-- Auth -->
   <div id="authModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
     <div class="bg-white dark:bg-gray-800 rounded-3xl max-w-sm w-full p-6 shadow-xl border border-gray-100 dark:border-gray-700 relative">
-      <button type="button" onclick="toggleAuthModal(false)" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+      <button type="button" onclick="closeAuthModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
         <i class="fa-solid fa-xmark"></i>
       </button>
 
@@ -401,6 +393,13 @@
             <input type="password" id="regClientPassword" required class="w-full bg-gray-50 dark:bg-gray-700 text-xs p-2.5 rounded-xl border border-gray-200 dark:border-gray-600">
           </div>
 
+          <div class="flex items-center gap-2">
+            <span id="mathCaptchaQuestion" class="bg-gray-100 dark:bg-gray-700 px-3 py-2 rounded-xl text-xs font-bold text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-600">
+              ?
+            </span>
+            <input type="number" id="mathCaptchaInput" required placeholder="Respuesta" class="w-full bg-gray-50 dark:bg-gray-700 text-xs p-2 rounded-xl border border-gray-200 dark:border-gray-600">
+          </div>
+
           <button type="submit" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-extrabold py-2.5 rounded-xl text-xs transition-all shadow-md">
             Crear Cuenta
           </button>
@@ -415,11 +414,17 @@
     </div>
   </div>
 
-  <!-- SCRIPTS DE NAVEGACIÓN Y LÓGICA -->
-  <script src="js/config.js?v=1.1"></script>
-  <script src="js/auth.js?v=1.1"></script>
-  <script src="js/favorites.js?v=1.1"></script>
-  <script src="js/cart.js?v=1.1"></script>
-  <script src="js/app.js?v=1.1"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/config/supabase.js?v=1.1"></script>
+  <script src="js/config/constants.js?v=1.1"></script>
+  <script src="js/utils/theme.js?v=1.1"></script>
+  <script src="js/utils/captcha.js?v=1.1"></script>
+  <script src="js/utils/ui.js?v=1.1"></script>
+  <script src="js/modules/auth.js?v=1.1"></script>
+  <script src="js/modules/cart.js?v=1.1"></script>
+  <script src="js/modules/favorites.js?v=1.1"></script>
+  <script src="js/modules/products.js?v=1.1"></script>
+  <script src="js/modules/tracking.js?v=1.1"></script>
+  <script src="js/pages/index-page.js?v=1.1"></script>
 </body>
 </html>
