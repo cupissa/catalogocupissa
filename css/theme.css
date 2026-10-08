@@ -1,0 +1,13 @@
+.dark .hero-badge-tag {
+  background-color: rgba(236, 72, 153, 0.25);
+  color: #fbcfe8;
+  border-color: rgba(244, 114, 182, 0.5);
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(0.5);
+}
+
+.dark input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+}
