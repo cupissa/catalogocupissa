@@ -1,117 +1,105 @@
-function loadCartFromStorage() {
-  try {
-    cart = JSON.parse(localStorage.getItem('cupissa_cart') || '[]');
-  } catch (e) {
-    cart = [];
-  }
-  updateCartBadge();
-}
+/**
+ * js/modules/cart.js
+ * Módulo de gestión del Carrito sincronizado para Inicio y Catálogo
+ */
 
-function saveCartToStorage() {
-  localStorage.setItem('cupissa_cart', JSON.stringify(cart));
-  updateCartBadge();
-}
+window.cartState = JSON.parse(localStorage.getItem('cupissa_cart') || '[]');
 
-window.toggleCartModal = function(show) {
-  if (show) {
-    renderCartList();
-    if (typeof openModal === 'function') {
-      openModal('cartModal');
-    } else {
-      const modal = document.getElementById('cartModal');
-      if (modal) modal.classList.remove('hidden');
-    }
+document.addEventListener('DOMContentLoaded', () => {
+  window.updateCartUI();
+});
+
+window.addToCart = function(product, quantity = 1, mode = 'buy', options = {}) {
+  const itemIndex = window.cartState.findIndex(i => i.id === product.id && i.mode === mode);
+
+  if (itemIndex > -1) {
+    window.cartState[itemIndex].quantity += quantity;
   } else {
-    if (typeof closeModal === 'function') {
-      closeModal('cartModal');
-    } else {
-      const modal = document.getElementById('cartModal');
-      if (modal) modal.classList.add('hidden');
-    }
+    window.cartState.push({
+      id: product.id,
+      name: product.name || product.title,
+      price: product.price || 0,
+      image_url: product.image_url || product.image || 'images/logo.png',
+      quantity: quantity,
+      mode: mode,
+      advancePercentage: product.advancePercentage || 30,
+      ...options
+    });
   }
-};
 
-window.addToCart = function(prod) {
-  if (!prod) return;
-  const price = Number(prod.precio || prod.sale_price || prod.rental_price_per_day || 0);
-  const pct = prod.advance_percentage || 50;
-
-  cart.push({
-    id: prod.id,
-    title: prod.nombre || prod.title || 'Producto',
-    mode: 'sale',
-    price: price,
-    advancePrice: (price * pct) / 100
-  });
-
-  saveCartToStorage();
+  localStorage.setItem('cupissa_cart', JSON.stringify(window.cartState));
+  window.updateCartUI();
   window.toggleCartModal(true);
 };
 
-window.addToCartCurrent = function() {
-  let prod = selectedProduct;
-  if (!prod && typeof currentSelectedProduct !== 'undefined') {
-    prod = currentSelectedProduct;
+window.updateCartUI = function() {
+  const cartCount = document.getElementById('cartCount');
+  if (cartCount) {
+    cartCount.textContent = window.cartState.reduce((acc, curr) => acc + curr.quantity, 0).toString();
   }
-  if (!prod) return;
 
-  const isRental = (typeof currentProductMode !== 'undefined' ? currentProductMode : 'sale') === 'rental';
-  const price = isRental ? (prod.rental_price_per_day || prod.precio || 0) : (prod.sale_price || prod.precio || 0);
-  const pct = prod.advance_percentage || 50;
+  const cartList = document.getElementById('cartItemsList');
+  if (!cartList) return;
 
-  cart.push({
-    id: prod.id,
-    title: prod.nombre || prod.title || 'Producto',
-    mode: isRental ? 'rental' : 'sale',
-    price: Number(price),
-    advancePrice: (Number(price) * pct) / 100
-  });
-
-  saveCartToStorage();
-  window.toggleCartModal(true);
-};
-
-window.removeFromCart = function(index) {
-  cart.splice(index, 1);
-  saveCartToStorage();
-  renderCartList();
-};
-
-function updateCartBadge() {
-  const badge = document.getElementById('cartCount');
-  if (badge) badge.textContent = cart.length;
-}
-
-function renderCartList() {
-  const list = document.getElementById('cartItemsList');
-  if (!list) return;
-
-  if (cart.length === 0) {
-    list.innerHTML = `<p class="text-center text-xs text-gray-400 py-6">Tu carrito está vacío.</p>`;
-    const totalEl = document.getElementById('cartTotalText');
-    const advEl = document.getElementById('cartAdvanceText');
-    if (totalEl) totalEl.textContent = '$0 COP';
-    if (advEl) advEl.textContent = '$0 COP';
+  if (window.cartState.length === 0) {
+    cartList.innerHTML = `
+      <div class="py-12 text-center text-gray-400 text-xs">
+        <i class="fa-solid fa-bag-shopping text-2xl mb-2 text-gray-300"></i>
+        <p>Tu carrito está vacío.</p>
+      </div>
+    `;
+    const totalElem = document.getElementById('cartTotalText');
+    const advElem = document.getElementById('cartAdvanceText');
+    if (totalElem) totalElem.textContent = '$0 COP';
+    if (advElem) advElem.textContent = '$0 COP';
     return;
   }
 
-  let total = cart.reduce((acc, i) => acc + i.price, 0);
-  let advance = cart.reduce((acc, i) => acc + i.advancePrice, 0);
+  let total = 0;
+  let totalAdvance = 0;
 
-  list.innerHTML = cart.map((item, idx) => `
-    <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
-      <div>
-        <h4 class="font-bold text-xs text-gray-800 dark:text-white">${item.title}</h4>
-        <span class="text-[10px] text-gray-400 font-bold">$${Number(item.price).toLocaleString('es-CO')} COP</span>
+  cartList.innerHTML = window.cartState.map((item, index) => {
+    const itemTotal = item.price * item.quantity;
+    const itemAdvance = itemTotal * ((item.advancePercentage || 30) / 100);
+    total += itemTotal;
+    totalAdvance += itemAdvance;
+
+    return `
+      <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/40 rounded-2xl border border-gray-100 dark:border-gray-700">
+        <div class="flex items-center gap-3">
+          <img src="${item.image_url || 'images/logo.png'}" class="w-12 h-12 object-contain rounded-xl bg-white p-1">
+          <div>
+            <h4 class="text-xs font-bold text-gray-800 dark:text-gray-100 line-clamp-1">${item.name}</h4>
+            <div class="text-[10px] text-gray-400 flex gap-2">
+              <span>Cant: <strong>${item.quantity}</strong></span>
+              <span>Modo: <strong class="uppercase">${item.mode || 'Comprar'}</strong></span>
+            </div>
+            <span class="text-xs font-black text-brand-600">$${itemTotal.toLocaleString('es-CO')} COP</span>
+          </div>
+        </div>
+        <button onclick="window.removeCartItem(${index})" class="p-2 text-gray-400 hover:text-red-500 transition-colors">
+          <i class="fa-solid fa-xmark text-sm"></i>
+        </button>
       </div>
-      <button type="button" onclick="window.removeFromCart(${idx})" class="text-gray-400 hover:text-red-500 p-1">
-        <i class="fa-solid fa-xmark text-xs"></i>
-      </button>
-    </div>
-  `).join('');
+    `;
+  }).join('');
 
-  const totalEl = document.getElementById('cartTotalText');
-  const advEl = document.getElementById('cartAdvanceText');
-  if (totalEl) totalEl.textContent = `$${Number(total).toLocaleString('es-CO')} COP`;
-  if (advEl) advEl.textContent = `$${Number(advance).toLocaleString('es-CO')} COP`;
-}
+  const totalElem = document.getElementById('cartTotalText');
+  const advElem = document.getElementById('cartAdvanceText');
+  if (totalElem) totalElem.textContent = `$${total.toLocaleString('es-CO')} COP`;
+  if (advElem) advElem.textContent = `$${totalAdvance.toLocaleString('es-CO')} COP`;
+};
+
+window.removeCartItem = function(index) {
+  window.cartState.splice(index, 1);
+  localStorage.setItem('cupissa_cart', JSON.stringify(window.cartState));
+  window.updateCartUI();
+};
+
+window.toggleCartModal = function(show) {
+  const modal = document.getElementById('cartModal');
+  if (modal) {
+    if (show) modal.classList.remove('hidden');
+    else modal.classList.add('hidden');
+  }
+};
