@@ -11,4 +11,4 @@ function toggleTheme() {
   document.documentElement.classList.toggle('dark');
   const isDark = document.documentElement.classList.contains('dark');
   localStorage.setItem('cupissa_theme', isDark ? 'dark' : 'light');
-} 
+}
