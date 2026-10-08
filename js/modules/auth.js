@@ -1,5 +1,28 @@
-window.openAuthModal = function() { openModal('authModal'); };
-window.closeAuthModal = function() { closeModal('authModal'); };
+window.openAuthModal = function() {
+  if (typeof openModal === 'function') {
+    openModal('authModal');
+  } else {
+    const modal = document.getElementById('authModal');
+    if (modal) modal.classList.remove('hidden');
+  }
+};
+
+window.closeAuthModal = function() {
+  if (typeof closeModal === 'function') {
+    closeModal('authModal');
+  } else {
+    const modal = document.getElementById('authModal');
+    if (modal) modal.classList.add('hidden');
+  }
+};
+
+window.toggleAuthModal = function(show) {
+  if (show) {
+    window.openAuthModal();
+  } else {
+    window.closeAuthModal();
+  }
+};
 
 window.switchAuthMode = function(mode) {
   const formReg = document.getElementById('formRegisterContainer');
@@ -22,13 +45,13 @@ window.switchAuthMode = function(mode) {
 
 window.handleClientRegister = async function(e) {
   e.preventDefault();
-  
   const inputEl = document.getElementById('mathCaptchaInput');
   if (inputEl) {
     const ansInput = parseInt(inputEl.value, 10);
     if (ansInput !== mathCaptchaAnswer) {
-      showToast("Captcha incorrecto.", "error");
-      generateMathCaptcha();
+      if (typeof showToast === 'function') showToast("Captcha incorrecto.", "error");
+      else alert("Captcha incorrecto.");
+      if (typeof generateMathCaptcha === 'function') generateMathCaptcha();
       return;
     }
   }
@@ -40,13 +63,19 @@ window.handleClientRegister = async function(e) {
 
   try {
     const { error } = await supabaseClient.auth.signUp({
-      email, password: pass, options: { data: { first_name: fname, last_name: lname } }
+      email,
+      password: pass,
+      options: { data: { first_name: fname, last_name: lname } }
     });
     if (error) throw error;
-    showToast("¡Cuenta creada exitosamente!");
-    closeModal('authModal');
-    checkUserSession();
-  } catch (err) { showToast(err.message, "error"); }
+    if (typeof showToast === 'function') showToast("¡Cuenta creada exitosamente!");
+    else alert("¡Cuenta creada exitosamente!");
+    window.closeAuthModal();
+    window.checkUserSession();
+  } catch (err) {
+    if (typeof showToast === 'function') showToast(err.message, "error");
+    else alert(err.message);
+  }
 };
 
 window.handleClientLogin = async function(e) {
@@ -57,9 +86,12 @@ window.handleClientLogin = async function(e) {
   try {
     const { error } = await supabaseClient.auth.signInWithPassword({ email, password: pass });
     if (error) throw error;
-    closeModal('authModal');
-    checkUserSession();
-  } catch (err) { showToast(err.message, "error"); }
+    window.closeAuthModal();
+    window.checkUserSession();
+  } catch (err) {
+    if (typeof showToast === 'function') showToast(err.message, "error");
+    else alert(err.message);
+  }
 };
 
 window.loginWithGoogle = async function() {
@@ -69,7 +101,7 @@ window.loginWithGoogle = async function() {
   });
 };
 
-async function checkUserSession() {
+window.checkUserSession = async function() {
   const { data: { session } } = await supabaseClient.auth.getSession();
   const authSec = document.getElementById('userAuthSection');
   if (!authSec) return;
@@ -92,9 +124,9 @@ async function checkUserSession() {
       </button>
     `;
   }
-}
+};
 
 window.logout = async function() {
   await supabaseClient.auth.signOut();
-  checkUserSession();
+  window.checkUserSession();
 };
