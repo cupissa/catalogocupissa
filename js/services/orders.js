@@ -68,4 +68,4 @@ window.createCreditRequestInSupabase = async function(creditPayload) {
     console.error('Error al guardar solicitud de crédito en Supabase:', err);
     return { data: null, error: err };
   }
-};
+}; 
