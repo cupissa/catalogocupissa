@@ -47,4 +47,4 @@ document.addEventListener('DOMContentLoaded', async () => {
   setInterval(() => {
     nextHeroSlide();
   }, 6000);
-});
+}); 
