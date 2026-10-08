@@ -1,0 +1,30 @@
+#heroSlideImg {
+  will-change: opacity, transform;
+  transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+}
+
+.hero-badge-tag {
+  background-color: rgba(236, 72, 153, 0.15);
+  color: #f472b6;
+  border: 1px solid rgba(244, 114, 182, 0.4);
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.world-tab {
+  transition: all 0.2s ease-in-out;
+}
+
+.world-tab.active {
+  color: #db2777;
+  border-bottom: 2px solid #db2777;
+}
+
+.product-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.product-card:hover {
+  transform: translateY(-2px);
+}
