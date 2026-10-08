@@ -137,6 +137,11 @@ window.toggleFavoriteItem = function(productId) {
   renderProductsGrid(catalogState.filteredProducts);
 };
 
+window.openProductDetailFromFavorites = function(productId) {
+  window.toggleFavoritesModal(false);
+  window.openProductDetail(productId);
+};
+
 function updateFavoritesUI() {
   const countElem = document.getElementById('favCount');
   if (countElem) countElem.textContent = window.favoritesState.length.toString();
@@ -155,15 +160,16 @@ function updateFavoritesUI() {
   }
 
   favList.innerHTML = window.favoritesState.map(item => `
-    <div class="flex items-center justify-between p-2.5 bg-gray-50 dark:bg-gray-700/40 rounded-xl border border-gray-100 dark:border-gray-700">
-      <div class="flex items-center gap-2.5">
-        <img src="${item.image_url || 'images/logo.png'}" alt="${item.name}" class="w-10 h-10 object-contain rounded-lg bg-white p-1">
+    <div class="flex items-center justify-between p-2.5 bg-gray-50 dark:bg-gray-700/40 rounded-xl border border-gray-100 dark:border-gray-700 hover:border-brand-300 dark:hover:border-brand-700 transition-all">
+      <div onclick="openProductDetailFromFavorites('${item.id}')" class="flex items-center gap-2.5 cursor-pointer flex-1 group">
+        <img src="${item.image_url || 'images/logo.png'}" alt="${item.name}" class="w-12 h-12 object-contain rounded-lg bg-white p-1 group-hover:scale-105 transition-transform">
         <div>
-          <h4 class="text-xs font-bold text-gray-800 dark:text-gray-100 line-clamp-1">${item.name}</h4>
+          <h4 class="text-xs font-bold text-gray-800 dark:text-gray-100 line-clamp-1 group-hover:text-brand-600 transition-colors">${item.name}</h4>
           <span class="text-[10px] font-black text-brand-600">$${(item.price || 0).toLocaleString('es-CO')} COP</span>
+          <span class="block text-[9px] text-gray-400">Haz clic para ver en grande</span>
         </div>
       </div>
-      <button onclick="window.toggleFavoriteItem('${item.id}')" class="p-1.5 text-gray-400 hover:text-red-500 transition-colors">
+      <button onclick="window.toggleFavoriteItem('${item.id}')" class="p-2 text-gray-400 hover:text-red-500 transition-colors" title="Quitar de Favoritos">
         <i class="fa-solid fa-trash-can text-xs"></i>
       </button>
     </div>
@@ -276,7 +282,7 @@ window.toggleCartModal = function(show) {
 };
 
 /**
- * VALIDACIÓN DE IR A PAGAR
+ * VALIDACIÓN DE IR A PAGAR (CARRITO VACÍO)
  */
 window.proceedToCheckoutFromCart = function() {
   if (window.cartState.length === 0) {
