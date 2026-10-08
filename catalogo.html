@@ -28,9 +28,9 @@
   </script>
 
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="css/main.css?v=1.1">
-  <link rel="stylesheet" href="css/components.css?v=1.1">
-  <link rel="stylesheet" href="css/theme.css?v=1.1">
+  <link rel="stylesheet" href="css/main.css?v=1.2">
+  <link rel="stylesheet" href="css/components.css?v=1.2">
+  <link rel="stylesheet" href="css/theme.css?v=1.2">
 </head>
 <body class="bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100 min-h-screen flex flex-col transition-colors duration-200 overflow-x-hidden">
 
@@ -360,39 +360,24 @@
             <input type="text" id="checkoutAddress" required class="w-full text-xs p-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500" placeholder="Calle / Carrera, Número, Apto / Piso">
           </div>
 
-          <!-- CIUDAD Y BARRIO PERMITEN ESCRIBIR LIBREMENTE -->
+          <!-- CIUDAD Y BARRIO LIBRES SIN LISTA -->
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label class="block text-[11px] font-bold text-gray-600 dark:text-gray-300 mb-1">Ciudad *</label>
-              <input type="text" id="checkoutCity" required list="citiesDatalist" class="w-full text-xs p-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500" placeholder="Escribe o selecciona tu ciudad">
-              <datalist id="citiesDatalist">
-                <option value="Barranquilla"></option>
-                <option value="Soledad"></option>
-                <option value="Puerto Colombia"></option>
-                <option value="Malambo"></option>
-                <option value="Cartagena"></option>
-                <option value="Santa Marta"></option>
-                <option value="Bogotá"></option>
-              </datalist>
+              <input type="text" id="checkoutCity" required class="w-full text-xs p-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500" placeholder="Escribe tu ciudad">
             </div>
 
             <div>
               <label class="block text-[11px] font-bold text-gray-600 dark:text-gray-300 mb-1">Barrio *</label>
-              <input type="text" id="checkoutNeighborhood" required list="neighborhoodsDatalist" class="w-full text-xs p-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500" placeholder="Escribe tu barrio libremente">
-              <datalist id="neighborhoodsDatalist">
-                <option value="Alto Prado"></option>
-                <option value="El Recreo"></option>
-                <option value="El Prado"></option>
-                <option value="Riomar"></option>
-                <option value="Villa Santos"></option>
-                <option value="Boston"></option>
-                <option value="Las Nieves"></option>
-                <option value="Simón Bolívar"></option>
-                <option value="El Campito"></option>
-                <option value="Metropolitano"></option>
-              </datalist>
+              <input type="text" id="checkoutNeighborhood" required class="w-full text-xs p-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500" placeholder="Escribe tu barrio">
             </div>
           </div>
+
+          <!-- NOTA INFORMATIVA DEL ENVÍO -->
+          <p class="text-[11px] text-gray-500 dark:text-gray-400 flex items-center gap-1.5 mt-1">
+            <i class="fa-solid fa-truck text-brand-600"></i>
+            <span>El valor del domicilio/envío se agregará al pedido.</span>
+          </p>
 
           <div>
             <label class="block text-[11px] font-bold text-gray-600 dark:text-gray-300 mb-1">Fecha Deseada de Entrega / Evento *</label>
