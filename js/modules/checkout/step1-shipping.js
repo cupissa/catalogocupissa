@@ -98,4 +98,4 @@ window.validateStep1Shipping = function() {
   };
 
   return true;
-}; 
+};
