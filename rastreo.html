@@ -1,21 +1,16 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" class="scroll-smooth">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <head>
-  <meta charset="UTF-8">
- <title>Rastrear Pedido - Cupissa</title>
+  <title>Rastrear Pedido - Cupissa</title>
   
-  <!-- Favicon para la pestaña del navegador -->
-  <link rel="icon" type="image/png" href="logo.png">
+  <link rel="icon" type="image/png" href="images/logo.png">
   
-</head>
-  
-  <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
+      darkMode: 'class',
       theme: {
         extend: {
           colors: {
@@ -31,53 +26,49 @@
       }
     }
   </script>
-  <!-- Lucide Icons -->
-  <script src="https://unpkg.com/lucide@latest"></script>
-  <!-- Font Awesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-  <!-- Estilos Personalizados -->
-  <link rel="stylesheet" href="styles.css" />
-  <!-- Supabase JS CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  
+  <!-- Estilos Modulares -->
+  <link rel="stylesheet" href="css/main.css?v=1.1">
+  <link rel="stylesheet" href="css/components.css?v=1.1">
+  <link rel="stylesheet" href="css/theme.css?v=1.1">
 </head>
-<body class="bg-gray-50 text-gray-800 antialiased min-h-screen flex flex-col justify-between">
+<body class="bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100 antialiased min-h-screen flex flex-col justify-between transition-colors duration-200">
 
-  <!-- HEADER SIMPLE -->
-  <header class="bg-white border-b border-gray-100 sticky top-0 z-40 shadow-sm">
+  <header class="bg-white/90 dark:bg-gray-800/90 backdrop-blur-md border-b border-gray-100 dark:border-gray-700/60 sticky top-0 z-40 shadow-sm">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
       
-      <!-- LOGO -->
       <a href="index.html" class="flex items-center space-x-3">
-        <div class="w-10 h-10 bg-brand-600 rounded-xl flex items-center justify-center text-white font-black text-xl shadow-md shadow-brand-200">
-          C
-        </div>
-        <span class="font-extrabold text-xl tracking-tight text-gray-900">CUPISSA</span>
+        <img src="images/logo.png" alt="Cupissa Logo" class="h-10 w-auto object-contain">
       </a>
 
-      <!-- VOLVER A LA TIENDA -->
-      <a href="index.html" class="text-xs font-bold text-brand-600 hover:text-brand-700 flex items-center gap-2 bg-brand-50 hover:bg-brand-100 py-2 px-4 rounded-xl transition-all">
-        <i class="fa-solid fa-arrow-left"></i>
-        <span>Volver a la Tienda</span>
-      </a>
+      <div class="flex items-center gap-4">
+        <a href="index.html" class="text-xs font-bold text-brand-600 dark:text-brand-400 hover:text-brand-700 dark:hover:text-brand-300 flex items-center gap-2 bg-brand-50 dark:bg-brand-900/30 hover:bg-brand-100 dark:hover:bg-brand-900/50 py-2 px-4 rounded-xl transition-all">
+          <i class="fa-solid fa-arrow-left"></i>
+          <span class="hidden sm:inline">Volver a la Tienda</span>
+        </a>
+        
+        <button type="button" id="themeToggleBtn" onclick="toggleTheme()" class="p-2 text-gray-600 dark:text-yellow-400 hover:text-brand-600 transition-colors rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700" title="Cambiar Tema">
+          <i id="themeIcon" class="fa-solid fa-sun text-lg"></i>
+        </button>
+      </div>
 
     </div>
   </header>
 
-  <!-- CONTENIDO PRINCIPAL: RASTREO -->
   <main class="flex-1 max-w-3xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-12">
     
     <div class="text-center mb-8">
-      <div class="w-16 h-16 bg-brand-100 text-brand-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm">
+      <div class="w-16 h-16 bg-brand-100 dark:bg-brand-900/40 text-brand-600 dark:text-brand-400 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm">
         <i class="fa-solid fa-truck-fast text-2xl"></i>
       </div>
-      <h1 class="text-2xl font-black text-gray-900 mb-2">Rastrear Estado de Pedido</h1>
-      <p class="text-xs text-gray-500 max-w-md mx-auto">
+      <h1 class="text-2xl font-black text-gray-900 dark:text-white mb-2">Rastrear Estado de Pedido</h1>
+      <p class="text-xs text-gray-500 dark:text-gray-400 max-w-md mx-auto">
         Ingresa el código único de tu pedido enviado a tu correo o confirmación para conocer su estado en tiempo real.
       </p>
     </div>
 
-    <!-- CAJA DE BÚSQUEDA DEL PEDIDO -->
-    <div class="bg-white rounded-3xl border border-gray-100 p-6 shadow-sm mb-8">
+    <div class="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700/60 p-6 shadow-sm mb-8 transition-colors">
       <form onsubmit="searchOrder(event)" class="flex flex-col sm:flex-row gap-3">
         <div class="relative flex-1">
           <input
@@ -85,14 +76,14 @@
             id="orderCodeInput"
             required
             placeholder="Ej: CUP-104829"
-            class="w-full bg-gray-50 text-sm font-semibold text-gray-800 rounded-xl pl-10 pr-4 py-3.5 focus:outline-none focus:ring-2 focus:ring-brand-500 border border-gray-200 transition-all uppercase"
+            class="w-full bg-gray-50 dark:bg-gray-700 text-sm font-semibold text-gray-800 dark:text-gray-100 rounded-xl pl-10 pr-4 py-3.5 focus:outline-none focus:ring-2 focus:ring-brand-500 border border-gray-200 dark:border-gray-600 transition-all uppercase placeholder-gray-400"
           />
           <i class="fa-solid fa-barcode absolute left-3.5 top-4 text-gray-400 text-sm"></i>
         </div>
         <button
           type="submit"
           id="btnSearchOrder"
-          class="bg-brand-600 hover:bg-brand-700 text-white font-bold py-3.5 px-6 rounded-xl shadow-md shadow-brand-200 transition-all text-xs flex items-center justify-center gap-2"
+          class="bg-brand-600 hover:bg-brand-700 text-white font-bold py-3.5 px-6 rounded-xl shadow-md transition-all text-xs flex items-center justify-center gap-2"
         >
           <i class="fa-solid fa-magnifying-glass"></i>
           <span>Consultar Pedido</span>
@@ -100,118 +91,128 @@
       </form>
     </div>
 
-    <!-- RESULTADO DE LA CONSULTA -->
     <div id="orderResultContainer" class="hidden">
-      <!-- Tarjeta Detalle Pedido -->
-      <div class="bg-white rounded-3xl border border-gray-100 p-6 md:p-8 shadow-sm space-y-6">
+      <div class="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700/60 p-6 md:p-8 shadow-sm space-y-6">
         
-        <!-- Cabecera Resultado -->
-        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-gray-100 pb-4">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-gray-100 dark:border-gray-700 pb-4">
           <div>
             <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Código de Pedido</span>
-            <h2 id="resOrderCode" class="text-xl font-black text-gray-900"></h2>
+            <h2 id="resOrderCode" class="text-xl font-black text-gray-900 dark:text-white"></h2>
           </div>
           <div id="resStatusBadge" class="px-3.5 py-1.5 rounded-full text-xs font-bold flex items-center gap-2">
-            <!-- Badge de estado dinámico -->
           </div>
         </div>
 
-        <!-- Información del Cliente y Fecha -->
-        <div class="grid grid-cols-2 gap-4 text-xs bg-gray-50 p-4 rounded-2xl border border-gray-100">
+        <div class="grid grid-cols-2 gap-4 text-xs bg-gray-50 dark:bg-gray-700/50 p-4 rounded-2xl border border-gray-100 dark:border-gray-600">
           <div>
             <span class="text-gray-400 block mb-0.5">Cliente:</span>
-            <span id="resClientName" class="font-bold text-gray-800"></span>
+            <span id="resClientName" class="font-bold text-gray-800 dark:text-gray-200"></span>
           </div>
           <div>
             <span class="text-gray-400 block mb-0.5">Fecha de Compra:</span>
-            <span id="resOrderDate" class="font-bold text-gray-800"></span>
+            <span id="resOrderDate" class="font-bold text-gray-800 dark:text-gray-200"></span>
           </div>
         </div>
 
-        <!-- Línea de Tiempo del Estado -->
         <div>
-          <h3 class="font-extrabold text-sm text-gray-900 mb-4">Progreso del Envío / Entrega</h3>
+          <h3 class="font-extrabold text-sm text-gray-900 dark:text-white mb-4">Progreso del Envío / Entrega</h3>
           
-          <div class="grid grid-cols-4 gap-2 text-center text-[10px] font-bold text-gray-400">
-            <!-- Paso 1 -->
+          <div class="grid grid-cols-4 gap-2 text-center text-[10px] font-bold text-gray-400 dark:text-gray-500">
             <div id="step-recibido" class="space-y-2">
-              <div class="w-8 h-8 rounded-full border-2 border-gray-200 flex items-center justify-center mx-auto text-xs bg-white">1</div>
+              <div class="w-8 h-8 rounded-full border-2 border-gray-200 dark:border-gray-600 flex items-center justify-center mx-auto text-xs bg-white dark:bg-gray-800">1</div>
               <span>Recibido</span>
             </div>
-            <!-- Paso 2 -->
             <div id="step-preparacion" class="space-y-2">
-              <div class="w-8 h-8 rounded-full border-2 border-gray-200 flex items-center justify-center mx-auto text-xs bg-white">2</div>
+              <div class="w-8 h-8 rounded-full border-2 border-gray-200 dark:border-gray-600 flex items-center justify-center mx-auto text-xs bg-white dark:bg-gray-800">2</div>
               <span>En Preparación</span>
             </div>
-            <!-- Paso 3 -->
             <div id="step-camino" class="space-y-2">
-              <div class="w-8 h-8 rounded-full border-2 border-gray-200 flex items-center justify-center mx-auto text-xs bg-white">3</div>
+              <div class="w-8 h-8 rounded-full border-2 border-gray-200 dark:border-gray-600 flex items-center justify-center mx-auto text-xs bg-white dark:bg-gray-800">3</div>
               <span>En Camino</span>
             </div>
-            <!-- Paso 4 -->
             <div id="step-entregado" class="space-y-2">
-              <div class="w-8 h-8 rounded-full border-2 border-gray-200 flex items-center justify-center mx-auto text-xs bg-white">4</div>
+              <div class="w-8 h-8 rounded-full border-2 border-gray-200 dark:border-gray-600 flex items-center justify-center mx-auto text-xs bg-white dark:bg-gray-800">4</div>
               <span>Entregado</span>
             </div>
           </div>
         </div>
 
-        <!-- Resumen de Productos -->
-        <div class="border-t border-gray-100 pt-4">
-          <h3 class="font-extrabold text-xs text-gray-900 mb-3">Detalle del Contenido</h3>
+        <div class="border-t border-gray-100 dark:border-gray-700 pt-4">
+          <h3 class="font-extrabold text-xs text-gray-900 dark:text-white mb-3">Detalle del Contenido</h3>
           <div id="resItemsList" class="space-y-2 text-xs">
-            <!-- Lista de items -->
           </div>
         </div>
 
       </div>
     </div>
 
-    <!-- MENSAJE DE ERROR O NO ENCONTRADO -->
-    <div id="orderNotFound" class="hidden bg-white text-center py-12 px-4 rounded-3xl border border-gray-100 shadow-sm">
+    <div id="orderNotFound" class="hidden bg-white dark:bg-gray-800 text-center py-12 px-4 rounded-3xl border border-gray-100 dark:border-gray-700/60 shadow-sm">
       <i class="fa-solid fa-circle-exclamation text-4xl text-amber-500 mb-3"></i>
-      <h3 class="font-bold text-sm text-gray-800 mb-1">Pedido no encontrado</h3>
+      <h3 class="font-bold text-sm text-gray-800 dark:text-gray-100 mb-1">Pedido no encontrado</h3>
       <p class="text-xs text-gray-400">Verifica que el código ingresado coincida exactamente con tu comprobante.</p>
     </div>
 
   </main>
 
-  <!-- FOOTER FOTO-EXACTO -->
-  <footer class="bg-[#0b0f19] text-gray-300 text-xs pt-10 pb-6 border-t border-gray-800">
+  <footer class="bg-[#0b1329] text-gray-300 text-xs pt-10 pb-6 border-t border-gray-800">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-8 pb-10">
+      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8 pb-10">
         <div class="space-y-3">
-          <h3 class="font-bold text-white text-sm">CUPISSA S.A.S.</h3>
-          <p class="text-gray-400 text-xs leading-relaxed max-w-sm">
+          <img src="images/logo.png" alt="CUPISSA S.A.S." class="h-8 w-auto object-contain">
+          <p class="text-gray-400 text-xs leading-relaxed">
             Ecosistema integral de comercio, alquiler, fabricación a medida y crédito directo en Barranquilla, Atlántico, Colombia.
           </p>
         </div>
 
-        <div class="space-y-3">
-          <h3 class="font-bold text-white text-sm">Atención al Cliente</h3>
-          <ul class="space-y-2 text-gray-400">
-            <li class="flex items-center gap-2">
-              <i class="fa-regular fa-envelope text-blue-400"></i>
-              <span>contacto@cupissa.com</span>
-            </li>
-            <li class="flex items-center gap-2">
-              <i class="fa-solid fa-phone text-pink-500"></i>
-              <span>WhatsApp: 3147671380</span>
-            </li>
-            <li class="flex items-center gap-2">
-              <i class="fa-regular fa-clock text-amber-400"></i>
-              <span>Horario: Recepción de pedidos 24h</span>
-            </li>
+        <div class="space-y-2">
+          <h4 class="text-white font-bold mb-3">Atención al Cliente</h4>
+          <p class="flex items-center gap-2 text-gray-400">
+            <i class="fa-solid fa-envelope text-blue-400"></i>
+            <span>contacto@cupissa.com</span>
+          </p>
+          <p class="flex items-center gap-2 text-gray-400">
+            <i class="fa-solid fa-phone text-pink-500"></i>
+            <span>WhatsApp: 3147671380</span>
+          </p>
+          <p class="flex items-center gap-2 text-gray-400">
+            <i class="fa-solid fa-clock text-amber-400"></i>
+            <span>Horario: Recepción 24h</span>
+          </p>
+        </div>
+
+        <div class="space-y-2">
+          <h4 class="text-white font-bold mb-3">Términos y Políticas</h4>
+          <ul class="space-y-1.5 text-gray-400">
+            <li><a href="#" class="hover:text-white transition-colors">Políticas de Anticipos</a></li>
+            <li><a href="#" class="hover:text-white transition-colors">Términos Crédito Cupissa</a></li>
+            <li><a href="#" class="hover:text-white transition-colors">Tratamiento de Datos</a></li>
           </ul>
         </div>
 
-        <div class="space-y-3">
-          <h3 class="font-bold text-white text-sm">Términos y Políticas</h3>
+        <div class="space-y-2">
+          <h4 class="text-white font-bold mb-3">Medios de Pago</h4>
           <ul class="space-y-2 text-gray-400">
-            <li><a href="#" class="hover:text-white transition-colors">Políticas de Anticipos no reembolsables</a></li>
-            <li><a href="#" class="hover:text-white transition-colors">Términos del Crédito Cupissa</a></li>
-            <li><a href="#" class="hover:text-white transition-colors">Tratamiento de Datos Personales</a></li>
+            <li class="flex items-center gap-2">
+              <i class="fa-solid fa-mobile-screen-button text-purple-400"></i>
+              <span>NEQUI</span>
+            </li>
+            <li class="flex items-center gap-2">
+              <i class="fa-solid fa-credit-card text-emerald-400"></i>
+              <span>WOMPI</span>
+            </li>
+            <li class="flex items-center gap-2">
+              <i class="fa-solid fa-bolt text-amber-400"></i>
+              <span>ADDI</span>
+            </li>
+            <li class="flex items-center gap-2">
+              <i class="fa-solid fa-shield-halved text-pink-500"></i>
+              <span>CRÉDITOS CUPISSA</span>
+            </li>
+            <li class="flex items-center gap-2">
+              <i class="fa-solid fa-money-bill-wave text-green-400"></i>
+              <span>EFECTIVO</span>
+            </li>
           </ul>
         </div>
       </div>
@@ -224,103 +225,13 @@
     </div>
   </footer>
 
-  <!-- SCRIPTS -->
-  <script src="config.js"></script>
-  <script>
-    async function searchOrder(e) {
-      e.preventDefault();
-      const code = document.getElementById('orderCodeInput').value.trim().toUpperCase();
-      const container = document.getElementById('orderResultContainer');
-      const notFound = document.getElementById('orderNotFound');
+  <!-- Scripts Modulares -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/config/supabase.js?v=1.1"></script>
+  <script src="js/config/constants.js?v=1.1"></script>
+  <script src="js/utils/theme.js?v=1.1"></script>
+  <script src="js/utils/ui.js?v=1.1"></script>
+  <script src="js/modules/tracking.js?v=1.1"></script>
 
-      container.classList.add('hidden');
-      notFound.classList.add('hidden');
-
-      try {
-        // Consulta en la tabla 'orders' de Supabase
-        const { data, error } = await supabaseClient
-          .from('orders')
-          .select('*')
-          .eq('order_code', code)
-          .single();
-
-        if (error || !data) {
-          notFound.classList.remove('hidden');
-          return;
-        }
-
-        // Rellenar datos
-        document.getElementById('resOrderCode').textContent = data.order_code;
-        document.getElementById('resClientName').textContent = data.client_name || 'Cliente Cupissa';
-        document.getElementById('resOrderDate').textContent = new Date(data.created_at).toLocaleDateString('es-CO');
-
-        // Estado y Badge
-        const badge = document.getElementById('resStatusBadge');
-        const status = (data.status || 'recibido').toLowerCase();
-
-        if (status === 'entregado') {
-          badge.className = "px-3.5 py-1.5 rounded-full text-xs font-bold bg-green-100 text-green-700 flex items-center gap-2";
-          badge.innerHTML = `<i class="fa-solid fa-circle-check"></i> Entregado`;
-        } else if (status === 'en camino') {
-          badge.className = "px-3.5 py-1.5 rounded-full text-xs font-bold bg-blue-100 text-blue-700 flex items-center gap-2";
-          badge.innerHTML = `<i class="fa-solid fa-truck text-blue-600"></i> En Camino`;
-        } else if (status === 'preparacion') {
-          badge.className = "px-3.5 py-1.5 rounded-full text-xs font-bold bg-amber-100 text-amber-700 flex items-center gap-2";
-          badge.innerHTML = `<i class="fa-solid fa-box text-amber-600"></i> En Preparación`;
-        } else {
-          badge.className = "px-3.5 py-1.5 rounded-full text-xs font-bold bg-brand-100 text-brand-700 flex items-center gap-2";
-          badge.innerHTML = `<i class="fa-solid fa-clock"></i> Recibido`;
-        }
-
-        // Resumen ítems
-        const itemsList = document.getElementById('resItemsList');
-        const items = data.items || [];
-        if (items.length > 0) {
-          itemsList.innerHTML = items.map(item => `
-            <div class="flex justify-between py-1.5 border-b border-gray-50">
-              <span class="font-bold text-gray-700">${item.title || 'Producto'}</span>
-              <span class="text-gray-500">$${Number(item.price || 0).toLocaleString()} COP</span>
-            </div>
-          `).join('');
-        } else {
-          itemsList.innerHTML = `<p class="text-gray-400 italic">No hay información detallada de los ítems.</p>`;
-        }
-
-        // Actualizar stepper
-        updateStepper(status);
-
-        container.classList.remove('hidden');
-
-      } catch (err) {
-        console.error("Error consultando el pedido:", err);
-        notFound.classList.remove('hidden');
-      }
-    }
-
-    function updateStepper(status) {
-      const steps = ['recibido', 'preparacion', 'camino', 'entregado'];
-      const statusMap = {
-        'recibido': 0,
-        'preparacion': 1,
-        'en camino': 2,
-        'entregado': 3
-      };
-
-      const activeIndex = statusMap[status] !== undefined ? statusMap[status] : 0;
-
-      steps.forEach((stepKey, idx) => {
-        const el = document.getElementById(`step-${stepKey}`);
-        const circle = el.querySelector('div');
-
-        if (idx <= activeIndex) {
-          circle.className = "w-8 h-8 rounded-full border-2 border-brand-600 bg-brand-600 text-white flex items-center justify-center mx-auto text-xs font-bold shadow-md shadow-brand-200";
-          el.className = "space-y-2 text-brand-600 font-bold";
-        } else {
-          circle.className = "w-8 h-8 rounded-full border-2 border-gray-200 flex items-center justify-center mx-auto text-xs bg-white text-gray-400";
-          el.className = "space-y-2 text-gray-400 font-normal";
-        }
-      });
-    }
-  </script>
 </body>
 </html>
