@@ -298,6 +298,7 @@
     </div>
   </footer>
 
+  <!-- MODAL FAVORITOS -->
   <div id="favoritesModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex justify-end hidden">
     <div class="bg-white dark:bg-gray-800 h-full w-full max-w-md p-6 shadow-2xl border-l border-gray-100 dark:border-gray-700 flex flex-col justify-between relative z-50">
       <div class="flex justify-between items-center mb-6 pb-4 border-b border-gray-100 dark:border-gray-700">
@@ -312,6 +313,7 @@
     </div>
   </div>
 
+  <!-- MODAL CARRITO -->
   <div id="cartModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex justify-end hidden">
     <div class="bg-white dark:bg-gray-800 h-full w-full max-w-md p-6 shadow-2xl border-l border-gray-100 dark:border-gray-700 flex flex-col justify-between relative z-50">
       <div class="flex-1 overflow-hidden flex flex-col">
@@ -334,13 +336,15 @@
           <span>Anticipo Total:</span>
           <span id="cartAdvanceText">$0 COP</span>
         </div>
-        <button type="button" onclick="alert('Redirigiendo al proceso de pago...')" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-extrabold py-3 rounded-xl text-xs transition-all mt-2 shadow-md">
-          Procesar Reserva
-        </button>
+        <a href="catalogo.html" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-extrabold py-3 rounded-xl text-xs transition-all mt-2 shadow-md flex items-center justify-center gap-2">
+          <span>Ir al Catálogo a Procesar Pago</span>
+          <i class="fa-solid fa-arrow-right"></i>
+        </a>
       </div>
     </div>
   </div>
 
+  <!-- MODAL AUTENTICACIÓN -->
   <div id="authModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
     <div class="bg-white dark:bg-gray-800 rounded-3xl max-w-sm w-full p-6 shadow-xl border border-gray-100 dark:border-gray-700 relative">
       <button type="button" onclick="closeAuthModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
@@ -415,17 +419,17 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="js/config/supabase.js?v=1.1"></script>
-  <script src="js/config/constants.js?v=1.1"></script>
-  <script src="js/services/profile.js?v=1.1"></script>
-  <script src="js/utils/theme.js?v=1.1"></script>
-  <script src="js/utils/captcha.js?v=1.1"></script>
-  <script src="js/utils/ui.js?v=1.1"></script>
-  <script src="js/modules/auth.js?v=1.1"></script>
-  <script src="js/modules/cart.js?v=1.1"></script>
-  <script src="js/modules/favorites.js?v=1.1"></script>
-  <script src="js/modules/products.js?v=1.1"></script>
-  <script src="js/modules/tracking.js?v=1.1"></script>
-  <script src="js/pages/index-page.js?v=1.1"></script>
+  <script src="js/config/supabase.js?v=1.2"></script>
+  <script src="js/config/constants.js?v=1.2"></script>
+  <script src="js/services/profile.js?v=1.2"></script>
+  <script src="js/utils/theme.js?v=1.2"></script>
+  <script src="js/utils/captcha.js?v=1.2"></script>
+  <script src="js/utils/ui.js?v=1.2"></script>
+  <script src="js/modules/auth.js?v=1.2"></script>
+  <script src="js/modules/cart.js?v=1.2"></script>
+  <script src="js/modules/favorites.js?v=1.2"></script>
+  <script src="js/modules/products.js?v=1.2"></script>
+  <script src="js/modules/tracking.js?v=1.2"></script>
+  <script src="js/pages/index-page.js?v=1.2"></script>
 </body>
 </html>
