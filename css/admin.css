@@ -1,0 +1,55 @@
+/* css/admin.css - Estilos específicos para el Panel Administrativo de CUPISSA */
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #printable-area, #printable-area * {
+    visibility: visible;
+  }
+  #printable-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+  .no-print {
+    display: none;
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.sheets-table th {
+  background-color: #f8fafc;
+  color: #475569;
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  border-bottom: 2px solid #e2e8f0;
+  padding: 8px 10px;
+}
+
+.sheets-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 13px;
+}
+
+.sheets-table tr:hover {
+  background-color: #f8fafc;
+}
