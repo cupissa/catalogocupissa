@@ -15,22 +15,53 @@ function saveCartToStorage() {
 window.toggleCartModal = function(show) {
   if (show) {
     renderCartList();
-    openModal('cartModal');
+    if (typeof openModal === 'function') {
+      openModal('cartModal');
+    } else {
+      const modal = document.getElementById('cartModal');
+      if (modal) modal.classList.remove('hidden');
+    }
   } else {
-    closeModal('cartModal');
+    if (typeof closeModal === 'function') {
+      closeModal('cartModal');
+    } else {
+      const modal = document.getElementById('cartModal');
+      if (modal) modal.classList.add('hidden');
+    }
   }
 };
 
-window.addToCartCurrent = function() {
-  if (!selectedProduct) return;
-
-  const isRental = currentProductMode === 'rental';
-  const price = isRental ? (selectedProduct.rental_price_per_day || selectedProduct.precio || 0) : (selectedProduct.sale_price || selectedProduct.precio || 0);
-  const pct = selectedProduct.advance_percentage || 50;
+window.addToCart = function(prod) {
+  if (!prod) return;
+  const price = Number(prod.precio || prod.sale_price || prod.rental_price_per_day || 0);
+  const pct = prod.advance_percentage || 50;
 
   cart.push({
-    id: selectedProduct.id,
-    title: selectedProduct.title || selectedProduct.nombre || 'Producto',
+    id: prod.id,
+    title: prod.nombre || prod.title || 'Producto',
+    mode: 'sale',
+    price: price,
+    advancePrice: (price * pct) / 100
+  });
+
+  saveCartToStorage();
+  window.toggleCartModal(true);
+};
+
+window.addToCartCurrent = function() {
+  let prod = selectedProduct;
+  if (!prod && typeof currentSelectedProduct !== 'undefined') {
+    prod = currentSelectedProduct;
+  }
+  if (!prod) return;
+
+  const isRental = (typeof currentProductMode !== 'undefined' ? currentProductMode : 'sale') === 'rental';
+  const price = isRental ? (prod.rental_price_per_day || prod.precio || 0) : (prod.sale_price || prod.precio || 0);
+  const pct = prod.advance_percentage || 50;
+
+  cart.push({
+    id: prod.id,
+    title: prod.nombre || prod.title || 'Producto',
     mode: isRental ? 'rental' : 'sale',
     price: Number(price),
     advancePrice: (Number(price) * pct) / 100
