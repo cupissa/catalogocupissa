@@ -32,4 +32,4 @@ window.showToast = function(message, type = 'success') {
       }
     }, 300);
   }, 3000);
-}; 
+};
