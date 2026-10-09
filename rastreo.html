@@ -7,6 +7,7 @@
   
   <link rel="icon" type="image/png" href="images/logo.png">
   
+  <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -29,25 +30,52 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   
   <!-- Estilos Modulares -->
-  <link rel="stylesheet" href="css/main.css?v=1.1">
-  <link rel="stylesheet" href="css/components.css?v=1.1">
-  <link rel="stylesheet" href="css/theme.css?v=1.1">
+  <link rel="stylesheet" href="css/main.css?v=1.4">
+  <link rel="stylesheet" href="css/components.css?v=1.4">
+  <link rel="stylesheet" href="css/theme.css?v=1.4">
 </head>
 <body class="bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100 antialiased min-h-screen flex flex-col justify-between transition-colors duration-200">
 
-  <header class="bg-white/90 dark:bg-gray-800/90 backdrop-blur-md border-b border-gray-100 dark:border-gray-700/60 sticky top-0 z-40 shadow-sm">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+  <!-- Contenedor global de Toasts / Notificaciones -->
+  <div id="toast-container" class="fixed bottom-5 right-5 z-50 space-y-2 pointer-events-none"></div>
+
+  <!-- ENCABEZADO / NAVBAR UNIFICADO -->
+  <header id="appHeader" class="bg-white/90 dark:bg-gray-800/90 backdrop-blur-md border-b border-gray-100 dark:border-gray-700/60 sticky top-0 z-40 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
       
-      <a href="index.html" class="flex items-center space-x-3">
+      <a href="index.html" class="flex items-center space-x-3 shrink-0">
         <img src="images/logo.png" alt="Cupissa Logo" class="h-10 w-auto object-contain">
       </a>
 
-      <div class="flex items-center gap-4">
-        <a href="index.html" class="text-xs font-bold text-brand-600 dark:text-brand-400 hover:text-brand-700 dark:hover:text-brand-300 flex items-center gap-2 bg-brand-50 dark:bg-brand-900/30 hover:bg-brand-100 dark:hover:bg-brand-900/50 py-2 px-4 rounded-xl transition-all">
-          <i class="fa-solid fa-arrow-left"></i>
-          <span class="hidden sm:inline">Volver a la Tienda</span>
+      <div class="flex items-center space-x-1 sm:space-x-3 shrink-0">
+        <a href="index.html" class="text-xs font-bold text-gray-700 dark:text-gray-200 hover:text-brand-600 transition-colors flex items-center gap-1.5 py-2 px-2.5 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700">
+          <i class="fa-solid fa-house text-brand-600"></i>
+          <span>Inicio</span>
         </a>
-        
+
+        <a href="catalogo.html" class="text-xs font-bold text-gray-700 dark:text-gray-200 hover:text-brand-600 transition-colors flex items-center gap-1.5 py-2 px-2.5 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700">
+          <i class="fa-solid fa-store text-brand-600"></i>
+          <span>Catálogo</span>
+        </a>
+
+        <!-- Slot dinámico de Autenticación / Perfil de Usuario -->
+        <div id="userAuthSection">
+          <button type="button" onclick="openAuthModal()" class="flex items-center space-x-1.5 text-xs font-bold text-white bg-brand-600 hover:bg-brand-700 transition-all py-2 px-3 rounded-xl shadow-sm">
+            <i class="fa-regular fa-user"></i>
+            <span class="hidden sm:inline">Ingresar</span>
+          </button>
+        </div>
+
+        <button type="button" onclick="window.toggleFavoritesModal(true)" class="relative p-2 text-gray-600 dark:text-gray-300 hover:text-brand-600 transition-colors" title="Ver Favoritos">
+          <i class="fa-solid fa-heart text-lg text-gray-400 hover:text-brand-600 transition-colors"></i>
+          <span id="favCount" class="absolute -top-1 -right-1 bg-brand-600 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">0</span>
+        </button>
+
+        <button type="button" onclick="window.toggleCartModal(true)" class="relative p-2 text-gray-600 dark:text-gray-300 hover:text-brand-600 transition-colors" title="Ver Carrito">
+          <i class="fa-solid fa-bag-shopping text-lg"></i>
+          <span id="cartCount" class="absolute -top-1 -right-1 bg-brand-600 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">0</span>
+        </button>
+
         <button type="button" id="themeToggleBtn" onclick="toggleTheme()" class="p-2 text-gray-600 dark:text-yellow-400 hover:text-brand-600 transition-colors rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700" title="Cambiar Tema">
           <i id="themeIcon" class="fa-solid fa-sun text-lg"></i>
         </button>
@@ -154,7 +182,8 @@
 
   </main>
 
-  <footer class="bg-[#0b1329] text-gray-300 text-xs pt-10 pb-6 border-t border-gray-800">
+  <!-- FOOTER UNIFICADO -->
+  <footer id="appFooter" class="bg-[#0b1329] text-gray-300 text-xs pt-10 pb-6 border-t border-gray-800">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       
       <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8 pb-10">
@@ -219,19 +248,160 @@
 
       <div class="border-t border-gray-800/80 pt-6 flex flex-col sm:flex-row justify-between items-center gap-4 text-gray-500 text-[11px]">
         <p>© 2026 CUPISSA S.A.S. Todos los derechos reservados.</p>
-       <p>Diseñado y Desarrollado por <a href="https://www.tiktok.com/@deiner.programmer" target="_blank" rel="noopener noreferrer" class="text-pink-500 font-bold hover:underline">Deiner Gonzalez</a></p>
-
+        <p>Diseñado y Desarrollado por <a href="https://www.tiktok.com/@deiner.programmer" target="_blank" rel="noopener noreferrer" class="text-pink-500 font-bold hover:underline">Deiner Gonzalez</a></p>
+      </div>
     </div>
   </footer>
 
+  <!-- MODAL FAVORITOS -->
+  <div id="favoritesModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex justify-end hidden">
+    <div class="bg-white dark:bg-gray-800 h-full w-full max-w-md p-6 shadow-2xl border-l border-gray-100 dark:border-gray-700 flex flex-col justify-between relative z-50">
+      <div class="flex justify-between items-center mb-6 pb-4 border-b border-gray-100 dark:border-gray-700">
+        <h3 class="font-black text-base text-gray-900 dark:text-white flex items-center gap-2">
+          <i class="fa-solid fa-heart text-brand-600"></i> Mis Favoritos
+        </h3>
+        <button type="button" onclick="window.toggleFavoritesModal(false)" class="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+      <div id="favoritesItemsList" class="space-y-3 overflow-y-auto flex-1 pr-1"></div>
+    </div>
+  </div>
+
+  <!-- MODAL CARRITO -->
+  <div id="cartModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex justify-end hidden">
+    <div class="bg-white dark:bg-gray-800 h-full w-full max-w-md p-6 shadow-2xl border-l border-gray-100 dark:border-gray-700 flex flex-col justify-between relative z-50">
+      <div class="flex-1 overflow-hidden flex flex-col">
+        <div class="flex justify-between items-center mb-6 pb-4 border-b border-gray-100 dark:border-gray-700">
+          <h3 class="font-black text-base text-gray-900 dark:text-white flex items-center gap-2">
+            <i class="fa-solid fa-bag-shopping text-brand-600"></i> Mi Carrito
+          </h3>
+          <button type="button" onclick="window.toggleCartModal(false)" class="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700">
+            <i class="fa-solid fa-xmark text-lg"></i>
+          </button>
+        </div>
+        <div id="cartItemsList" class="space-y-3 overflow-y-auto flex-1 pr-1"></div>
+      </div>
+      <div class="border-t border-gray-100 dark:border-gray-700 pt-4 space-y-2 mt-4">
+        <div class="flex justify-between text-xs">
+          <span class="text-gray-500 dark:text-gray-400 font-bold">Total:</span>
+          <span id="cartTotalText" class="font-black text-gray-900 dark:text-white">$0 COP</span>
+        </div>
+        <div class="flex justify-between text-xs font-bold text-brand-600 dark:text-brand-400">
+          <span>Anticipo Total:</span>
+          <span id="cartAdvanceText">$0 COP</span>
+        </div>
+        <a href="catalogo.html" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-extrabold py-3 rounded-xl text-xs transition-all mt-2 shadow-md flex items-center justify-center gap-2">
+          <span>Ir al Catálogo a Procesar Pago</span>
+          <i class="fa-solid fa-arrow-right"></i>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL AUTENTICACIÓN -->
+  <div id="authModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+    <div class="bg-white dark:bg-gray-800 rounded-3xl max-w-sm w-full p-6 shadow-xl border border-gray-100 dark:border-gray-700 relative">
+      <button type="button" onclick="closeAuthModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+
+      <div class="flex mb-6 border-b border-gray-100 dark:border-gray-700 text-center">
+        <button type="button" id="tabRoleLogin" onclick="switchAuthMode('login')" class="flex-1 pb-3 font-bold text-xs border-b-2 border-brand-600 text-brand-600">
+          Iniciar Sesión
+        </button>
+        <button type="button" id="tabRoleRegister" onclick="switchAuthMode('register')" class="flex-1 pb-3 font-bold text-xs border-b-2 border-transparent text-gray-400">
+          Registrarse
+        </button>
+      </div>
+
+      <!-- FORMULARIO DE LOGIN -->
+      <div id="formLoginContainer">
+        <form onsubmit="handleClientLogin(event)" class="space-y-3">
+          <div>
+            <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Correo Electrónico</label>
+            <input type="email" id="loginEmail" required class="w-full bg-gray-50 dark:bg-gray-700 text-xs p-2.5 rounded-xl border border-gray-200 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-brand-500">
+          </div>
+          <div>
+            <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Contraseña</label>
+            <input type="password" id="loginPassword" required class="w-full bg-gray-50 dark:bg-gray-700 text-xs p-2.5 rounded-xl border border-gray-200 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-brand-500">
+          </div>
+          <button type="submit" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-extrabold py-2.5 rounded-xl text-xs transition-all shadow-md">
+            Ingresar
+          </button>
+        </form>
+      </div>
+
+      <!-- FORMULARIO DE REGISTRO CON CAPTCHA GRÁFICO REAL -->
+      <div id="formRegisterContainer" class="hidden">
+        <form onsubmit="handleClientRegister(event)" class="space-y-3">
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Nombre *</label>
+              <input type="text" id="regClientFirstName" required class="w-full bg-gray-50 dark:bg-gray-700 text-xs p-2.5 rounded-xl border border-gray-200 dark:border-gray-600">
+            </div>
+            <div>
+              <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Apellido</label>
+              <input type="text" id="regClientLastName" class="w-full bg-gray-50 dark:bg-gray-700 text-xs p-2.5 rounded-xl border border-gray-200 dark:border-gray-600">
+            </div>
+          </div>
+          <div>
+            <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Correo Electrónico *</label>
+            <input type="email" id="regClientEmail" required class="w-full bg-gray-50 dark:bg-gray-700 text-xs p-2.5 rounded-xl border border-gray-200 dark:border-gray-600">
+          </div>
+          <div>
+            <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Contraseña *</label>
+            <input type="password" id="regClientPassword" required class="w-full bg-gray-50 dark:bg-gray-700 text-xs p-2.5 rounded-xl border border-gray-200 dark:border-gray-600">
+          </div>
+
+          <!-- VERIFICACIÓN CAPTCHA GRÁFICO (CANVAS) -->
+          <div class="space-y-1.5 pt-1">
+            <label class="block text-[10px] font-bold text-gray-500 uppercase">Verificación de Seguridad *</label>
+            <div class="flex items-center gap-2">
+              <canvas id="captchaCanvas" width="160" height="42" class="rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 cursor-pointer" title="Haga clic para regenerar"></canvas>
+              <button type="button" id="btnRefreshCaptcha" onclick="window.generateVisualCaptcha()" class="p-2.5 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors" title="Regenerar Código">
+                <i class="fa-solid fa-rotate-right"></i>
+              </button>
+            </div>
+            <input type="text" id="captchaInput" required placeholder="Ingresa el código de la imagen" autocomplete="off" class="w-full bg-gray-50 dark:bg-gray-700 text-xs p-2.5 rounded-xl border border-gray-200 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-brand-500">
+          </div>
+
+          <button type="submit" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-extrabold py-2.5 rounded-xl text-xs transition-all shadow-md">
+            Crear Cuenta
+          </button>
+        </form>
+      </div>
+
+      <div class="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700 text-center">
+        <button type="button" onclick="loginWithGoogle()" class="w-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 font-bold py-2.5 rounded-xl text-xs transition-all flex items-center justify-center gap-2">
+          <i class="fa-brands fa-google text-red-500"></i> Continuar con Google
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Scripts Modulares -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="js/config/supabase.js?v=1.1"></script>
-  <script src="js/config/constants.js?v=1.1"></script>
-  <script src="js/services/profile.js?v=1.1"></script>
-  <script src="js/utils/theme.js?v=1.1"></script>
-  <script src="js/utils/ui.js?v=1.1"></script>
-  <script src="js/modules/tracking.js?v=1.1"></script>
+
+  <!-- Configuración y conexión -->
+  <script src="js/config/constants.js?v=1.6"></script>
+  <script src="js/config/supabase.js?v=1.6"></script>
+  <script src="js/utils/supabase-sync.js?v=1.6"></script>
+
+  <!-- Helpers y Utilidades -->
+  <script src="js/utils/theme.js?v=1.6"></script>
+  <script src="js/utils/ui.js?v=1.6"></script>
+  <script src="js/utils/captcha-helper.js?v=1.6"></script>
+
+  <!-- Módulos de la Tienda -->
+  <script src="js/services/profile.js?v=1.6"></script>
+  <script src="js/modules/auth.js?v=1.6"></script>
+  <script src="js/modules/cart.js?v=1.6"></script>
+  <script src="js/modules/favorites.js?v=1.6"></script>
+  <script src="js/modules/tracking.js?v=1.6"></script>
+
+  <!-- Controlador de la Página -->
+  <script src="js/pages/rastreo-page.js?v=1.6"></script>
 
 </body>
 </html>
