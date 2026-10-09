@@ -1,227 +1,343 @@
 /**
  * js/modules/admin/admin-dashboard.js
- * Módulo de Dashboard, Indicadores, Alertas y Gráficos del Panel Administrativo
+ * Indicadores del Dashboard y Gráfica Interactiva Mensual / Diaria
  */
 
-window.chartDiarioInstance = null;
+window.chartFlujoDiario = null;
+window.chartSelectedMonth = null;
+window.dashboardMovimientosCache = [];
 
-/**
- * Verifica deudas vencidas y próximas a vencer para mostrar alerta visual y configurar envío por correo
- */
-window.verificarAvisosDeudas = function() {
-  const hoy = new Date();
-  const diaActual = hoy.getDate();
-  const banner = document.getElementById('banner-deudas-proximas');
-  const texto = document.getElementById('texto-alerta-deudas');
-  const btnCorreo = document.getElementById('btn-enviar-correo-deudas');
+// Helper interno para parsing de montos seguro
+function parseMontoSeguro(val) {
+  if (typeof window.parseMonto === 'function') {
+    return window.parseMonto(val);
+  }
+  if (val === null || val === undefined || val === '') return 0;
+  if (typeof val === 'number') return isNaN(val) ? 0 : val;
+  const num = parseFloat(String(val).replace(/[^0-9.-]/g, ''));
+  return isNaN(num) ? 0 : num;
+}
 
-  if (!banner || !texto) return;
+// Helper interno para formateo de moneda seguro
+function formatMonedaSeguro(val) {
+  if (typeof window.formatMoneda === 'function') {
+    return window.formatMoneda(val);
+  }
+  return Number(val || 0).toLocaleString('es-CO');
+}
 
-  let deudasVencidas = [];
-  let deudasProximas = [];
+window.cargarDashboardAdmin = async function() {
+  try {
+    let pedidos = [];
+    let movimientos = [];
+    let deudas = [];
 
-  const deudas = window.deudasMensualesCache || [];
+    if (typeof SupabaseSync !== 'undefined') {
+      [pedidos, movimientos, deudas] = await Promise.all([
+        SupabaseSync.getPedidos ? SupabaseSync.getPedidos() : [],
+        SupabaseSync.getFlujoCaja ? SupabaseSync.getFlujoCaja() : [],
+        SupabaseSync.getDeudas ? SupabaseSync.getDeudas() : []
+      ]);
+    } else {
+      const client = window.supabaseClient || window.supabase;
+      if (client) {
+        const [resPed, resMov, resDeu] = await Promise.all([
+          client.from('orders').select('*'),
+          client.from('flujo_caja').select('*'),
+          client.from('deudas').select('*')
+        ]);
+        pedidos = resPed.data || [];
+        movimientos = resMov.data || [];
+        deudas = resDeu.data || [];
+      }
+    }
 
-  deudas.forEach(d => {
-    let diaPago = Number(d.dia_pago);
-    if (diaActual > diaPago) {
-      deudasVencidas.push(d);
-    } else if ((diaPago - diaActual) <= 5) {
-      deudasProximas.push(d);
+    window.dashboardMovimientosCache = movimientos || [];
+
+    window.actualizarMetricasDashboard(pedidos, movimientos);
+    window.verificarAlertasDeudas(deudas);
+    window.renderizarGraficoFlujoDiario(window.dashboardMovimientosCache);
+    window.renderizarTablaAlertasDashboard(pedidos);
+  } catch (err) {
+    console.warn("Carga de métricas finalizada con advertencias:", err);
+  }
+};
+
+window.actualizarMetricasDashboard = function(pedidos = [], movimientos = []) {
+  const ahora = new Date();
+  const mesActual = ahora.getMonth();
+  const anioActual = ahora.getFullYear();
+
+  // 1. Ventas del Mes (Período actual)
+  const ventasMes = (pedidos || []).reduce((acc, p) => {
+    const fStr = p.created_at || p.fecha_entrega || p.fecha_agendamiento;
+    const f = fStr ? new Date(fStr) : new Date();
+    const est = (p.estado || p.status || '').toLowerCase();
+
+    if (f.getMonth() === mesActual && f.getFullYear() === anioActual && est !== 'cancelado' && est !== 'cancelled') {
+      return acc + parseMontoSeguro(p.total !== undefined ? p.total : (p.monto || p.valor || 0));
+    }
+    return acc;
+  }, 0);
+
+  // 2. Cuentas por cobrar
+  const porCobrar = (pedidos || []).reduce((acc, p) => {
+    const est = (p.estado || p.status || '').toLowerCase();
+    if (est !== 'cancelado' && est !== 'cancelled') {
+      const tot = parseMontoSeguro(p.total !== undefined ? p.total : (p.monto || p.valor || 0));
+      const pag = parseMontoSeguro(p.pagado !== undefined ? p.pagado : (p.anticipo !== undefined ? p.anticipo : p.monto_pagado || 0));
+      const saldo = p.saldo !== undefined ? parseMontoSeguro(p.saldo) : Math.max(0, tot - pag);
+      return acc + saldo;
+    }
+    return acc;
+  }, 0);
+
+  // 3. Saldo Efectivo y Nequi / Bancos desde 'flujo_caja'
+  let saldoEfectivo = 0;
+  let saldoBancos = 0;
+
+  (movimientos || []).forEach(m => {
+    const val = parseMontoSeguro(m.valor !== undefined ? m.valor : m.monto || 0);
+    const tax = parseMontoSeguro(m.impuesto_4x1000 || 0);
+    const esIngreso = (m.tipo || '').toUpperCase() === 'INGRESO';
+    const metodo = (m.metodo_pago || m.metodo || '').toLowerCase().trim();
+
+    if (metodo === 'efectivo') {
+      saldoEfectivo += esIngreso ? val : -val;
+    } else if (metodo !== '') {
+      if (esIngreso) {
+        saldoBancos += val;
+      } else {
+        saldoBancos -= (val + tax);
+      }
     }
   });
 
-  if (deudasVencidas.length > 0 || deudasProximas.length > 0) {
-    let listaStr = "";
-    let correoCuerpo = "RESUMEN DE DEUDAS VENCIDAS Y PRÓXIMAS A VENCERSE:\n\n";
+  const elVentas = document.getElementById('stat-ventas-mes');
+  const elCobrar = document.getElementById('stat-por-cobrar');
+  const elEfectivo = document.getElementById('stat-saldo-efectivo');
+  const elBancos = document.getElementById('stat-saldo-bancos');
 
-    if (deudasVencidas.length > 0) {
-      listaStr += `<p class="text-red-700 font-bold mt-1">🚨 VENCIDAS:</p>`;
-      correoCuerpo += "--- 🚨 VENCIDAS ---\n";
-      deudasVencidas.forEach(d => {
-        let txt = `• ${d.concepto} ($${formatMoneda(parseMonto(d.monto))}) - Día ${d.dia_pago}`;
-        listaStr += `<span class="text-red-600 font-semibold block pl-2">${txt}</span>`;
-        correoCuerpo += `${txt}\n`;
-      });
-    }
+  if (elVentas) elVentas.textContent = `$${formatMonedaSeguro(ventasMes)}`;
+  if (elCobrar) elCobrar.textContent = `$${formatMonedaSeguro(porCobrar)}`;
+  if (elEfectivo) elEfectivo.textContent = `$${formatMonedaSeguro(saldoEfectivo)}`;
+  if (elBancos) elBancos.textContent = `$${formatMonedaSeguro(saldoBancos)}`;
+};
 
-    if (deudasProximas.length > 0) {
-      listaStr += `<p class="text-amber-700 font-bold mt-2">⚠️ PRÓXIMAS (en 5 días o menos):</p>`;
-      correoCuerpo += "\n--- ⚠️ PRÓXIMAS A VENCER ---\n";
-      deudasProximas.forEach(d => {
-        let txt = `• ${d.concepto} ($${formatMoneda(parseMonto(d.monto))}) - Día ${d.dia_pago}`;
-        listaStr += `<span class="text-amber-700 font-semibold block pl-2">${txt}</span>`;
-        correoCuerpo += `${txt}\n`;
-      });
-    }
+window.verificarAlertasDeudas = function(deudas = []) {
+  const banner = document.getElementById('banner-deudas-proximas');
+  const contenedorTexto = document.getElementById('texto-alerta-deudas');
+  if (!banner || !contenedorTexto) return;
 
-    texto.innerHTML = listaStr;
+  if (!deudas || deudas.length === 0) {
+    banner.classList.add('hidden');
+    return;
+  }
+
+  const diaActual = new Date().getDate();
+  const deudasCercanas = deudas.filter(d => {
+    const diaPago = parseInt(d.dia_pago, 10);
+    return Math.abs(diaPago - diaActual) <= 3 || diaActual > diaPago;
+  });
+
+  if (deudasCercanas.length > 0) {
     banner.classList.remove('hidden');
-
-    let email = "DAVIDDEINER956@GMAIL.COM";
-    let subject = encodeURIComponent("🚨 Resumen de Deudas Vencidas y Próximas - Cupissa");
-    let body = encodeURIComponent(correoCuerpo);
-    if (btnCorreo) btnCorreo.href = `mailto:${email}?subject=${subject}&body=${body}`;
-
-    if (deudasVencidas.length > 0) {
-      banner.classList.remove('bg-amber-50', 'border-amber-500');
-      banner.classList.add('bg-red-50', 'border-red-500');
-    } else {
-      banner.classList.remove('bg-red-50', 'border-red-500');
-      banner.classList.add('bg-amber-50', 'border-amber-500');
-    }
+    contenedorTexto.innerHTML = deudasCercanas.map(d => `
+      <div class="font-bold text-xs">
+        📌 <strong>${d.concepto}</strong>: $${formatMonedaSeguro(d.monto)} - Pago reprogramado los días ${d.dia_pago} de cada mes.
+      </div>
+    `).join('');
   } else {
     banner.classList.add('hidden');
   }
 };
 
 /**
- * Renderiza el gráfico de barras de Ingresos vs Egresos diarios
+ * Gráfica Interactiva: Muestra resumen mensual desde Septiembre 2026.
+ * Al hacer clic en un mes, expande a la vista de días de dicho mes.
  */
-window.renderizarGraficoDiario = function() {
-  const ctx = document.getElementById('chart-flujo-diario');
-  if (!ctx || typeof Chart === 'undefined') return;
+window.renderizarGraficoFlujoDiario = function(movimientos = []) {
+  const canvas = document.getElementById('chart-flujo-diario');
+  if (!canvas || typeof Chart === 'undefined') return;
 
-  const agrupado = {};
-  const flujoCaja = window.flujoCajaCache || [];
-
-  flujoCaja.forEach(mov => {
-    let fecha = mov.fecha || 'Sin fecha';
-    if (!agrupado[fecha]) agrupado[fecha] = { ingresos: 0, egresos: 0 };
-    if (mov.tipo === 'INGRESO') agrupado[fecha].ingresos += parseMonto(mov.valor || 0);
-    if (mov.tipo === 'EGRESO') agrupado[fecha].egresos += parseMonto(mov.valor || 0);
+  const movsValidos = (movimientos || []).filter(m => {
+    const fStr = m.fecha ? m.fecha.split('T')[0] : '';
+    return fStr >= '2026-09-01';
   });
 
-  const labels = Object.keys(agrupado).sort();
-  const dataIngresos = labels.map(l => agrupado[l].ingresos);
-  const dataEgresos = labels.map(l => agrupado[l].egresos);
+  const btnReset = document.getElementById('btn-reset-chart-view');
+  const lblTitle = document.getElementById('lbl-chart-title');
 
-  if (window.chartDiarioInstance) window.chartDiarioInstance.destroy();
+  let labels = [];
+  let dataIngresos = [];
+  let dataEgresos = [];
+  let keysIndex = [];
 
-  window.chartDiarioInstance = new Chart(ctx, {
+  if (window.chartSelectedMonth === null) {
+    // VISTA MENSUAL
+    if (lblTitle) lblTitle.textContent = "📊 Ingresos vs Egresos (Movimiento Mensual desde Sept. 2026)";
+    if (btnReset) btnReset.classList.add('hidden');
+
+    const mapaMeses = {};
+    movsValidos.forEach(m => {
+      const fStr = m.fecha ? m.fecha.split('T')[0] : '2026-09-01';
+      const keyMes = fStr.substring(0, 7);
+
+      if (!mapaMeses[keyMes]) {
+        mapaMeses[keyMes] = { ingresos: 0, egresos: 0 };
+      }
+
+      const val = parseMontoSeguro(m.valor !== undefined ? m.valor : m.monto || 0);
+      if ((m.tipo || '').toUpperCase() === 'INGRESO') {
+        mapaMeses[keyMes].ingresos += val;
+      } else {
+        mapaMeses[keyMes].egresos += val;
+      }
+    });
+
+    keysIndex = Object.keys(mapaMeses).sort();
+    labels = keysIndex.map(k => {
+      const [y, m] = k.split('-');
+      const dateObj = new Date(parseInt(y, 10), parseInt(m, 10) - 1, 1);
+      return dateObj.toLocaleDateString('es-CO', { month: 'long', year: 'numeric' }).toUpperCase();
+    });
+
+    dataIngresos = keysIndex.map(k => mapaMeses[k].ingresos);
+    dataEgresos = keysIndex.map(k => mapaMeses[k].egresos);
+  } else {
+    // VISTA DIARIA
+    const [ySel, mSel] = window.chartSelectedMonth.split('-');
+    const dateSel = new Date(parseInt(ySel, 10), parseInt(mSel, 10) - 1, 1);
+    const nomMes = dateSel.toLocaleDateString('es-CO', { month: 'long', year: 'numeric' }).toUpperCase();
+
+    if (lblTitle) lblTitle.textContent = `📊 Movimientos Diarios - ${nomMes}`;
+    if (btnReset) btnReset.classList.remove('hidden');
+
+    const mapaDias = {};
+    movsValidos.forEach(m => {
+      const fStr = m.fecha ? m.fecha.split('T')[0] : '';
+      if (fStr.startsWith(window.chartSelectedMonth)) {
+        if (!mapaDias[fStr]) {
+          mapaDias[fStr] = { ingresos: 0, egresos: 0 };
+        }
+        const val = parseMontoSeguro(m.valor !== undefined ? m.valor : m.monto || 0);
+        if ((m.tipo || '').toUpperCase() === 'INGRESO') {
+          mapaDias[fStr].ingresos += val;
+        } else {
+          mapaDias[fStr].egresos += val;
+        }
+      }
+    });
+
+    keysIndex = Object.keys(mapaDias).sort();
+    labels = keysIndex;
+    dataIngresos = keysIndex.map(k => mapaDias[k].ingresos);
+    dataEgresos = keysIndex.map(k => mapaDias[k].egresos);
+  }
+
+  if (window.chartFlujoDiario) {
+    window.chartFlujoDiario.destroy();
+  }
+
+  window.chartFlujoDiario = new Chart(canvas, {
     type: 'bar',
     data: {
-      labels: labels,
+      labels: labels.length > 0 ? labels : ['Sin Datos'],
       datasets: [
-        { label: 'Ingresos Diarios ($)', data: dataIngresos, backgroundColor: '#059669', borderRadius: 4 },
-        { label: 'Egresos Diarios ($)', data: dataEgresos, backgroundColor: '#dc2626', borderRadius: 4 }
+        {
+          label: 'Ingresos ($)',
+          data: dataIngresos.length > 0 ? dataIngresos : [0],
+          backgroundColor: '#059669',
+          borderRadius: 6
+        },
+        {
+          label: 'Egresos ($)',
+          data: dataEgresos.length > 0 ? dataEgresos : [0],
+          backgroundColor: '#dc2626',
+          borderRadius: 6
+        }
       ]
     },
-    options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'top' },
+        tooltip: {
+          callbacks: {
+            label: function(ctx) {
+              return `${ctx.dataset.label}: $${formatMonedaSeguro(ctx.raw)}`;
+            }
+          }
+        }
+      },
+      onClick: (evt, elements) => {
+        if (elements.length > 0 && window.chartSelectedMonth === null) {
+          const index = elements[0].index;
+          if (keysIndex[index]) {
+            window.chartSelectedMonth = keysIndex[index];
+            window.renderizarGraficoFlujoDiario(window.dashboardMovimientosCache);
+          }
+        }
+      },
+      scales: {
+        y: { beginAtZero: true }
+      }
+    }
   });
 };
 
-/**
- * Buscador Global Integrado 360° (Clientes y Productos)
- */
-window.ejecutarBuscadorGlobal360 = function() {
-  const queryInput = document.getElementById('input-buscador-global-360');
-  const box = document.getElementById('resultado-buscador-global-box');
-  if (!queryInput || !box) return;
+window.resetearVistaGrafica = function() {
+  window.chartSelectedMonth = null;
+  window.renderizarGraficoFlujoDiario(window.dashboardMovimientosCache);
+};
 
-  const query = queryInput.value.toLowerCase().trim();
-  if (!query) { box.classList.add('hidden'); return; }
+window.renderizarTablaAlertasDashboard = function(pedidos = []) {
+  const tbody = document.getElementById('tabla-alertas-dashboard');
+  if (!tbody) return;
 
-  let html = '';
-  const clientes = window.clientesCache || [];
-  const productos = window.productosCache || [];
-  const pedidos = window.pedidosCache || [];
+  const pendientes = (pedidos || []).filter(p => {
+    const est = p.estado || p.status || '';
+    return est === 'Pendiente' || est === 'Fabricando' || est === 'pending_advance_payment';
+  });
 
-  let clientesEncontrados = clientes.filter(c => (c.nombre || '').toLowerCase().includes(query) || (c.telefono || '').toLowerCase().includes(query));
-  let productosEncontrados = productos.filter(p => (p.nombre || '').toLowerCase().includes(query) || (p.referencia || '').toLowerCase().includes(query));
-
-  if (clientesEncontrados.length === 0 && productosEncontrados.length === 0) {
-    box.innerHTML = `<p class="text-slate-400 text-center py-2">No se encontraron coincidencias para "${query}".</p>`;
-    box.classList.remove('hidden');
+  if (pendientes.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="6" class="p-4 text-center text-slate-400 font-bold">
+          No hay pedidos pendientes urgentes en el sistema.
+        </td>
+      </tr>
+    `;
     return;
   }
 
-  if (clientesEncontrados.length > 0) {
-    html += `<h4 class="font-extrabold text-indigo-900 border-b pb-1 mb-2 uppercase text-[11px]">👤 Clientes Encontrados</h4>`;
-    clientesEncontrados.forEach(c => {
-      let pedsCli = pedidos.filter(p => p.cliente_id === c.id);
-      let totalPedidos = pedsCli.length;
-      let totalComprado = pedsCli.reduce((acc, p) => acc + parseMonto(p.total || 0), 0);
-      let totalDeuda = pedsCli.reduce((acc, p) => acc + (parseMonto(p.total || 0) - parseMonto(p.pagado || 0)), 0);
+  tbody.innerHTML = pendientes.map(p => {
+    const tot = parseMontoSeguro(p.total !== undefined ? p.total : (p.monto || p.valor || 0));
+    const pag = parseMontoSeguro(p.pagado !== undefined ? p.pagado : (p.anticipo !== undefined ? p.anticipo : p.monto_pagado || 0));
+    const saldo = p.saldo !== undefined ? parseMontoSeguro(p.saldo) : Math.max(0, tot - pag);
+    const estadoNombre = p.estado || p.status || 'Pendiente';
 
-      html += `
-        <div class="p-2.5 bg-indigo-50/50 rounded-xl mb-2 border border-indigo-100">
-          <strong>${c.nombre}</strong> (📞 ${c.telefono || 'Sin Tel'})<br>
-          <span class="text-slate-600 font-semibold">Pedidos:</span> ${totalPedidos} | 
-          <span class="text-indigo-700 font-bold">Ha comprado: $${formatMoneda(totalComprado)}</span> | 
-          <span class="text-red-600 font-black">Debe: $${formatMoneda(totalDeuda)}</span>
-        </div>
-      `;
-    });
-  }
-
-  if (productosEncontrados.length > 0) {
-    html += `<h4 class="font-extrabold text-indigo-900 border-b pb-1 mb-2 mt-3 uppercase text-[11px]">📦 Productos en Inventario</h4>`;
-    productosEncontrados.forEach(p => {
-      let stockActual = p.sin_stock ? 'Bajo Pedido' : (p.stock || 0);
-      html += `
-        <div class="p-2.5 bg-slate-50 rounded-xl mb-2 border border-slate-200">
-          <strong>[${p.referencia || 'REF'}] ${p.nombre}</strong><br>
-          <span class="text-emerald-700">Stock Actual:</span> <strong>${stockActual}</strong> | Detal: $${formatMoneda(parseMonto(p.precio_detal || 0))}
-        </div>
-      `;
-    });
-  }
-
-  box.innerHTML = html;
-  box.classList.remove('hidden');
-};
-
-/**
- * Alterna vistas en la pestaña de Reportes PDF Gerenciales
- */
-window.cambiarTipoReportePDF = function(tipo) {
-  ['consolidado', 'detallado', 'deudas'].forEach(t => {
-    const el = document.getElementById(`vista-pdf-${t}`);
-    const btn = document.getElementById(`btn-rep-${t === 'consolidado' ? 'cons' : (t === 'detallado' ? 'det' : 'deudas')}`);
-    if (el) el.classList.add('hidden');
-    if (btn) btn.className = 'px-3 py-2 bg-slate-200 text-slate-700 rounded-xl text-xs font-bold';
-  });
-
-  const vistaActiva = document.getElementById(`vista-pdf-${tipo}`);
-  const btnActivo = document.getElementById(`btn-rep-${tipo === 'consolidado' ? 'cons' : (tipo === 'detallado' ? 'det' : 'deudas')}`);
-  if (vistaActiva) vistaActiva.classList.remove('hidden');
-  if (btnActivo) btnActivo.className = 'px-3 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold shadow';
-
-  const fechaEl = document.getElementById('fecha-reporte-pdf');
-  if (fechaEl) fechaEl.innerText = `Fecha de emisión: ${new Date().toLocaleDateString('es-CO')}`;
-
-  const prods = window.productosCache || [];
-  const peds = window.pedidosCache || [];
-  const clis = window.clientesCache || [];
-  const deudas = window.deudasMensualesCache || [];
-
-  if (tipo === 'consolidado') {
-    let tbody = document.getElementById('tabla-reporte-inv');
-    if (tbody) {
-      tbody.innerHTML = '';
-      prods.forEach(p => {
-        tbody.innerHTML += `<tr><td>${p.referencia || ''}</td><td>${p.nombre}</td><td>${p.origen_compra || ''}</td><td>${p.stock || 0}</td><td>$${formatMoneda(parseMonto(p.precio_detal || 0))}</td></tr>`;
-      });
-    }
-  } else if (tipo === 'detallado') {
-    let tbody = document.getElementById('tabla-reporte-pedidos-detallado');
-    if (tbody) {
-      tbody.innerHTML = '';
-      peds.forEach(p => {
-        let cli = clis.find(c => c.id === p.cliente_id) || {};
-        let totalP = parseMonto(p.total);
-        let pagadoP = parseMonto(p.pagado);
-        tbody.innerHTML += `<tr><td>${p.id.slice(0, 6)}<br>${p.fecha_entrega || ''}</td><td>${cli.nombre || ''}</td><td>${p.tipo_operacion}</td><td>Total: $${formatMoneda(totalP)}</td><td>Saldo: $${formatMoneda(totalP - pagadoP)}</td></tr>`;
-      });
-    }
-  } else if (tipo === 'deudas') {
-    let tbody = document.getElementById('tabla-reporte-deudas-pdf');
-    if (tbody) {
-      tbody.innerHTML = '';
-      deudas.forEach(d => {
-        tbody.innerHTML += `<tr><td>${d.concepto}</td><td>$${formatMoneda(parseMonto(d.monto))}</td><td>Día ${d.dia_pago}</td></tr>`;
-      });
-    }
-  }
+    return `
+      <tr class="border-b hover:bg-slate-50 transition-colors text-xs">
+        <td class="p-3 font-extrabold text-indigo-900">${p.referencia_pedido || 'REF-' + (p.id ? String(p.id).slice(0, 4) : '00')}</td>
+        <td class="p-3">
+          <div class="font-bold text-slate-800">${p.cliente_nombre_completo || p.customer_name || p.cliente_nombre || 'Cliente'}</div>
+          <div class="text-[10px] text-slate-400">${p.cliente_telefono_completo || p.customer_phone || p.cliente_telefono || ''}</div>
+        </td>
+        <td class="p-3 font-semibold text-slate-600">${p.fecha_entrega || p.delivery_date || 'Por definir'}</td>
+        <td class="p-3 font-black text-amber-600">$${formatMonedaSeguro(saldo)}</td>
+        <td class="p-3">
+          <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-100 text-amber-800">
+            ⚠️ ${estadoNombre}
+          </span>
+        </td>
+        <td class="p-3 text-right">
+          <button onclick="switchTab('pedidos')" class="px-3 py-1 bg-indigo-600 text-white rounded-xl font-bold text-xs shadow hover:bg-indigo-700 transition">
+            Ver CRM
+          </button>
+        </td>
+      </tr>
+    `;
+  }).join('');
 };
