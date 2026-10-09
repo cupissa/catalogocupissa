@@ -1,13 +1,59 @@
+/* ==========================================================================
+   TEMA MODO OSCURO / MODO CLARO & AJUSTES GLOBALES
+   ========================================================================== */
+
+/* Transición global para evitar cambios bruscos al alternar el modo */
+body, 
+header, 
+footer, 
+main, 
+.bg-white, 
+.bg-gray-50, 
+.bg-gray-800, 
+.bg-gray-900 {
+  transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out, border-color 0.2s ease-in-out;
+}
+
+/* Sobrescritura del Badge en Modo Oscuro */
 .dark .hero-badge-tag {
   background-color: rgba(236, 72, 153, 0.25);
   color: #fbcfe8;
   border-color: rgba(244, 114, 182, 0.5);
 }
 
+/* Ícono del selector de fechas responsive */
 input[type="date"]::-webkit-calendar-picker-indicator {
   filter: invert(0.5);
+  cursor: pointer;
 }
 
 .dark input[type="date"]::-webkit-calendar-picker-indicator {
   filter: invert(1);
+}
+
+/* Ajustes del Captcha en Modo Oscuro */
+.dark #captchaCanvas,
+.dark .captcha-canvas {
+  background-color: #374151;
+  border-color: #4b5563;
+}
+
+/* Ajustes de Notificaciones Toast en Modo Oscuro */
+.dark .toast-notification {
+  background-color: #1f2937;
+  color: #f9fafb;
+}
+
+/* Ajustes de barras de desplazamiento en tablas para Modo Oscuro */
+.dark ::-webkit-scrollbar-track {
+  background: #111827;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #374151;
+  border-radius: 0.5rem;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #4b5563;
 }
