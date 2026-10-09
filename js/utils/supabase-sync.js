@@ -1,147 +1,177 @@
 /**
  * js/utils/supabase-sync.js
- * Utilidades de Sincronización en Tiempo Real entre la Tienda Cliente y Supabase
+ * Capa de Sincronización Directa con Tablas Reales de Supabase
  */
 
 window.SupabaseSync = {
   /**
-   * Obtiene todos los productos visibles para el catálogo cliente (no ocultos)
+   * Obtiene la lista general de clientes del CRM (Tabla 'cliente')
+   */
+  async getClientes() {
+    try {
+      if (!window.supabaseClient) return [];
+      const { data, error } = await window.supabaseClient
+        .from('clientes')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        // Fallback si la columna created_at varía
+        const { data: altData } = await window.supabaseClient.from('clientes').select('*');
+        return altData || [];
+      }
+      return data || [];
+    } catch (err) {
+      console.error('Error al consultar tabla cliente en Supabase:', err);
+      return [];
+    }
+  },
+
+  /**
+   * Obtiene los usuarios registrados en la Web (Tabla 'profile')
+   */
+  async getProfilesWeb() {
+    try {
+      if (!window.supabaseClient) return [];
+      const { data, error } = await window.supabaseClient
+        .from('profile')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    } catch (err) {
+      console.error('Error al consultar tabla profile en Supabase:', err);
+      return [];
+    }
+  },
+
+  /**
+   * Obtiene los pedidos (Tabla 'pedidos')
+   */
+  async getPedidos() {
+    try {
+      if (!window.supabaseClient) return [];
+      const { data, error } = await window.supabaseClient
+        .from('pedidos')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    } catch (err) {
+      console.error('Error al consultar tabla pedidos en Supabase:', err);
+      return [];
+    }
+  },
+
+  /**
+   * Obtiene los movimientos de caja (Tabla 'flujo_caja')
+   */
+  async getFlujoCaja() {
+    try {
+      if (!window.supabaseClient) return [];
+      const { data, error } = await window.supabaseClient
+        .from('flujo_caja')
+        .select('*')
+        .order('fecha', { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    } catch (err) {
+      console.error('Error al consultar tabla flujo_caja en Supabase:', err);
+      return [];
+    }
+  },
+
+  /**
+   * Registra un movimiento en 'flujo_caja'
+   */
+  async insertFlujoCaja(movimiento) {
+    try {
+      if (!window.supabaseClient) throw new Error('Cliente Supabase no disponible');
+      
+      const valorNum = window.parseMonto(movimiento.valor !== undefined ? movimiento.valor : movimiento.monto || 0);
+      const payload = {
+        fecha: movimiento.fecha || new Date().toISOString().split('T')[0],
+        tipo: movimiento.tipo || 'INGRESO',
+        concepto: movimiento.concepto,
+        tercero: movimiento.tercero || '',
+        metodo_pago: movimiento.metodo_pago || 'Efectivo',
+        valor: valorNum,
+        monto: valorNum,
+        descripcion: movimiento.descripcion || '',
+        impuesto_4x1000: movimiento.impuesto_4x1000 || 0
+      };
+
+      const { data, error } = await window.supabaseClient
+        .from('flujo_caja')
+        .insert([payload])
+        .select();
+
+      if (error) throw error;
+      return { success: true, data };
+    } catch (err) {
+      console.error('Error al insertar en flujo_caja:', err);
+      return { success: false, error: err.message };
+    }
+  },
+
+  /**
+   * Actualiza el 4x1000 de un registro en 'flujo_caja'
+   */
+  async update4x1000(id, impuestoVal) {
+    try {
+      if (!window.supabaseClient) throw new Error('Cliente Supabase no disponible');
+      const { error } = await window.supabaseClient
+        .from('flujo_caja')
+        .update({ impuesto_4x1000: window.parseMonto(impuestoVal) })
+        .eq('id', id);
+
+      if (error) throw error;
+      return { success: true };
+    } catch (err) {
+      console.error('Error al actualizar 4x1000 en Supabase:', err);
+      return { success: false, error: err.message };
+    }
+  },
+
+  /**
+   * Obtiene los productos (Tabla 'productos')
    */
   async getPublicProducts() {
     try {
-      if (typeof supabaseClient === 'undefined' || !supabaseClient) {
-        console.warn('Supabase Client no disponible.');
-        return [];
-      }
-
-      const { data, error } = await supabaseClient
+      if (!window.supabaseClient) return [];
+      const { data, error } = await window.supabaseClient
         .from('productos')
         .select('*')
         .or('oculto_web.eq.false,oculto_web.is.null')
         .order('nombre', { ascending: true });
 
-      if (error) {
-        console.error('Error al sincronizar productos con Supabase:', error);
-        return [];
-      }
-
+      if (error) throw error;
       return data || [];
     } catch (err) {
-      console.error('Excepción en getPublicProducts:', err);
+      console.error('Error al consultar productos:', err);
       return [];
     }
   },
 
   /**
-   * Obtiene o actualiza el perfil completo de un cliente autenticado desde la tabla 'profile'
+   * Obtiene las deudas programadas (Tabla 'deudas_mensuales')
    */
-  async syncUserProfile(userId) {
-    if (!userId || typeof supabaseClient === 'undefined') return null;
-
+  async getDeudas() {
     try {
-      const { data, error } = await supabaseClient
-        .from('profile')
+      if (!window.supabaseClient) return [];
+      const { data, error } = await window.supabaseClient
+        .from('deudas_mensuales')
         .select('*')
-        .eq('id', userId)
-        .maybeSingle();
+        .order('dia_pago', { ascending: true });
 
-      if (error) {
-        console.error('Error obteniendo perfil desde Supabase:', error);
-        return null;
-      }
-
-      return data;
-    } catch (err) {
-      console.error('Excepción en syncUserProfile:', err);
-      return null;
-    }
-  },
-
-  /**
-   * Obtiene el historial de pedidos de un cliente específico
-   */
-  async getClientOrders(userId) {
-    if (!userId || typeof supabaseClient === 'undefined') return [];
-
-    try {
-      const { data, error } = await supabaseClient
-        .from('pedidos')
-        .select('*')
-        .or(`cliente_id.eq.${userId},user_id.eq.${userId}`)
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('Error cargando historial de pedidos:', error);
-        return [];
-      }
-
+      if (error) throw error;
       return data || [];
     } catch (err) {
-      console.error('Excepción en getClientOrders:', err);
+      console.error('Error al consultar deudas_mensuales:', err);
       return [];
-    }
-  },
-
-  /**
-   * Registra un nuevo pedido en las tablas 'pedidos' y 'detalle_pedido' de Supabase
-   */
-  async createOrderFromStore(orderData, items) {
-    if (typeof supabaseClient === 'undefined') {
-      throw new Error('Supabase no está configurado.');
-    }
-
-    try {
-      const referenciaGen = 'CUP-' + Math.floor(100000 + Math.random() * 900000);
-
-      const payloadPedido = {
-        referencia_pedido: referenciaGen,
-        cliente_id: orderData.cliente_id || null,
-        user_id: orderData.user_id || null,
-        tipo_operacion: orderData.tipo_operacion || 'Venta Contado',
-        total: parseMonto(orderData.total),
-        pagado: parseMonto(orderData.pagado || 0),
-        domicilio: parseMonto(orderData.domicilio || 0),
-        estado: 'Pendiente',
-        estado_pago: parseMonto(orderData.pagado || 0) >= parseMonto(orderData.total) ? 'Pagado' : 'Pendiente',
-        fecha_agendamiento: orderData.fecha_agendamiento || new Date().toISOString().split('T')[0],
-        fecha_entrega: orderData.fecha_entrega || new Date().toISOString().split('T')[0],
-        metodo_pago: orderData.metodo_pago || 'Efectivo',
-        created_at: new Date().toISOString()
-      };
-
-      const { data: pedidoIns, error: pErr } = await supabaseClient
-        .from('pedidos')
-        .insert([payloadPedido])
-        .select();
-
-      if (pErr || !pedidoIns || pedidoIns.length === 0) {
-        throw pErr || new Error('No se pudo insertar el pedido.');
-      }
-
-      const pedidoId = pedidoIns[0].id;
-
-      // Insertar detalle del pedido
-      if (items && items.length > 0) {
-        const detallesPayload = items.map(item => ({
-          pedido_id: pedidoId,
-          producto_id: item.producto_id || null,
-          nombre_producto: item.nombre || item.nombre_producto,
-          cantidad: item.cantidad || 1,
-          precio_unitario: parseMonto(item.precio || item.precio_unitario),
-          personalizacion: item.personalizacion || null
-        }));
-
-        const { error: dErr } = await supabaseClient
-          .from('detalle_pedido')
-          .insert(detallesPayload);
-
-        if (dErr) console.error('Error guardando detalle del pedido:', dErr);
-      }
-
-      return { success: true, pedido: pedidoIns[0] };
-    } catch (err) {
-      console.error('Error al procesar pedido en Supabase:', err);
-      return { success: false, error: err };
     }
   }
 };
