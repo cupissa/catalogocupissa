@@ -1,6 +1,6 @@
 /**
  * js/pages/admin-page.js
- * Controlador Principal del Panel Administrativo (admin.html), Pestañas, Flujo de Caja y Deudas
+ * Controlador Principal del Panel Administrativo (admin.html), Pestañas, Flujo de Caja, Deudas y Ajustes Web
  */
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -8,6 +8,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   window.initFormularioCajaManual();
   window.initFormularioDeudasMensuales();
+  window.cargarConfiguracionTemporada();
 });
 
 window.switchTab = function(tabName) {
@@ -43,6 +44,7 @@ window.switchTab = function(tabName) {
   } else if (tabName === 'gestionar-web') {
     if (typeof cargarClientesWeb === 'function') cargarClientesWeb();
     if (typeof cargarProductosWeb === 'function') cargarProductosWeb();
+    window.cargarConfiguracionTemporada();
   }
 };
 
@@ -68,6 +70,67 @@ window.switchSubTabWeb = function(subtab) {
     if (btnClientes) btnClientes.className = 'px-4 py-2 bg-slate-200 text-slate-700 font-extrabold rounded-xl text-xs transition';
 
     if (typeof cargarProductosWeb === 'function') cargarProductosWeb();
+    window.cargarConfiguracionTemporada();
+  }
+};
+
+/**
+ * Carga el valor actual de la Temporada desde el servicio de configuración
+ */
+window.cargarConfiguracionTemporada = async function() {
+  const input = document.getElementById('input-temporada-actual');
+  if (!input) return;
+
+  try {
+    if (typeof window.getSetting === 'function') {
+      const temporada = await window.getSetting('current_season');
+      if (temporada !== null && temporada !== undefined) {
+        input.value = temporada;
+      }
+    }
+  } catch (err) {
+    console.warn("Error al cargar configuración de temporada:", err);
+  }
+};
+
+/**
+ * Guarda la Temporada Actual en Supabase / LocalStorage
+ */
+window.guardarConfiguracionTemporada = async function() {
+  const input = document.getElementById('input-temporada-actual');
+  const btn = document.getElementById('btn-guardar-temporada');
+  if (!input) return;
+
+  const temporadaVal = input.value.trim().toUpperCase();
+
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-1"></i> Guardando...`;
+  }
+
+  try {
+    if (typeof window.saveSetting === 'function') {
+      const result = await window.saveSetting('current_season', temporadaVal);
+      if (result.success) {
+        if (typeof showToast === 'function') {
+          showToast(`Temporada actual establecida en: ${temporadaVal || 'Ninguna'}`);
+        }
+      } else {
+        if (typeof showToast === 'function') {
+          showToast("No se pudo guardar la temporada en Supabase.", "error");
+        }
+      }
+    }
+  } catch (err) {
+    console.error("Error al guardar temporada:", err);
+    if (typeof showToast === 'function') {
+      showToast("Error inesperado al guardar la temporada.", "error");
+    }
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> Guardar`;
+    }
   }
 };
 
