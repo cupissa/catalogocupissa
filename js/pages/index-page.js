@@ -1,50 +1,56 @@
-function renderHeroSlide(index) {
-  const slideImg = document.getElementById('heroSlideImg');
-  const slideCaption = document.getElementById('heroSlideCaption');
-
-  if (!slideImg || !slideCaption || heroSlides.length === 0) return;
-
-  if (index >= heroSlides.length) currentHeroSlide = 0;
-  else if (index < 0) currentHeroSlide = heroSlides.length - 1;
-  else currentHeroSlide = index;
-
-  slideImg.style.opacity = '0.2';
-  setTimeout(() => {
-    slideImg.src = heroSlides[currentHeroSlide].image;
-    slideCaption.textContent = heroSlides[currentHeroSlide].caption;
-    slideImg.style.opacity = '1';
-  }, 200);
-}
-
-function nextHeroSlide() {
-  renderHeroSlide(currentHeroSlide + 1);
-}
-
-function prevHeroSlide() {
-  renderHeroSlide(currentHeroSlide - 1);
-}
-
-function initSmartSearch() {
-  const searchInput = document.getElementById('searchInput');
-  if (!searchInput) return;
-
-  searchInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter' && searchInput.value.trim() !== '') {
-      window.location.href = `catalogo.html?search=${encodeURIComponent(searchInput.value.trim())}`;
-    }
-  });
-}
+/**
+ * js/pages/index-page.js
+ * Controlador Principal de la Página de Inicio (Pública) de la Tienda CUPISSA
+ */
 
 document.addEventListener('DOMContentLoaded', async () => {
-  initTheme();
-  loadCartFromStorage();
-  loadFavoritesFromStorage();
-  generateMathCaptcha();
-  checkUserSession();
-  await loadSeasonalProducts('seasonProductGrid');
-  initSmartSearch();
+  // 1. Cargar productos directamente desde Supabase sin mockup ni datos ficticios
+  const productos = await StoreProducts.loadProducts();
 
-  setInterval(() => {
-    nextHeroSlide();
-  }, 6000);
+  // 2. Renderizar productos destacados
+  const destacados = productos.slice(0, 8);
+  StoreProducts.renderGrid('contenedor-productos-destacados', destacados);
+
+  // 3. Renderizar selector dinámico de mundos basado en los productos creados
+  const mundosSet = new Set(
+    productos
+      .map(p => (p.mundo ? p.mundo.trim().toUpperCase() : ''))
+      .filter(Boolean)
+  );
+
+  const containerMundos = document.getElementById('contenedor-mundos-home');
+
+  if (containerMundos) {
+    if (mundosSet.size > 0) {
+      containerMundos.innerHTML = `
+        <button onclick="filtrarMundoHome('todos')" class="px-4 py-2 bg-indigo-600 text-white font-extrabold text-xs rounded-2xl shadow-sm transition-all whitespace-nowrap">
+          ✨ Opavave
+        </button>
+      ` + Array.from(mundosSet).map(mundo => `
+        <button onclick="filtrarMundoHome('${mundo}')" class="px-4 py-2 bg-white hover:bg-indigo-50 border border-slate-200 text-slate-700 font-extrabold text-xs rounded-2xl shadow-sm transition-all whitespace-nowrap">
+          ✨ ${mundo}
+        </button>
+      `).join('');
+    } else {
+      containerMundos.innerHTML = `<span class="text-xs text-slate-400 italic">Ndapóri mundo ojehai pyre gueteri.</span>`;
+    }
+  }
+
+  // 4. Verificar usuario logueado para personalizar la bienvenida
+  if (typeof ClientAuth !== 'undefined') {
+    const activeData = await ClientAuth.getActiveClient();
+    const btnUser = document.getElementById('btn-header-usuario');
+    if (btnUser && activeData && activeData.profile) {
+      const nombre = activeData.profile.first_name || 'Che Cuenta';
+      btnUser.innerHTML = `<i class="fa-solid fa-user-check text-emerald-500 mr-1.5"></i> Mba'éichapa, ${nombre}`;
+    }
+  }
 });
+
+/**
+ * Función global para filtrar productos por mundo desde la página de inicio
+ */
+window.filtrarMundoHome = function(mundo) {
+  const filtrados = StoreProducts.getByWorld(mundo);
+  StoreProducts.renderGrid('contenedor-productos-destacados', filtrados);
+};
