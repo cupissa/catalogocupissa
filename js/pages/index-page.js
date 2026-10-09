@@ -3,28 +3,60 @@
  * Controlador Principal de la Página de Inicio (Pública) de la Tienda CUPISSA
  */
 
+window.heroSliderIndex = 0;
+window.heroSliderImages = [
+  'images/hero-banner.jpg',
+  'images/hero-banner-2.jpg',
+  'images/hero-banner-3.jpg'
+];
+
 document.addEventListener('DOMContentLoaded', async () => {
   try {
-    // 1. Cargar productos directamente desde Supabase sin mockup ni datos ficticios
+    // 1. Cargar productos directamente desde Supabase
     const productos = await StoreProducts.loadProducts();
 
-    // 2. Renderizar productos destacados (primeros 8 ítems activos)
-    const destacados = productos.slice(0, 8);
-    StoreProducts.renderGrid('contenedor-productos-destacados', destacados);
+    // 2. Obtener la Temporada Actual configurada desde el Admin
+    let currentSeason = '';
+    try {
+      if (typeof window.getSetting === 'function') {
+        currentSeason = await window.getSetting('current_season');
+      }
+    } catch (e) {
+      console.warn("No se pudo obtener la temporada actual:", e);
+    }
 
-    // 3. Renderizar selector dinámico de mundos basado en los productos creados
+    // 3. Actualizar títulos de la sección según la temporada configurada
+    const seasonTitle = document.getElementById('seasonTitle');
+    const seasonBadge = document.getElementById('seasonBadge');
+
+    if (currentSeason && currentSeason.trim() !== '') {
+      if (seasonBadge) seasonBadge.textContent = `ESPECIAL TEMPORADA ${currentSeason.toUpperCase()}`;
+      if (seasonTitle) seasonTitle.textContent = `Destacados de ${currentSeason.toUpperCase()}`;
+    } else {
+      if (seasonBadge) seasonBadge.textContent = `Especial de Temporada`;
+      if (seasonTitle) seasonTitle.textContent = `Productos Destacados`;
+    }
+
+    // 4. Obtener 5 productos aleatorios de la temporada activa (rotativos)
+    const destacadosSeason = StoreProducts.getSeasonProducts(currentSeason, 5);
+
+    // Renderizar en ambos contenedores posibles por compatibilidad
+    StoreProducts.renderGrid('seasonProductGrid', destacadosSeason);
+    StoreProducts.renderGrid('contenedor-productos-destacados', destacadosSeason);
+
+    // 5. Renderizar selector dinámico de mundos basado en los productos creados
     if (typeof StoreProducts.renderWorldsGrid === 'function') {
       StoreProducts.renderWorldsGrid('contenedor-mundos-home');
     } else {
       renderMundosFallback(productos);
     }
 
-    // 4. Verificar y actualizar la sesión del usuario en el Header
+    // 6. Verificar y actualizar la sesión del usuario en el Header
     if (typeof window.updateUserAuthUI === 'function') {
       await window.updateUserAuthUI();
     }
 
-    // 5. Inicializar Slider o Banner Principal si está presente en el DOM
+    // 7. Inicializar Slider de Banner Principal
     initHeroSlider();
 
   } catch (err) {
@@ -33,7 +65,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 /**
- * Renderiza los botones de mundos si no está disponible renderWorldsGrid
+ * Renderiza los botones de mundos en caso de fallback
  */
 function renderMundosFallback(productos) {
   const container = document.getElementById('contenedor-mundos-home');
@@ -65,27 +97,42 @@ function renderMundosFallback(productos) {
  */
 window.filtrarMundoHome = function(mundo) {
   const filtrados = StoreProducts.getByWorld(mundo);
+  StoreProducts.renderGrid('seasonProductGrid', filtrados);
   StoreProducts.renderGrid('contenedor-productos-destacados', filtrados);
 };
 
 /**
- * Animación suave del Slider de Banner Principal (si existe el elemento)
+ * Animación y controles del Slider Banner Principal
  */
 function initHeroSlider() {
   const heroImg = document.getElementById('heroSlideImg');
   if (!heroImg) return;
 
-  const images = ['images/logo.png'];
-  let currentIndex = 0;
-
-  if (images.length > 1) {
-    setInterval(() => {
-      currentIndex = (currentIndex + 1) % images.length;
-      heroImg.style.opacity = '0';
-      setTimeout(() => {
-        heroImg.src = images[currentIndex];
-        heroImg.style.opacity = '1';
-      }, 300);
-    }, 5000);
-  }
+  setInterval(() => {
+    window.nextHeroSlide();
+  }, 5000);
 }
+
+window.nextHeroSlide = function() {
+  const heroImg = document.getElementById('heroSlideImg');
+  if (!heroImg) return;
+
+  window.heroSliderIndex = (window.heroSliderIndex + 1) % window.heroSliderImages.length;
+  heroImg.style.opacity = '0';
+  setTimeout(() => {
+    heroImg.src = window.heroSliderImages[window.heroSliderIndex];
+    heroImg.style.opacity = '1';
+  }, 250);
+};
+
+window.prevHeroSlide = function() {
+  const heroImg = document.getElementById('heroSlideImg');
+  if (!heroImg) return;
+
+  window.heroSliderIndex = (window.heroSliderIndex - 1 + window.heroSliderImages.length) % window.heroSliderImages.length;
+  heroImg.style.opacity = '0';
+  setTimeout(() => {
+    heroImg.src = window.heroSliderImages[window.heroSliderIndex];
+    heroImg.style.opacity = '1';
+  }, 250);
+};
