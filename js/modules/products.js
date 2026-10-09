@@ -1,35 +1,54 @@
 /**
- * js/modules/products.js
- * Módulo de Gestión de Productos y Catálogo Público para la Tienda Cliente.
- * Soporta renderizado de Mundos, filtros, cuadrícula dinámica con Favoritos
- * y apertura del modal interactivo de detalle de producto.
+ * catalogocupissa/js/modules/products.js
+ * Módulo de Catálogo Público para Clientes y Tienda Online
  */
 
 window.StoreProducts = {
   cache: [],
 
   /**
-   * Carga los productos reales desde Supabase sin mockups
+   * Carga los productos visibles en la tienda cliente desde Supabase
    */
   async loadProducts() {
     try {
-      if (typeof SupabaseSync !== 'undefined' && SupabaseSync.getPublicProducts) {
-        this.cache = await SupabaseSync.getPublicProducts();
-      } else {
-        const client = window.supabaseClient || window.supabase;
-        if (client) {
-          const { data, error } = await client
-            .from('productos')
-            .select('*')
-            .or('oculto_web.eq.false,oculto_web.is.null')
-            .order('nombre', { ascending: true });
-
-          if (!error && data) {
-            this.cache = data;
-          }
-        }
+      const client = window.supabaseClient || window.supabase;
+      if (!client) {
+        console.error('El cliente de Supabase no está disponible.');
+        return [];
       }
-      return this.cache || [];
+
+      // Consulta flexible: Trae los productos activos no ocultos
+      const { data, error } = await client
+        .from('productos')
+        .select(`
+          *,
+          producto_variantes (*)
+        `)
+        .or('oculto_web.eq.false,oculto_web.is.null')
+        .order('nombre', { ascending: true });
+
+      if (error) throw error;
+
+      this.cache = (data || []).map(p => {
+        const variantes = p.producto_variantes || [];
+        const stockVariantes = variantes.reduce((acc, v) => acc + (v.stock_variante || 0), 0);
+        const stockTotal = variantes.length > 0 ? stockVariantes : (p.stock || 0);
+
+        const esSobrePedido = p.origen === 'sobre_pedido' || (p.dias_fabricacion && p.dias_fabricacion > 0);
+
+        return {
+          ...p,
+          precioMostrar: p.precio_detal || p.price || 0,
+          imagenMostrar: (p.imagenes && p.imagenes.length > 0) ? p.imagenes[0] : (p.imagen || p.image_url || 'images/logo.png'),
+          disponibleEntregaInmediata: stockTotal > 0,
+          esSobrePedido: esSobrePedido,
+          etiquetaEntrega: esSobrePedido 
+            ? `🛠️ Fabricación sobre pedido (${p.dias_fabricacion || 3} días)` 
+            : (stockTotal > 0 ? '📦 Entrega Inmediata' : '⏳ Fabricación sobre pedido')
+        };
+      });
+
+      return this.cache;
     } catch (err) {
       console.error('Error cargando productos públicos en la tienda:', err);
       this.cache = [];
@@ -38,7 +57,7 @@ window.StoreProducts = {
   },
 
   /**
-   * Obtiene productos aleatorios de la temporada activa o del catálogo general
+   * Obtiene productos destacados o de temporada
    */
   getSeasonProducts(seasonName = '', count = 5) {
     if (!this.cache || this.cache.length === 0) return [];
@@ -59,11 +78,11 @@ window.StoreProducts = {
   },
 
   /**
-   * Obtiene la lista de Mundos únicos
+   * Obtiene la lista de Mundos únicos presentes en los productos
    */
   getUniqueWorlds() {
     if (!this.cache || this.cache.length === 0) return [];
-    
+
     const worldsMap = new Map();
     this.cache.forEach(p => {
       if (p.mundo && p.mundo.trim() !== '') {
@@ -78,7 +97,7 @@ window.StoreProducts = {
   },
 
   /**
-   * Renderiza la cuadrícula de Mundos en el Home (index.html)
+   * Renderiza la grilla de Mundos en el Home (index.html)
    */
   renderWorldsGrid(containerId = 'contenedor-mundos-home') {
     const container = document.getElementById(containerId);
@@ -114,11 +133,11 @@ window.StoreProducts = {
               Mundo ${mundoName}
             </h3>
             <p class="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
-              Explora nuestra colección exclusiva de ${count} producto(s) disponibles.
+              Explora nuestra colección de ${count} producto(s) disponibles.
             </p>
           </div>
           <div class="mt-4 pt-3 border-t border-gray-100 dark:border-gray-700/50 flex items-center justify-between text-xs font-bold text-brand-600 dark:text-brand-400">
-            <span>Ver Mundo</span>
+            <span>Ver Colección</span>
             <i class="fa-solid fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
           </div>
         </a>
@@ -127,7 +146,7 @@ window.StoreProducts = {
   },
 
   /**
-   * Renderiza pestañas de Mundos en el Catálogo (catalogo.html)
+   * Renderiza pestañas de selección de Mundo en el Catálogo
    */
   renderWorldTabs(containerId = 'worldTabsContainer', activeWorld = 'all') {
     const container = document.getElementById(containerId);
@@ -154,7 +173,7 @@ window.StoreProducts = {
   },
 
   /**
-   * Obtiene productos filtrados por Mundo
+   * Filtra productos por Mundo
    */
   getByWorld(mundo) {
     if (!mundo || mundo === 'all' || mundo === 'todos') return this.cache;
@@ -162,7 +181,7 @@ window.StoreProducts = {
   },
 
   /**
-   * Renderiza la tarjeta de producto con botón de detalle y botón de favorito
+   * Renderiza la cuadrícula de tarjetas de productos en la tienda
    */
   renderGrid(containerId, productsList) {
     const container = document.getElementById(containerId);
@@ -181,18 +200,18 @@ window.StoreProducts = {
     const favs = window.favoritesState || [];
 
     container.innerHTML = productsList.map(p => {
-      const foto = p.image_url || p.imagen || 'images/logo.png';
-      const precioDetal = typeof parseMonto === 'function' ? parseMonto(p.precio_detal || p.price) : Number(p.precio_detal || p.price || 0);
-      const formattedPrice = typeof formatMoneda === 'function' ? formatMoneda(precioDetal) : precioDetal.toLocaleString('es-CO');
+      const foto = p.imagenMostrar || 'images/logo.png';
+      const precioDetal = typeof window.parseMonto === 'function' ? window.parseMonto(p.precio_detal || p.price) : Number(p.precio_detal || p.price || 0);
+      const formattedPrice = typeof window.formatMoneda === 'function' ? window.formatMoneda(precioDetal) : precioDetal.toLocaleString('es-CO');
 
-      const isFav = favs.some(f => f.id === p.id);
+      const isFav = favs.some(f => String(f.id) === String(p.id));
       const strObj = JSON.stringify(p).replace(/'/g, "&apos;");
 
       return `
         <div class="bg-white dark:bg-gray-800 rounded-3xl p-4 shadow-sm hover:shadow-md border border-gray-100 dark:border-gray-700/60 transition-all duration-300 flex flex-col justify-between group relative">
           
-          <!-- Botón flotante de Favoritos en la tarjeta -->
-          <button type="button" onclick='event.stopPropagation(); window.toggleFavoriteItem(${strObj});' class="absolute top-6 right-6 z-10 w-8 h-8 rounded-full bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm flex items-center justify-center text-gray-400 hover:text-pink-600 shadow-sm transition-all">
+          <!-- Botón flotante de Favoritos -->
+          <button type="button" onclick='event.stopPropagation(); if(typeof window.toggleFavoriteItem === "function") window.toggleFavoriteItem(${strObj});' class="absolute top-6 right-6 z-10 w-8 h-8 rounded-full bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm flex items-center justify-center text-gray-400 hover:text-pink-600 shadow-sm transition-all">
             <i class="fa-solid fa-heart ${isFav ? 'text-pink-600' : ''}"></i>
           </button>
 
@@ -201,6 +220,9 @@ window.StoreProducts = {
               <img src="${foto}" alt="${p.nombre}" class="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300">
               
               <div class="absolute top-2 left-2 flex flex-col gap-1">
+                <span class="px-2 py-0.5 rounded-full text-[9px] font-black uppercase shadow ${p.esSobrePedido ? 'bg-amber-500 text-slate-900' : 'bg-emerald-600 text-white'}">
+                  ${p.etiquetaEntrega}
+                </span>
                 ${p.temporada ? `<span class="px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-pink-600 text-white shadow">${p.temporada}</span>` : ''}
                 ${p.es_personalizable ? '<span class="px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-indigo-600 text-white shadow"><i class="fa-solid fa-wand-magic-sparkles mr-0.5"></i> Personalizable</span>' : ''}
                 ${p.permitir_alquiler ? '<span class="px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-purple-600 text-white shadow">Alquiler</span>' : ''}
@@ -219,7 +241,7 @@ window.StoreProducts = {
 
             <button type="button" onclick='StoreProducts.openDetailModal(${strObj})' class="bg-brand-600 hover:bg-brand-700 text-white p-2.5 rounded-2xl shadow-sm transition-all flex items-center justify-center gap-1.5 font-bold text-xs">
               <i class="fa-solid fa-bag-shopping text-xs"></i>
-              <span>Ver Op.</span>
+              <span>Ver Opciones</span>
             </button>
           </div>
         </div>
@@ -228,7 +250,7 @@ window.StoreProducts = {
   },
 
   /**
-   * Abre el modal interactivo de detalles de producto
+   * Abre el modal de detalle del producto
    */
   openDetailModal(product) {
     if (typeof window.showProductDetail === 'function') {
