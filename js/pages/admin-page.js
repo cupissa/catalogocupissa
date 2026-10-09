@@ -1,406 +1,308 @@
 /**
  * js/pages/admin-page.js
- * Controlador Principal e Orquestador del Panel Administrativo de CUPISSA
+ * Controlador Principal del Panel Administrativo (admin.html), Pestañas, Flujo de Caja y Deudas
  */
 
-// Variables globales de estado y caché
-window.productosCache = [];
-window.clientesCache = [];
-window.pedidosCache = [];
-window.flujoCajaCache = [];
-window.detallesPedidosCache = {};
-window.deudasMensualesCache = [];
+document.addEventListener('DOMContentLoaded', async () => {
+  window.switchTab('dashboard');
 
-/**
- * Parsea cadenas numéricas o formateadas a flotante
- */
-window.parseMonto = function(valor) {
-  if (typeof valor === 'number') return isNaN(valor) ? 0 : valor;
-  if (!valor) return 0;
-  let str = String(valor).trim();
-  if (str === '') return 0;
+  window.initFormularioCajaManual();
+  window.initFormularioDeudasMensuales();
+});
 
-  if (str.includes(',') && str.includes('.')) {
-    if (str.indexOf(',') < str.indexOf('.')) {
-      str = str.replace(/,/g, '');
-    } else {
-      str = str.replace(/\./g, '').replace(',', '.');
-    }
-  } else if (str.includes(',')) {
-    let partes = str.split(',');
-    if (partes.length === 2 && partes[1].length <= 2) {
-      str = str.replace(',', '.');
-    } else {
-      str = str.replace(/,/g, '');
-    }
-  }
-  let num = parseFloat(str);
-  return isNaN(num) ? 0 : num;
-};
-
-/**
- * Formatea valores numéricos a formato moneda COP
- */
-window.formatMoneda = function(num) {
-  return (num || 0).toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-};
-
-/**
- * Cambia la pestaña activa del panel de administración
- */
-window.switchTab = function(tab) {
-  ['dashboard', 'pedidos', 'inventario', 'contabilidad', 'reportes', 'gestionar-web'].forEach(t => {
+window.switchTab = function(tabName) {
+  const tabs = ['dashboard', 'pedidos', 'inventario', 'contabilidad', 'reportes', 'gestionar-web'];
+  tabs.forEach(t => {
     const section = document.getElementById(`tab-${t}`);
     const btn = document.getElementById(`btn-tab-${t}`);
-    if (section) section.classList.add('hidden');
-    if (btn) btn.classList.remove('bg-indigo-800');
-  });
 
-  const targetSection = document.getElementById(`tab-${tab}`);
-  const targetBtn = document.getElementById(`btn-tab-${tab}`);
-  if (targetSection) targetSection.classList.remove('hidden');
-  if (targetBtn) targetBtn.classList.add('bg-indigo-800');
-
-  if (tab === 'gestionar-web') {
-    if (typeof cargarClientesWeb === 'function') cargarClientesWeb();
-    if (typeof cargarProductosWeb === 'function') cargarProductosWeb();
-    if (typeof poblarSelectsCategoriasWeb === 'function') poblarSelectsCategoriasWeb();
-  } else {
-    window.cargarDatosGlobales();
-  }
-};
-
-/**
- * Cambia la sub-pestaña dentro del módulo Gestionar Web
- */
-window.switchSubTabWeb = function(subtab) {
-  ['clientes', 'productos'].forEach(s => {
-    const section = document.getElementById(`subtab-web-${s}`);
-    const btn = document.getElementById(`btn-subtab-web-${s}`);
     if (section) section.classList.add('hidden');
     if (btn) {
-      btn.classList.remove('bg-brand-600', 'text-white', 'shadow');
-      btn.classList.add('bg-slate-200', 'text-slate-700');
+      btn.classList.remove('bg-indigo-800', 'bg-indigo-600', 'shadow');
+      btn.classList.add('hover:bg-indigo-800');
     }
   });
 
-  const targetSection = document.getElementById(`subtab-web-${subtab}`);
-  const targetBtn = document.getElementById(`btn-subtab-web-${subtab}`);
+  const targetSection = document.getElementById(`tab-${tabName}`);
+  const targetBtn = document.getElementById(`btn-tab-${tabName}`);
+
   if (targetSection) targetSection.classList.remove('hidden');
   if (targetBtn) {
-    targetBtn.classList.remove('bg-slate-200', 'text-slate-700');
-    targetBtn.classList.add('bg-brand-600', 'text-white', 'shadow');
+    targetBtn.classList.add('bg-indigo-800', 'shadow');
+  }
+
+  if (tabName === 'dashboard') {
+    if (typeof cargarDashboardAdmin === 'function') cargarDashboardAdmin();
+  } else if (tabName === 'pedidos') {
+    if (typeof cargarPedidosAdmin === 'function') cargarPedidosAdmin();
+    if (typeof cargarClientesCRMSelector === 'function') cargarClientesCRMSelector();
+  } else if (tabName === 'inventario') {
+    if (typeof cargarInventarioAdmin === 'function') cargarInventarioAdmin();
+  } else if (tabName === 'contabilidad') {
+    window.cargarContabilidad();
+  } else if (tabName === 'gestionar-web') {
+    if (typeof cargarClientesWeb === 'function') cargarClientesWeb();
+    if (typeof cargarProductosWeb === 'function') cargarProductosWeb();
   }
 };
 
-/**
- * Carga todos los datos globales desde Supabase
- */
-window.cargarDatosGlobales = async function() {
-  try {
-    const { data: prods } = await supabaseClient.from('productos').select('*').order('nombre', { ascending: true });
-    window.productosCache = prods || [];
-  } catch (e) { console.error('Error cargando productos:', e); }
+window.switchSubTabWeb = function(subtab) {
+  const secClientes = document.getElementById('subtab-web-clientes');
+  const secProds = document.getElementById('subtab-web-productos');
+  const btnClientes = document.getElementById('btn-subtab-web-clientes');
+  const btnProds = document.getElementById('btn-subtab-web-productos');
 
-  try {
-    const { data: clis } = await supabaseClient.from('clientes').select('*').order('nombre', { ascending: true });
-    window.clientesCache = clis || [];
-    if (typeof poblarSelectClientes === 'function') poblarSelectClientes();
-  } catch (e) { console.error('Error cargando clientes:', e); }
+  if (subtab === 'clientes') {
+    if (secClientes) secClientes.classList.remove('hidden');
+    if (secProds) secProds.classList.add('hidden');
 
-  try {
-    const { data: peds } = await supabaseClient.from('pedidos').select('*').order('fecha_agendamiento', { ascending: false });
-    window.pedidosCache = peds || [];
-    if (typeof poblarSelectPedidosCaja === 'function') poblarSelectPedidosCaja();
-  } catch (e) { console.error('Error cargando pedidos:', e); }
+    if (btnClientes) btnClientes.className = 'px-4 py-2 bg-brand-600 text-white font-extrabold rounded-xl text-xs shadow transition';
+    if (btnProds) btnProds.className = 'px-4 py-2 bg-slate-200 text-slate-700 font-extrabold rounded-xl text-xs transition';
 
-  try {
-    const { data: dets } = await supabaseClient.from('detalle_pedido').select('*');
-    window.detallesPedidosCache = {};
-    (dets || []).forEach(d => {
-      if (!window.detallesPedidosCache[d.pedido_id]) window.detallesPedidosCache[d.pedido_id] = [];
-      window.detallesPedidosCache[d.pedido_id].push(d);
-    });
-  } catch (e) { console.error('Error cargando detalles de pedido:', e); }
-
-  try {
-    const { data: deudas } = await supabaseClient.from('deudas_mensuales').select('*').order('dia_pago', { ascending: true });
-    window.deudasMensualesCache = deudas || [];
-  } catch (e) { window.deudasMensualesCache = []; }
-
-  if (typeof cargarInventarioAdmin === 'function') await cargarInventarioAdmin();
-  if (typeof cargarPedidosAdmin === 'function') await cargarPedidosAdmin();
-  if (typeof cargarContabilidad === 'function') await cargarContabilidad();
-  if (typeof cargarDeudasMensuales === 'function') await cargarDeudasMensuales();
-  if (typeof verificarAvisosDeudas === 'function') verificarAvisosDeudas();
-};
-
-// ================= CONTABILIDAD Y DEUDAS =================
-
-window.cargarDeudasMensuales = async function() {
-  const tbody = document.getElementById('tabla-deudas-mensuales');
-  if (!tbody) return;
-  tbody.innerHTML = '';
-
-  const deudas = window.deudasMensualesCache || [];
-
-  if (deudas.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="4" class="p-3 text-center text-slate-400">No hay deudas mensuales registradas.</td></tr>`;
-    if (typeof poblarSelectDeudasCaja === 'function') poblarSelectDeudasCaja();
-    return;
-  }
-
-  deudas.forEach(d => {
-    tbody.innerHTML += `
-      <tr class="border-b">
-        <td class="p-2.5 font-bold text-slate-800">${d.concepto}</td>
-        <td class="p-2.5 font-black text-amber-700">$${formatMoneda(parseMonto(d.monto || 0))}</td>
-        <td class="p-2.5">Día ${d.dia_pago}</td>
-        <td class="p-2.5"><button onclick="eliminarDeudaMensual('${d.id}')" class="text-red-600 font-bold">🗑️</button></td>
-      </tr>
-    `;
-  });
-  if (typeof poblarSelectDeudasCaja === 'function') poblarSelectDeudasCaja();
-};
-
-window.eliminarDeudaMensual = async function(id) {
-  if (!confirm("¿Eliminar esta deuda mensual?")) return;
-  await supabaseClient.from('deudas_mensuales').delete().eq('id', id);
-  if (typeof showToast === 'function') showToast("Deuda eliminada");
-  window.cargarDatosGlobales();
-};
-
-window.toggleRelacionPedido = function() {
-  const tipo = document.getElementById('caja-tipo')?.value;
-  const secPedido = document.getElementById('seccion-relacionar-pedido');
-  const secDeuda = document.getElementById('seccion-relacionar-deuda');
-
-  if (tipo === 'INGRESO') {
-    if (secPedido) secPedido.classList.remove('hidden');
-    if (secDeuda) secDeuda.classList.add('hidden');
-    const selD = document.getElementById('caja-deuda-relacionada');
-    if (selD) selD.value = '';
+    if (typeof cargarClientesWeb === 'function') cargarClientesWeb();
   } else {
-    if (secPedido) secPedido.classList.add('hidden');
-    if (secDeuda) secDeuda.classList.remove('hidden');
-    const selP = document.getElementById('caja-pedido-relacionado');
-    if (selP) selP.value = '';
-  }
-};
+    if (secProds) secProds.classList.remove('hidden');
+    if (secClientes) secClientes.classList.add('hidden');
 
-window.poblarSelectPedidosCaja = function() {
-  const sel = document.getElementById('caja-pedido-relacionado');
-  if (!sel) return;
-  sel.innerHTML = '<option value="">-- Seleccionar pedido para abonar/pagar --</option>';
-  (window.pedidosCache || []).forEach(p => {
-    if (p.estado !== 'Cancelado') {
-      let cli = (window.clientesCache || []).find(c => c.id === p.cliente_id) || { nombre: 'Cliente General' };
-      let totalP = parseMonto(p.total);
-      let pagadoP = parseMonto(p.pagado);
-      sel.innerHTML += `<option value="${p.id}">${cli.nombre} - Ref: ${p.id.slice(0, 6)} - Total: $${formatMoneda(totalP)} - Saldo: $${formatMoneda(totalP - pagadoP)}</option>`;
-    }
-  });
-};
+    if (btnProds) btnProds.className = 'px-4 py-2 bg-pink-600 text-white font-extrabold rounded-xl text-xs shadow transition';
+    if (btnClientes) btnClientes.className = 'px-4 py-2 bg-slate-200 text-slate-700 font-extrabold rounded-xl text-xs transition';
 
-window.autocompletarMontoPedido = function() {
-  const id = document.getElementById('caja-pedido-relacionado')?.value;
-  if (!id) return;
-  const p = (window.pedidosCache || []).find(x => x.id === id);
-  if (p) {
-    let saldo = parseMonto(p.total) - parseMonto(p.pagado);
-    document.getElementById('caja-valor').value = saldo;
-    document.getElementById('caja-concepto').value = 'Abono/Pago a Pedido Ref: ' + p.id.slice(0, 6);
-  }
-};
-
-window.poblarSelectDeudasCaja = function() {
-  const sel = document.getElementById('caja-deuda-relacionada');
-  if (!sel) return;
-  sel.innerHTML = '<option value="">-- Seleccionar deuda a pagar --</option>';
-  (window.deudasMensualesCache || []).forEach(d => {
-    sel.innerHTML += `<option value="${d.id}">${d.concepto} - Monto: $${formatMoneda(parseMonto(d.monto))}</option>`;
-  });
-};
-
-window.autocompletarMontoDeuda = function() {
-  const id = document.getElementById('caja-deuda-relacionada')?.value;
-  if (!id) return;
-  const d = (window.deudasMensualesCache || []).find(x => x.id === id);
-  if (d) {
-    document.getElementById('caja-valor').value = d.monto;
-    document.getElementById('caja-concepto').value = 'Pago de Obligación: ' + d.concepto;
+    if (typeof cargarProductosWeb === 'function') cargarProductosWeb();
   }
 };
 
 window.cargarContabilidad = async function() {
-  try {
-    const { data } = await supabaseClient.from('flujo_caja').select('*').order('fecha', { ascending: false });
-    window.flujoCajaCache = data || [];
+  const [movimientos, deudas] = await Promise.all([
+    SupabaseSync.getFlujoCaja(),
+    SupabaseSync.getDeudas()
+  ]);
 
-    const tbody = document.getElementById('tabla-caja-historial');
-    if (tbody) tbody.innerHTML = '';
-
-    let filtro = document.getElementById('filtro-metodo-caja')?.value || 'todos';
-    let b = (document.getElementById('buscador-caja')?.value || '').toLowerCase();
-
-    let filtrados = window.flujoCajaCache.filter(m => {
-      let okMetodo = filtro === 'todos' || m.metodo_pago === filtro;
-      let okBusq = !b || (m.concepto || '').toLowerCase().includes(b) || (m.tercero || '').toLowerCase().includes(b);
-      return okMetodo && okBusq;
-    });
-
-    let ef = 0, bco = 0, ret4x1000 = 0;
-    filtrados.forEach(m => {
-      let v = parseMonto(m.valor || 0);
-      let retMov = (m.impuesto_4x1000 !== undefined && m.impuesto_4x1000 !== null) ? parseMonto(m.impuesto_4x1000) : (m.tipo === 'EGRESO' && m.metodo_pago !== 'Efectivo' ? v * 0.004 : 0);
-
-      if (m.tipo === 'INGRESO') {
-        if (m.metodo_pago === 'Efectivo') ef += v; else bco += v;
-      } else {
-        if (m.metodo_pago === 'Efectivo') {
-          ef -= v;
-        } else {
-          bco -= (v + retMov);
-          ret4x1000 += retMov;
-        }
-      }
-
-      if (tbody) {
-        let edicion4x1000Html = '-';
-        if (m.tipo === 'EGRESO' && m.metodo_pago !== 'Efectivo') {
-          edicion4x1000Html = `
-            <div class="flex items-center gap-1">
-              <span class="text-slate-400">$</span>
-              <input type="text" id="input-4x1000-${m.id}" value="${retMov.toFixed(2)}" class="w-20 p-1 border rounded text-xs font-bold text-red-600 bg-white" onkeydown="if(event.key==='Enter') guardar4x1000Manual('${m.id}')">
-              <button onclick="guardar4x1000Manual('${m.id}')" title="Guardar ajuste 4x1000" class="bg-indigo-600 hover:bg-indigo-700 text-white px-2 py-1 rounded text-xs font-bold transition">💾</button>
-            </div>
-          `;
-        }
-
-        tbody.innerHTML += `
-          <tr class="border-b">
-            <td class="p-2">${m.fecha}</td>
-            <td class="p-2 font-bold ${m.tipo === 'INGRESO' ? 'text-emerald-600' : 'text-red-600'}">${m.tipo}</td>
-            <td class="p-2">${m.concepto} ${m.tercero ? `(${m.tercero})` : ''}</td>
-            <td class="p-2">${m.metodo_pago}</td>
-            <td class="p-2 font-black">$${formatMoneda(v)}</td>
-            <td class="p-2">${edicion4x1000Html}</td>
-          </tr>
-        `;
-      }
-    });
-
-    const balEf = document.getElementById('bal-efectivo');
-    const balBco = document.getElementById('bal-bancos');
-    const balRet = document.getElementById('bal-4x1000');
-    const statEf = document.getElementById('stat-saldo-efectivo');
-    const statBco = document.getElementById('stat-saldo-bancos');
-
-    if (balEf) balEf.innerText = `$${formatMoneda(ef)}`;
-    if (balBco) balBco.innerText = `$${formatMoneda(bco)}`;
-    if (balRet) balRet.innerText = `-$${formatMoneda(ret4x1000)}`;
-    if (statEf) statEf.innerText = `$${formatMoneda(ef)}`;
-    if (statBco) statBco.innerText = `$${formatMoneda(bco)}`;
-
-    if (typeof renderizarGraficoDiario === 'function') renderizarGraficoDiario();
-  } catch (e) { console.error('Error cargando contabilidad:', e); }
+  window.renderizarTablaCajaHistorial(movimientos);
+  window.renderizarTablaDeudasMensuales(deudas);
+  window.calcularBalancesCaja(movimientos);
 };
 
-window.guardar4x1000Manual = async function(idMov) {
-  const inputEl = document.getElementById(`input-4x1000-${idMov}`);
-  if (!inputEl) return;
-  const nuevoValor = parseMonto(inputEl.value);
+window.renderizarTablaCajaHistorial = function(lista = []) {
+  const tbody = document.getElementById('tabla-caja-historial');
+  if (!tbody) return;
 
-  const { error } = await supabaseClient.from('flujo_caja').update({ impuesto_4x1000: nuevoValor }).eq('id', idMov);
-  if (error) {
-    if (typeof showToast === 'function') showToast("Error actualizando el 4x1000 en Supabase", "error");
+  const query = (document.getElementById('buscador-caja')?.value || '').toLowerCase().trim();
+  const metodoSel = document.getElementById('filtro-metodo-caja')?.value || 'todos';
+
+  let filtrados = (lista || []).filter(m => {
+    const okQuery = !query ||
+      (m.concepto || '').toLowerCase().includes(query) ||
+      (m.tercero || '').toLowerCase().includes(query);
+
+    const okMetodo = metodoSel === 'todos' || (m.metodo_pago || '').toLowerCase() === metodoSel.toLowerCase();
+
+    return okQuery && okMetodo;
+  });
+
+  if (filtrados.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-slate-400 text-xs">Sin movimientos registrados en caja.</td></tr>`;
     return;
   }
 
-  if (typeof showToast === 'function') showToast("4x1000 ajustado y guardado correctamente");
-  window.cargarContabilidad();
+  tbody.innerHTML = filtrados.map(m => {
+    const esIngreso = (m.tipo || '').toUpperCase() === 'INGRESO';
+    const val = window.parseMonto(m.valor !== undefined ? m.valor : m.monto || 0);
+    const fechaFormatted = m.fecha ? m.fecha.split('T')[0] : 'Hoy';
+    const esBancos = (m.metodo_pago || '').toLowerCase() === 'nequi' || (m.metodo_pago || '').toLowerCase() === 'bancos';
+
+    const campo4x1000 = esBancos
+      ? `<div class="flex items-center gap-1 justify-end">
+           <span class="text-slate-400">$</span>
+           <input type="number" step="0.01" id="input-4x1000-${m.id}" value="${m.impuesto_4x1000 || 0}" class="w-16 p-1 border rounded text-xs font-bold text-rose-600 bg-white">
+           <button onclick="guardar4x1000('${m.id}')" class="p-1 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition" title="Guardar 4x1000">
+             <i class="fa-solid fa-floppy-disk text-[10px]"></i>
+           </button>
+         </div>`
+      : `-`;
+
+    return `
+      <tr class="border-b hover:bg-slate-50 transition-colors text-xs">
+        <td class="p-3 font-semibold text-slate-700">${fechaFormatted}</td>
+        <td class="p-3">
+          <span class="px-2 py-0.5 rounded-full text-[10px] font-black ${esIngreso ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}">
+            ${m.tipo || 'INGRESO'}
+          </span>
+        </td>
+        <td class="p-3">
+          <div class="font-bold text-slate-800 uppercase">${m.concepto || 'Movimiento'}</div>
+          ${m.tercero ? `<div class="text-[10px] text-slate-400">(${m.tercero})</div>` : ''}
+        </td>
+        <td class="p-3 font-semibold text-slate-700">${m.metodo_pago || 'Efectivo'}</td>
+        <td class="p-3 font-black ${esIngreso ? 'text-emerald-600' : 'text-slate-900'}">$${window.formatMoneda(val)}</td>
+        <td class="p-3 text-right">${campo4x1000}</td>
+      </tr>
+    `;
+  }).join('');
 };
 
-window.descargarMovimientosMes = function() {
-  let csv = "Fecha,Tipo,Concepto,Tercero,Metodo,Valor,Impuesto_4x1000\n";
-  (window.flujoCajaCache || []).forEach(m => {
-    let v = parseMonto(m.valor);
-    let ret = (m.impuesto_4x1000 !== undefined && m.impuesto_4x1000 !== null) ? parseMonto(m.impuesto_4x1000) : (m.tipo === 'EGRESO' && m.metodo_pago !== 'Efectivo' ? v * 0.004 : 0);
-    csv += `"${m.fecha}","${m.tipo}","${m.concepto}","${m.tercero || ''}","${m.metodo_pago}","${v}","${ret}"\n`;
+window.guardar4x1000 = async function(id) {
+  const input = document.getElementById(`input-4x1000-${id}`);
+  if (!input) return;
+
+  const val = input.value;
+  const res = await SupabaseSync.update4x1000(id, val);
+  if (res.success) {
+    if (typeof showToast === 'function') showToast("Impuesto 4x1000 actualizado.");
+    window.cargarContabilidad();
+  }
+};
+
+window.renderizarTablaDeudasMensuales = function(lista = []) {
+  const tbody = document.getElementById('tabla-deudas-mensuales');
+  if (!tbody) return;
+
+  if (!lista || lista.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-slate-400 text-xs">Sin deudas activas guardadas.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = lista.map(d => `
+    <tr class="border-b hover:bg-slate-50 text-xs">
+      <td class="p-2.5 font-bold text-slate-800">${d.concepto}</td>
+      <td class="p-2.5 font-black text-amber-700">$${window.formatMoneda(d.monto)}</td>
+      <td class="p-2.5 font-bold">Día ${d.dia_pago} de cada mes</td>
+      <td class="p-2.5 text-right">
+        <button onclick="eliminarDeudaMensual('${d.id}')" class="text-rose-600 hover:text-rose-800 font-bold">
+          🗑️
+        </button>
+      </td>
+    </tr>
+  `).join('');
+};
+
+window.calcularBalancesCaja = function(movimientos = []) {
+  let efec = 0;
+  let banc = 0;
+  let imp4x1000 = 0;
+
+  (movimientos || []).forEach(m => {
+    const val = window.parseMonto(m.valor !== undefined ? m.valor : m.monto || 0);
+    const esIngreso = (m.tipo || '').toUpperCase() === 'INGRESO';
+    const metodo = (m.metodo_pago || '').toLowerCase().trim();
+
+    if (metodo === 'efectivo') {
+      efec += esIngreso ? val : -val;
+    } else {
+      banc += esIngreso ? val : -val;
+      if (m.impuesto_4x1000) {
+        imp4x1000 += window.parseMonto(m.impuesto_4x1000);
+      }
+    }
   });
-  let blob = new Blob([csv], { type: 'text/csv' });
-  let url = window.URL.createObjectURL(blob);
-  let a = document.createElement('a');
-  a.href = url;
-  a.download = 'Movimientos_Caja_Cupissa.csv';
-  a.click();
+
+  const elEfec = document.getElementById('bal-efectivo');
+  const elBanc = document.getElementById('bal-bancos');
+  const elImp = document.getElementById('bal-4x1000');
+
+  if (elEfec) elEfec.textContent = `$${window.formatMoneda(efec)}`;
+  if (elBanc) elBanc.textContent = `$${window.formatMoneda(banc)}`;
+  if (elImp) elImp.textContent = `$${window.formatMoneda(imp4x1000)}`;
 };
 
-// ================= INICIALIZACIÓN GENERAL =================
+window.initFormularioCajaManual = function() {
+  const form = document.getElementById('form-caja-manual');
+  if (!form) return;
 
-document.addEventListener('DOMContentLoaded', async () => {
-  const hoyStr = new Date().toISOString().split('T')[0];
-  const inputFechaCaja = document.getElementById('caja-fecha');
-  if (inputFechaCaja) inputFechaCaja.value = hoyStr;
+  const inputFecha = document.getElementById('caja-fecha');
+  if (inputFecha && !inputFecha.value) {
+    inputFecha.value = new Date().toISOString().split('T')[0];
+  }
 
-  if (typeof initAdminProductsForm === 'function') initAdminProductsForm();
-  if (typeof initAdminOrdersForm === 'function') initAdminOrdersForm();
-  if (typeof initDragDropAndPasteImageWeb === 'function') initDragDropAndPasteImageWeb();
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
 
-  // Formulario Flujo de Caja Manual
-  const formCaja = document.getElementById('form-caja-manual');
-  if (formCaja) {
-    formCaja.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const fecha = document.getElementById('caja-fecha').value;
-      const tipo = document.getElementById('caja-tipo').value;
-      const concepto = document.getElementById('caja-concepto').value;
-      const tercero = document.getElementById('caja-tercero').value;
-      const metodo = document.getElementById('caja-metodo').value;
-      const valor = parseMonto(document.getElementById('caja-valor').value);
-      const desc = document.getElementById('caja-desc').value;
+    const fecha = document.getElementById('caja-fecha')?.value || new Date().toISOString().split('T')[0];
+    const tipo = document.getElementById('caja-tipo')?.value || 'INGRESO';
+    const concepto = document.getElementById('caja-concepto')?.value.trim();
+    const tercero = document.getElementById('caja-tercero')?.value.trim();
+    const metodo_pago = document.getElementById('caja-metodo')?.value || 'Efectivo';
+    const valor = window.parseMonto(document.getElementById('caja-valor')?.value);
+    const descripcion = document.getElementById('caja-desc')?.value.trim();
 
-      let impuesto_4x1000 = 0;
-      if (tipo === 'EGRESO' && metodo !== 'Efectivo') {
-        impuesto_4x1000 = valor * 0.004;
-      }
+    if (!concepto || valor <= 0) {
+      if (typeof showToast === 'function') showToast("Ingresa un concepto y un valor válido.", "error");
+      return;
+    }
 
-      const { error } = await supabaseClient.from('flujo_caja').insert([{
-        fecha, tipo, concepto, tercero, metodo_pago: metodo, valor, impuesto_4x1000, descripcion: desc
-      }]);
+    const res = await SupabaseSync.insertFlujoCaja({
+      fecha,
+      tipo,
+      concepto,
+      tercero,
+      metodo_pago,
+      valor,
+      monto: valor,
+      descripcion
+    });
 
-      if (error) {
-        if (typeof showToast === 'function') showToast("Error guardando flujo", "error");
-        return;
-      }
-
-      if (typeof showToast === 'function') showToast("Movimiento de caja registrado con éxito");
-      formCaja.reset();
-      document.getElementById('caja-fecha').value = new Date().toISOString().split('T')[0];
+    if (res.success) {
+      if (typeof showToast === 'function') showToast("Movimiento de caja guardado en Supabase.");
+      form.reset();
+      if (inputFecha) inputFecha.value = new Date().toISOString().split('T')[0];
       window.cargarContabilidad();
+    } else {
+      if (typeof showToast === 'function') showToast("Error al guardar movimiento.", "error");
+    }
+  });
+};
+
+window.initFormularioDeudasMensuales = function() {
+  const form = document.getElementById('form-deuda-mensual');
+  if (!form) return;
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const concepto = document.getElementById('deuda-concepto')?.value.trim();
+    const monto = window.parseMonto(document.getElementById('deuda-monto')?.value);
+    const dia_pago = parseInt(document.getElementById('deuda-dia')?.value, 10) || 1;
+
+    if (!concepto || monto <= 0) {
+      if (typeof showToast === 'function') showToast("Ingresa el concepto y monto de la deuda.", "error");
+      return;
+    }
+
+    const res = await SupabaseSync.insertDeuda({
+      concepto,
+      monto,
+      dia_pago
     });
+
+    if (res.success) {
+      if (typeof showToast === 'function') showToast("Deuda guardada en Supabase.");
+      form.reset();
+      window.cargarContabilidad();
+    } else {
+      if (typeof showToast === 'function') showToast("Error al guardar deuda.", "error");
+    }
+  });
+};
+
+window.eliminarDeudaMensual = async function(id) {
+  if (!confirm("¿Deseas borrar esta deuda mensual?")) return;
+
+  const res = await SupabaseSync.deleteDeuda(id);
+  if (res.success) {
+    if (typeof showToast === 'function') showToast("Deuda eliminada.");
+    window.cargarContabilidad();
   }
+};
 
-  // Formulario Deudas Mensuales
-  const formDeuda = document.getElementById('form-deuda-mensual');
-  if (formDeuda) {
-    formDeuda.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const concepto = document.getElementById('deuda-concepto').value.trim();
-      const monto = parseMonto(document.getElementById('deuda-monto').value);
-      const dia_pago = parseInt(document.getElementById('deuda-dia').value, 10) || 1;
+window.toggleRelacionPedido = function() {
+  const tipo = document.getElementById('caja-tipo')?.value;
+  const secPed = document.getElementById('seccion-relacionar-pedido');
+  const secDeuda = document.getElementById('seccion-relacionar-deuda');
 
-      const { error } = await supabaseClient.from('deudas_mensuales').insert([{ concepto, monto, dia_pago }]);
-      if (error) {
-        if (typeof showToast === 'function') showToast("Error guardando deuda en Supabase.", "error");
-        return;
-      }
-
-      if (typeof showToast === 'function') showToast("Deuda mensual guardada exitosamente");
-      formDeuda.reset();
-      window.cargarDatosGlobales();
-    });
+  if (tipo === 'INGRESO') {
+    if (secPed) secPed.classList.remove('hidden');
+    if (secDeuda) secDeuda.classList.add('hidden');
+  } else {
+    if (secPed) secPed.classList.add('hidden');
+    if (secDeuda) secDeuda.classList.remove('hidden');
   }
-
-  await window.cargarDatosGlobales();
-});
+};
