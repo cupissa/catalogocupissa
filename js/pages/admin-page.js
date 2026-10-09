@@ -1,6 +1,6 @@
 /**
  * js/pages/admin-page.js
- * Controlador Principal e Orquestador de admin.html
+ * Controlador Principal e Orquestador del Panel Administrativo de CUPISSA
  */
 
 // Variables globales de estado y caché
@@ -12,7 +12,7 @@ window.detallesPedidosCache = {};
 window.deudasMensualesCache = [];
 
 /**
- * Función de utilidad para parsear cadenas de texto o números a un número flotante
+ * Parsea cadenas numéricas o formateadas a flotante
  */
 window.parseMonto = function(valor) {
   if (typeof valor === 'number') return isNaN(valor) ? 0 : valor;
@@ -39,7 +39,7 @@ window.parseMonto = function(valor) {
 };
 
 /**
- * Formatea un número al formato de moneda COP
+ * Formatea valores numéricos a formato moneda COP
  */
 window.formatMoneda = function(num) {
   return (num || 0).toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -49,7 +49,7 @@ window.formatMoneda = function(num) {
  * Cambia la pestaña activa del panel de administración
  */
 window.switchTab = function(tab) {
-  ['dashboard', 'pedidos', 'inventario', 'contabilidad', 'reportes'].forEach(t => {
+  ['dashboard', 'pedidos', 'inventario', 'contabilidad', 'reportes', 'gestionar-web'].forEach(t => {
     const section = document.getElementById(`tab-${t}`);
     const btn = document.getElementById(`btn-tab-${t}`);
     if (section) section.classList.add('hidden');
@@ -61,11 +61,40 @@ window.switchTab = function(tab) {
   if (targetSection) targetSection.classList.remove('hidden');
   if (targetBtn) targetBtn.classList.add('bg-indigo-800');
 
-  window.cargarDatosGlobales();
+  if (tab === 'gestionar-web') {
+    if (typeof cargarClientesWeb === 'function') cargarClientesWeb();
+    if (typeof cargarProductosWeb === 'function') cargarProductosWeb();
+    if (typeof poblarSelectsCategoriasWeb === 'function') poblarSelectsCategoriasWeb();
+  } else {
+    window.cargarDatosGlobales();
+  }
 };
 
 /**
- * Carga todos los datos desde Supabase e invoca las funciones de re-renderizado
+ * Cambia la sub-pestaña dentro del módulo Gestionar Web
+ */
+window.switchSubTabWeb = function(subtab) {
+  ['clientes', 'productos'].forEach(s => {
+    const section = document.getElementById(`subtab-web-${s}`);
+    const btn = document.getElementById(`btn-subtab-web-${s}`);
+    if (section) section.classList.add('hidden');
+    if (btn) {
+      btn.classList.remove('bg-brand-600', 'text-white', 'shadow');
+      btn.classList.add('bg-slate-200', 'text-slate-700');
+    }
+  });
+
+  const targetSection = document.getElementById(`subtab-web-${subtab}`);
+  const targetBtn = document.getElementById(`btn-subtab-web-${subtab}`);
+  if (targetSection) targetSection.classList.remove('hidden');
+  if (targetBtn) {
+    targetBtn.classList.remove('bg-slate-200', 'text-slate-700');
+    targetBtn.classList.add('bg-brand-600', 'text-white', 'shadow');
+  }
+};
+
+/**
+ * Carga todos los datos globales desde Supabase
  */
 window.cargarDatosGlobales = async function() {
   try {
@@ -307,7 +336,7 @@ window.descargarMovimientosMes = function() {
   a.click();
 };
 
-// ================= INICIALIZACIÓN =================
+// ================= INICIALIZACIÓN GENERAL =================
 
 document.addEventListener('DOMContentLoaded', async () => {
   const hoyStr = new Date().toISOString().split('T')[0];
@@ -316,6 +345,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   if (typeof initAdminProductsForm === 'function') initAdminProductsForm();
   if (typeof initAdminOrdersForm === 'function') initAdminOrdersForm();
+  if (typeof initDragDropAndPasteImageWeb === 'function') initDragDropAndPasteImageWeb();
 
   // Formulario Flujo de Caja Manual
   const formCaja = document.getElementById('form-caja-manual');
