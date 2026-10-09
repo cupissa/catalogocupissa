@@ -7,6 +7,7 @@
   
   <link rel="icon" type="image/png" href="images/logo.png">
   
+  <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -27,15 +28,21 @@
     }
   </script>
 
+  <!-- FontAwesome Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="css/main.css?v=1.2">
-  <link rel="stylesheet" href="css/components.css?v=1.2">
-  <link rel="stylesheet" href="css/theme.css?v=1.2">
+  
+  <!-- Hojas de Estilos de la Aplicación -->
+  <link rel="stylesheet" href="css/main.css?v=1.4">
+  <link rel="stylesheet" href="css/components.css?v=1.4">
+  <link rel="stylesheet" href="css/theme.css?v=1.4">
 </head>
 <body class="bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100 min-h-screen flex flex-col transition-colors duration-200 overflow-x-hidden">
 
+  <!-- Contenedor global de Toasts / Notificaciones -->
+  <div id="toast-container" class="fixed bottom-5 right-5 z-50 space-y-2 pointer-events-none"></div>
+
   <!-- ENCABEZADO / NAVBAR -->
-  <header class="sticky top-0 z-40 bg-white/90 dark:bg-gray-800/90 backdrop-blur-md border-b border-gray-100 dark:border-gray-700/60 shadow-sm">
+  <header id="appHeader" class="sticky top-0 z-40 bg-white/90 dark:bg-gray-800/90 backdrop-blur-md border-b border-gray-100 dark:border-gray-700/60 shadow-sm">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
       
       <a href="index.html" class="flex items-center space-x-2 shrink-0">
@@ -66,6 +73,7 @@
           <span>Rastrear Pedido</span>
         </a>
 
+        <!-- Slot dinámico de Autenticación / Perfil de Usuario -->
         <div id="userAuthSection">
           <button type="button" onclick="openAuthModal()" class="flex items-center space-x-1.5 text-xs font-bold text-white bg-brand-600 hover:bg-brand-700 transition-all py-2 px-3 rounded-xl shadow-sm">
             <i class="fa-regular fa-user"></i>
@@ -94,19 +102,11 @@
 
     <!-- SECCIÓN DE MUNDOS Y CATÁLOGO -->
     <section id="section-catalog">
+      <!-- Pestañas de Mundos Dinámicos (Se cargan por JS según productos en DB) -->
       <div class="border-b border-gray-200 dark:border-gray-700 mb-6">
-        <nav class="flex space-x-6 overflow-x-auto pb-2 scrollbar-none">
-          <button id="tab-all" onclick="filterByWorld('all')" class="world-tab active text-xs font-bold whitespace-nowrap pb-2 text-gray-600 dark:text-gray-300 hover:text-brand-600">
+        <nav id="worldTabsContainer" class="flex space-x-6 overflow-x-auto pb-2 scrollbar-none">
+          <button id="tab-all" onclick="filterByWorld('all')" class="world-tab active text-xs font-bold whitespace-nowrap pb-2 text-brand-600 border-b-2 border-brand-600">
             <i class="fa-solid fa-border-all mr-1.5"></i>Todos los Mundos
-          </button>
-          <button id="tab-familiar" onclick="filterByWorld('familiar')" class="world-tab text-xs font-bold whitespace-nowrap pb-2 text-gray-600 dark:text-gray-300 hover:text-brand-600">
-            <i class="fa-solid fa-heart mr-1.5"></i>Mundo Familiar y Regalos
-          </button>
-          <button id="tab-eventos" onclick="filterByWorld('eventos')" class="world-tab text-xs font-bold whitespace-nowrap pb-2 text-gray-600 dark:text-gray-300 hover:text-brand-600">
-            <i class="fa-solid fa-champagne-glasses mr-1.5"></i>Mundo Eventos y Fiestas
-          </button>
-          <button id="tab-empresas" onclick="filterByWorld('empresas')" class="world-tab text-xs font-bold whitespace-nowrap pb-2 text-gray-600 dark:text-gray-300 hover:text-brand-600">
-            <i class="fa-solid fa-briefcase mr-1.5"></i>Mundo Empresas y B2B
           </button>
         </nav>
       </div>
@@ -236,7 +236,8 @@
 
   </main>
 
-  <footer class="bg-[#0b1329] text-gray-300 mt-12 border-t border-gray-800 text-xs">
+  <!-- FOOTER UNIFICADO -->
+  <footer id="appFooter" class="bg-[#0b1329] text-gray-300 mt-12 border-t border-gray-800 text-xs">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
       <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8">
         <div class="space-y-3">
@@ -271,7 +272,7 @@
       </div>
       <div class="border-t border-gray-800/80 mt-10 pt-6 flex flex-col md:flex-row justify-between items-center text-gray-500 gap-4">
         <p>&copy; 2026 CUPISSA S.A.S. Todos los derechos reservados.</p>
-       <p>Diseñado y Desarrollado por <a href="https://www.tiktok.com/@deiner.programmer" target="_blank" rel="noopener noreferrer" class="text-pink-500 font-bold hover:underline">Deiner Gonzalez</a></p>
+        <p>Diseñado y Desarrollado por <a href="https://www.tiktok.com/@deiner.programmer" target="_blank" rel="noopener noreferrer" class="text-pink-500 font-bold hover:underline">Deiner Gonzalez</a></p>
       </div>
     </div>
   </footer>
@@ -360,7 +361,6 @@
             <input type="text" id="checkoutAddress" required class="w-full text-xs p-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500" placeholder="Calle / Carrera, Número, Apto / Piso">
           </div>
 
-          <!-- CIUDAD Y BARRIO LIBRES SIN LISTA -->
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label class="block text-[11px] font-bold text-gray-600 dark:text-gray-300 mb-1">Ciudad *</label>
@@ -373,7 +373,6 @@
             </div>
           </div>
 
-          <!-- NOTA INFORMATIVA DEL ENVÍO -->
           <p class="text-[11px] text-gray-500 dark:text-gray-400 flex items-center gap-1.5 mt-1">
             <i class="fa-solid fa-truck text-brand-600"></i>
             <span>El valor del domicilio/envío se agregará al pedido.</span>
@@ -410,7 +409,7 @@
             </p>
           </div>
 
-          <!-- FORMULARIO CRÉDITO CUPISSA CON FOTOS CÉDULA -->
+          <!-- FORMULARIO CRÉDITO CUPISSA -->
           <div id="cupissaCreditForm" class="p-4 bg-amber-50/50 dark:bg-amber-950/20 rounded-2xl border border-amber-200 dark:border-amber-900 text-xs space-y-3 hidden">
             <p class="text-amber-800 dark:text-amber-300 font-medium">
               <i class="fa-solid fa-file-signature mr-1"></i> Completa la solicitud de Crédito Cupissa (+20% recargo en cuotas). Adjunta tus documentos para aprobación rápida.
@@ -421,7 +420,6 @@
               <input type="text" id="creditCedula" class="w-full p-2.5 text-xs rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900" placeholder="Número de Cédula">
             </div>
 
-            <!-- SUBIDA FOTOS CÉDULA FRENTE Y REVERSO -->
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label class="block text-[11px] font-bold text-gray-700 dark:text-gray-300 mb-1">
@@ -461,7 +459,6 @@
           </div>
         </div>
 
-        <!-- BOTÓN CAMBIA DINÁMICAMENTE DE TEXTO Y ACCIÓN -->
         <div class="pt-4 border-t border-gray-100 dark:border-gray-700 flex justify-end gap-3">
           <button type="button" onclick="toggleCheckoutModal(false)" class="px-4 py-2.5 text-xs font-bold text-gray-500 hover:text-gray-700">Cancelar</button>
           <button type="submit" id="btnSubmitCheckout" class="px-6 py-3 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-extrabold shadow-md transition-all flex items-center gap-2">
@@ -473,7 +470,7 @@
     </div>
   </div>
 
-  <!-- MODAL AUTHENTICATION -->
+  <!-- MODAL AUTENTICACIÓN -->
   <div id="authModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
     <div class="bg-white dark:bg-gray-800 rounded-3xl max-w-sm w-full p-6 shadow-xl border border-gray-100 dark:border-gray-700 relative">
       <button type="button" onclick="closeAuthModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
@@ -489,6 +486,7 @@
         </button>
       </div>
 
+      <!-- FORMULARIO DE LOGIN -->
       <div id="formLoginContainer">
         <form onsubmit="handleClientLogin(event)" class="space-y-3">
           <div>
@@ -505,32 +503,38 @@
         </form>
       </div>
 
+      <!-- FORMULARIO DE REGISTRO CON CAPTCHA GRÁFICO REAL -->
       <div id="formRegisterContainer" class="hidden">
         <form onsubmit="handleClientRegister(event)" class="space-y-3">
           <div class="grid grid-cols-2 gap-2">
             <div>
-              <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Nombre</label>
+              <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Nombre *</label>
               <input type="text" id="regClientFirstName" required class="w-full bg-gray-50 dark:bg-gray-700 text-xs p-2.5 rounded-xl border border-gray-200 dark:border-gray-600">
             </div>
             <div>
               <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Apellido</label>
-              <input type="text" id="regClientLastName" required class="w-full bg-gray-50 dark:bg-gray-700 text-xs p-2.5 rounded-xl border border-gray-200 dark:border-gray-600">
+              <input type="text" id="regClientLastName" class="w-full bg-gray-50 dark:bg-gray-700 text-xs p-2.5 rounded-xl border border-gray-200 dark:border-gray-600">
             </div>
           </div>
           <div>
-            <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Correo Electrónico</label>
+            <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Correo Electrónico *</label>
             <input type="email" id="regClientEmail" required class="w-full bg-gray-50 dark:bg-gray-700 text-xs p-2.5 rounded-xl border border-gray-200 dark:border-gray-600">
           </div>
           <div>
-            <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Contraseña</label>
+            <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">Contraseña *</label>
             <input type="password" id="regClientPassword" required class="w-full bg-gray-50 dark:bg-gray-700 text-xs p-2.5 rounded-xl border border-gray-200 dark:border-gray-600">
           </div>
 
-          <div class="flex items-center gap-2">
-            <span id="mathCaptchaQuestion" class="bg-gray-100 dark:bg-gray-700 px-3 py-2 rounded-xl text-xs font-bold text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-600">
-              ?
-            </span>
-            <input type="number" id="mathCaptchaInput" required placeholder="Respuesta" class="w-full bg-gray-50 dark:bg-gray-700 text-xs p-2 rounded-xl border border-gray-200 dark:border-gray-600">
+          <!-- VERIFICACIÓN CAPTCHA GRÁFICO (CANVAS) -->
+          <div class="space-y-1.5 pt-1">
+            <label class="block text-[10px] font-bold text-gray-500 uppercase">Verificación de Seguridad *</label>
+            <div class="flex items-center gap-2">
+              <canvas id="captchaCanvas" width="160" height="42" class="rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 cursor-pointer" title="Haga clic para regenerar"></canvas>
+              <button type="button" id="btnRefreshCaptcha" onclick="window.generateVisualCaptcha()" class="p-2.5 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors" title="Regenerar Código">
+                <i class="fa-solid fa-rotate-right"></i>
+              </button>
+            </div>
+            <input type="text" id="captchaInput" required placeholder="Ingresa el código de la imagen" autocomplete="off" class="w-full bg-gray-50 dark:bg-gray-700 text-xs p-2.5 rounded-xl border border-gray-200 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-brand-500">
           </div>
 
           <button type="submit" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-extrabold py-2.5 rounded-xl text-xs transition-all shadow-md">
@@ -547,22 +551,33 @@
     </div>
   </div>
 
+  <!-- LIBRERÍAS Y SCRIPTS MODULARES -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="js/config/supabase.js?v=1.2"></script>
-  <script src="js/config/constants.js?v=1.2"></script>
-  <script src="js/data/shipping-rates.js?v=1.2"></script>
-  <script src="js/services/profile.js?v=1.2"></script>
-  <script src="js/services/orders.js?v=1.2"></script>
-  <script src="js/utils/theme.js?v=1.2"></script>
-  <script src="js/utils/captcha.js?v=1.2"></script>
-  <script src="js/utils/ui.js?v=1.2"></script>
-  <script src="js/modules/auth.js?v=1.2"></script>
-  <script src="js/modules/cart.js?v=1.2"></script>
-  <script src="js/modules/favorites.js?v=1.2"></script>
-  <script src="js/modules/products.js?v=1.2"></script>
-  <script src="js/modules/checkout/step1-shipping.js?v=1.2"></script>
-  <script src="js/modules/checkout/step2-payment.js?v=1.2"></script>
-  <script src="js/pages/catalogo-page.js?v=1.2"></script>
+  
+  <!-- Configuración y conexión -->
+  <script src="js/config/constants.js?v=1.6"></script>
+  <script src="js/config/supabase.js?v=1.6"></script>
+  <script src="js/data/shipping-rates.js?v=1.6"></script>
+  <script src="js/utils/supabase-sync.js?v=1.6"></script>
+
+  <!-- Helpers y Utilidades -->
+  <script src="js/utils/theme.js?v=1.6"></script>
+
+  <script src="js/utils/ui.js?v=1.6"></script>
+  <script src="js/utils/captcha-helper.js?v=1.6"></script>
+
+  <!-- Servicios y Módulos de la Tienda -->
+  <script src="js/services/profile.js?v=1.6"></script>
+  <script src="js/services/orders.js?v=1.6"></script>
+  <script src="js/modules/auth.js?v=1.6"></script>
+  <script src="js/modules/cart.js?v=1.6"></script>
+  <script src="js/modules/favorites.js?v=1.6"></script>
+  <script src="js/modules/products.js?v=1.6"></script>
+  <script src="js/modules/checkout/step1-shipping.js?v=1.6"></script>
+  <script src="js/modules/checkout/step2-payment.js?v=1.6"></script>
+
+  <!-- Controlador de la página -->
+  <script src="js/pages/catalogo-page.js?v=1.6"></script>
 
 </body>
 </html>
