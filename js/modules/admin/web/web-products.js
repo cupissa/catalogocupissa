@@ -1,10 +1,15 @@
 /**
  * js/modules/admin/web/web-products.js
- * Carga Inteligente de Productos en Supabase, Visibilidad en Tienda Cliente, Precios Mayoristas e Imágenes
+ * Carga Inteligente de Productos en Supabase, Visibilidad en Tienda Cliente,
+ * Precios Mayoristas, Tallas/Colores con Incrementos, Alquiler, Depósitos e Imágenes.
  */
 
 window.webCropperInstance = null;
 window.currentProductWebImgBase64 = null;
+
+// Arreglos temporales para tallas y colores del producto en edición
+window.currentAdminTallas = [];
+window.currentAdminColores = [];
 
 function safeParseMontoWeb(val) {
   if (typeof parseMonto === 'function') return parseMonto(val);
@@ -96,6 +101,8 @@ window.renderizarTablaProductosWeb = function(lista) {
 
     const precioDetal = safeParseMontoWeb(p.precio_detal || p.price);
     const precioMayor = safeParseMontoWeb(p.precio_mayorista);
+    const precioAlquiler = safeParseMontoWeb(p.precio_alquiler);
+    const temporadaLabel = p.temporada ? `<span class="px-1.5 py-0.5 rounded bg-pink-100 text-pink-800 text-[9px] font-bold uppercase">${p.temporada}</span>` : '';
 
     return `
       <tr class="border-b hover:bg-slate-50/80 transition-colors ${esOculto ? 'bg-slate-100/60 opacity-60' : ''}">
@@ -104,17 +111,21 @@ window.renderizarTablaProductosWeb = function(lista) {
             <img src="${foto}" alt="${p.nombre}" class="w-12 h-12 object-contain bg-white rounded-xl border p-1 shrink-0">
             <div>
               <div class="font-bold text-slate-900">${p.nombre}</div>
-              <div class="text-[10px] text-indigo-600 font-semibold">${p.mundo || 'General'} / ${p.categoria || 'Sin Categoría'}</div>
+              <div class="text-[10px] text-indigo-600 font-semibold flex items-center gap-1.5">
+                <span>${p.mundo || 'General'} / ${p.categoria || 'Sin Categoría'}</span>
+                ${temporadaLabel}
+              </div>
             </div>
           </div>
         </td>
         <td class="p-3 text-xs">
           <div class="font-bold text-slate-700">Detal: $${safeFormatMonedaWeb(precioDetal)}</div>
+          ${precioAlquiler > 0 ? `<div class="text-[10px] font-bold text-purple-700">Alquiler: $${safeFormatMonedaWeb(precioAlquiler)}</div>` : ''}
           ${esMayorista ? `<div class="text-[10px] font-black text-amber-700">Mayor: $${safeFormatMonedaWeb(precioMayor)} (x${p.cant_minima_mayorista || 6})</div>` : ''}
         </td>
         <td class="p-3 text-xs">
           <div class="flex flex-wrap gap-1">
-            ${p.permitir_venta ? '<span class="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[9px] font-bold">Venta</span>' : ''}
+            ${p.permitir_venta !== false ? '<span class="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[9px] font-bold">Venta</span>' : ''}
             ${p.permitir_alquiler ? '<span class="px-1.5 py-0.5 rounded bg-purple-100 text-purple-800 text-[9px] font-bold">Alquiler</span>' : ''}
             ${p.permitir_credito ? '<span class="px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 text-[9px] font-bold">Crédito</span>' : ''}
           </div>
@@ -157,6 +168,8 @@ window.filtrarProductosWeb = function() {
     (p.nombre || '').toLowerCase().includes(query) ||
     (p.mundo || '').toLowerCase().includes(query) ||
     (p.categoria || '').toLowerCase().includes(query) ||
+    (p.subcategoria || '').toLowerCase().includes(query) ||
+    (p.temporada || '').toLowerCase().includes(query) ||
     (p.referencia || '').toLowerCase().includes(query)
   );
 
@@ -204,7 +217,114 @@ window.eliminarProductoWeb = async function(id) {
 };
 
 /**
- * Abre el modal para crear/editar producto
+ * Muestra/Oculta los campos de alquiler en el formulario según el checkbox
+ */
+window.toggleSeccionAlquilerAdmin = function(isRent) {
+  const box = document.getElementById('seccion-alquiler-admin-box');
+  if (box) {
+    if (isRent) box.classList.remove('hidden');
+    else box.classList.add('hidden');
+  }
+};
+
+/**
+ * Gestión dinámica de Tallas (Agregar / Eliminar)
+ */
+window.agregarTallaAlProductoAdmin = function() {
+  const inpNombre = document.getElementById('input-nueva-talla-nombre');
+  const inpPrecio = document.getElementById('input-nueva-talla-precio');
+  if (!inpNombre) return;
+
+  const name = inpNombre.value.trim().toUpperCase();
+  const price = safeParseMontoWeb(inpPrecio?.value);
+
+  if (!name) {
+    safeShowToastWeb("Ingresa el nombre o código de la talla.", "error");
+    return;
+  }
+
+  window.currentAdminTallas.push({ name, price });
+  inpNombre.value = '';
+  if (inpPrecio) inpPrecio.value = '';
+
+  window.renderListaTallasAdmin();
+};
+
+window.eliminarTallaAdmin = function(index) {
+  window.currentAdminTallas.splice(index, 1);
+  window.renderListaTallasAdmin();
+};
+
+window.renderListaTallasAdmin = function() {
+  const container = document.getElementById('contenedor-lista-tallas-admin');
+  if (!container) return;
+
+  if (window.currentAdminTallas.length === 0) {
+    container.innerHTML = `<span class="text-[11px] text-slate-400 italic">No hay tallas agregadas aún.</span>`;
+    return;
+  }
+
+  container.innerHTML = window.currentAdminTallas.map((t, idx) => `
+    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-900 font-bold text-xs">
+      <span>${t.name}</span>
+      ${t.price > 0 ? `<span class="text-emerald-700 text-[10px]">(+$${safeFormatMonedaWeb(t.price)})</span>` : ''}
+      <button type="button" onclick="eliminarTallaAdmin(${idx})" class="text-rose-500 hover:text-rose-700 ml-1">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </span>
+  `).join('');
+};
+
+/**
+ * Gestión dinámica de Colores (Agregar / Eliminar)
+ */
+window.agregarColorAlProductoAdmin = function() {
+  const inpNombre = document.getElementById('input-nuevo-color-nombre');
+  const inpPrecio = document.getElementById('input-nuevo-color-precio');
+  if (!inpNombre) return;
+
+  const name = inpNombre.value.trim();
+  const price = safeParseMontoWeb(inpPrecio?.value);
+
+  if (!name) {
+    safeShowToastWeb("Ingresa el nombre del color.", "error");
+    return;
+  }
+
+  window.currentAdminColores.push({ name, price });
+  inpNombre.value = '';
+  if (inpPrecio) inpPrecio.value = '';
+
+  window.renderListaColoresAdmin();
+};
+
+window.eliminarColorAdmin = function(index) {
+  window.currentAdminColores.splice(index, 1);
+  window.renderListaColoresAdmin();
+};
+
+window.renderListaColoresAdmin = function() {
+  const container = document.getElementById('contenedor-lista-colores-admin');
+  if (!container) return;
+
+  if (window.currentAdminColores.length === 0) {
+    container.innerHTML = `<span class="text-[11px] text-slate-400 italic">No hay colores agregados aún.</span>`;
+    return;
+  }
+
+  container.innerHTML = window.currentAdminColores.map((c, idx) => `
+    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-pink-50 border border-pink-200 text-pink-900 font-bold text-xs">
+      <span>${c.name}</span>
+      ${c.price > 0 ? `<span class="text-emerald-700 text-[10px]">(+$${safeFormatMonedaWeb(c.price)})</span>` : ''}
+      <button type="button" onclick="eliminarColorAdmin(${idx})" class="text-rose-500 hover:text-rose-700 ml-1">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </span>
+  `).join('');
+};
+
+/**
+ * Abre el modal para crear o editar producto
  */
 window.abrirModalProductoWeb = function(prod = null) {
   const modal = document.getElementById('modal-producto-web');
@@ -213,6 +333,8 @@ window.abrirModalProductoWeb = function(prod = null) {
 
   form.reset();
   window.currentProductWebImgBase64 = null;
+  window.currentAdminTallas = [];
+  window.currentAdminColores = [];
 
   if (prod) {
     document.getElementById('prod-web-id').value = prod.id || '';
@@ -221,25 +343,51 @@ window.abrirModalProductoWeb = function(prod = null) {
     document.getElementById('prod-web-categoria').value = prod.categoria || '';
     document.getElementById('prod-web-subcategoria').value = prod.subcategoria || '';
     document.getElementById('prod-web-temporada').value = prod.temporada || '';
+
     document.getElementById('prod-web-precio-detal').value = prod.precio_detal || prod.price || 0;
     document.getElementById('prod-web-precio-mayor').value = prod.precio_mayorista || 0;
     document.getElementById('prod-web-cant-mayor').value = prod.cant_minima_mayorista || 6;
+    document.getElementById('prod-web-porcentaje-anticipo').value = prod.porcentaje_anticipo || 50;
+
+    document.getElementById('prod-web-precio-alquiler').value = prod.precio_alquiler || 0;
+    document.getElementById('prod-web-valor-deposito').value = prod.valor_deposito || 0;
 
     document.getElementById('prod-web-check-personalizable').checked = prod.es_personalizable || false;
     document.getElementById('prod-web-check-mayorista').checked = prod.es_mayorista || false;
     document.getElementById('prod-web-check-venta').checked = prod.permitir_venta !== false;
-    document.getElementById('prod-web-check-alquiler').checked = prod.permitir_alquiler || false;
+    
+    const esAlquiler = Boolean(prod.permitir_alquiler);
+    document.getElementById('prod-web-check-alquiler').checked = esAlquiler;
+    window.toggleSeccionAlquilerAdmin(esAlquiler);
+
     document.getElementById('prod-web-check-credito').checked = prod.permitir_credito || false;
+
+    // Cargar tallas existentes
+    try {
+      window.currentAdminTallas = typeof prod.tallas === 'string' ? JSON.parse(prod.tallas) : (prod.tallas || []);
+    } catch (e) { window.currentAdminTallas = []; }
+
+    // Cargar colores existentes
+    try {
+      window.currentAdminColores = typeof prod.colores === 'string' ? JSON.parse(prod.colores) : (prod.colores || []);
+    } catch (e) { window.currentAdminColores = []; }
 
     const imgPreview = document.getElementById('prod-web-img-preview');
     const foto = prod.image_url || prod.imagen || 'images/logo.png';
     if (imgPreview) imgPreview.src = foto;
     window.currentProductWebImgBase64 = foto;
+
   } else {
     document.getElementById('prod-web-id').value = '';
+    document.getElementById('prod-web-porcentaje-anticipo').value = 50;
+    window.toggleSeccionAlquilerAdmin(false);
+
     const imgPreview = document.getElementById('prod-web-img-preview');
     if (imgPreview) imgPreview.src = 'images/logo.png';
   }
+
+  window.renderListaTallasAdmin();
+  window.renderListaColoresAdmin();
 
   modal.classList.remove('hidden');
 };
@@ -383,11 +531,15 @@ window.guardarProductoWeb = async function(e) {
     const mundo = (document.getElementById('prod-web-mundo')?.value || '').trim().toUpperCase();
     const categoria = (document.getElementById('prod-web-categoria')?.value || '').trim();
     const subcategoria = (document.getElementById('prod-web-subcategoria')?.value || '').trim();
-    const temporada = (document.getElementById('prod-web-temporada')?.value || '').trim();
+    const temporada = (document.getElementById('prod-web-temporada')?.value || '').trim().toUpperCase();
 
     const precio_detal = safeParseMontoWeb(document.getElementById('prod-web-precio-detal')?.value);
     const precio_mayorista = safeParseMontoWeb(document.getElementById('prod-web-precio-mayor')?.value);
     const cant_minima_mayorista = parseInt(document.getElementById('prod-web-cant-mayor')?.value || 6, 10) || 6;
+    const porcentaje_anticipo = parseInt(document.getElementById('prod-web-porcentaje-anticipo')?.value || 50, 10) || 50;
+
+    const precio_alquiler = safeParseMontoWeb(document.getElementById('prod-web-precio-alquiler')?.value);
+    const valor_deposito = safeParseMontoWeb(document.getElementById('prod-web-valor-deposito')?.value);
 
     const es_personalizable = document.getElementById('prod-web-check-personalizable')?.checked || false;
     const es_mayorista = document.getElementById('prod-web-check-mayorista')?.checked || false;
@@ -449,6 +601,11 @@ window.guardarProductoWeb = async function(e) {
       price: precio_detal,
       precio_mayorista,
       cant_minima_mayorista,
+      porcentaje_anticipo,
+      precio_alquiler,
+      valor_deposito,
+      tallas: window.currentAdminTallas,
+      colores: window.currentAdminColores,
       es_personalizable,
       es_mayorista,
       permitir_venta,
