@@ -1,4 +1,4 @@
-/* css/admin.css - Estilos específicos para el Panel Administrativo de CUPISSA */
+/* css/admin.css - Estilos completos para el Panel Administrativo y Módulo Gestionar Web */
 
 @media print {
   body * {
@@ -33,6 +33,7 @@
   }
 }
 
+/* Tablas con formato Hoja de Cálculo */
 .sheets-table th {
   background-color: #f8fafc;
   color: #475569;
@@ -52,4 +53,53 @@
 
 .sheets-table tr:hover {
   background-color: #f8fafc;
+}
+
+/* ================= ZONA DRAG & DROP Y FOTOS WEB ================= */
+.drop-zone-area {
+  border: 2px dashed #cbd5e1;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  text-align: center;
+  background-color: #f8fafc;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+}
+
+.drop-zone-area:hover,
+.drop-zone-area.dragover {
+  border-color: #ec4899;
+  background-color: #fdf2f8;
+}
+
+/* Recortador de imágenes Cropper.js */
+.cropper-container-wrapper {
+  max-height: 60vh;
+  overflow: hidden;
+  background-color: #0f172a;
+  border-radius: 1rem;
+}
+
+.cropper-container-wrapper img {
+  max-width: 100%;
+  display: block;
+}
+
+/* Insignias de estado de crédito */
+.badge-credit-approved {
+  background-color: #d1fae5;
+  color: #065f46;
+  font-weight: 800;
+}
+
+.badge-credit-pending {
+  background-color: #fef3c7;
+  color: #92400e;
+  font-weight: 800;
+}
+
+.badge-credit-rejected {
+  background-color: #fee2e2;
+  color: #991b1b;
+  font-weight: 800;
 }
