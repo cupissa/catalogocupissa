@@ -1,18 +1,17 @@
 /**
- * js/modules/admin/web/web-products.js
- * Carga Inteligente de Productos en Supabase, Visibilidad en Tienda Cliente,
- * Precios Mayoristas, Tallas/Colores con Incrementos, Alquiler, Depósitos e Imágenes.
+ * catalogocupissa/js/modules/admin/web/web-products.js
+ * Módulo de Carga Inteligente de Productos para el Catálogo Web
  */
 
 window.webCropperInstance = null;
 window.currentProductWebImgBase64 = null;
 
-// Arreglos temporales para tallas y colores del producto en edición
+// Arreglos temporales para variantes (tallas/colores) del producto en edición
 window.currentAdminTallas = [];
 window.currentAdminColores = [];
 
 function safeParseMontoWeb(val) {
-  if (typeof parseMonto === 'function') return parseMonto(val);
+  if (typeof window.parseMonto === 'function') return window.parseMonto(val);
   if (typeof val === 'number') return val;
   if (!val) return 0;
   const num = parseFloat(String(val).replace(/[^0-9.-]+/g, ''));
@@ -20,20 +19,20 @@ function safeParseMontoWeb(val) {
 }
 
 function safeFormatMonedaWeb(val) {
-  if (typeof formatMoneda === 'function') return formatMoneda(val);
+  if (typeof window.formatMoneda === 'function') return window.formatMoneda(val);
   return new Intl.NumberFormat('es-CO').format(val || 0);
 }
 
 function safeShowToastWeb(msg, type = 'success') {
-  if (typeof showToast === 'function') {
-    showToast(msg, type);
+  if (typeof window.showToast === 'function') {
+    window.showToast(msg, type);
   } else {
     console.log(`[Toast ${type}]: ${msg}`);
   }
 }
 
 /**
- * Carga el catálogo completo de productos directamente desde Supabase
+ * Carga los productos para el módulo de Gestión Web
  */
 window.cargarProductosWeb = async function() {
   const tbody = document.getElementById('tabla-productos-web');
@@ -76,7 +75,7 @@ window.cargarProductosWeb = async function() {
 };
 
 /**
- * Renderizado de productos en la tabla administrativa de la tienda
+ * Renderiza la tabla de productos de la tienda online
  */
 window.renderizarTablaProductosWeb = function(lista) {
   const tbody = document.getElementById('tabla-productos-web');
@@ -94,10 +93,10 @@ window.renderizarTablaProductosWeb = function(lista) {
   }
 
   tbody.innerHTML = lista.map(p => {
-    const foto = p.image_url || p.imagen || 'images/logo.png';
-    const esOculto = p.oculto_web || false;
-    const esPersonalizable = p.es_personalizable || false;
-    const esMayorista = p.es_mayorista || false;
+    const foto = (p.imagenes && p.imagenes.length > 0) ? p.imagenes[0] : (p.image_url || p.imagen || 'images/logo.png');
+    const esOculto = Boolean(p.oculto_web);
+    const esPersonalizable = Boolean(p.es_personalizable);
+    const esMayorista = Boolean(p.es_mayorista);
 
     const precioDetal = safeParseMontoWeb(p.precio_detal || p.price);
     const precioMayor = safeParseMontoWeb(p.precio_mayorista);
@@ -177,14 +176,17 @@ window.filtrarProductosWeb = function() {
 };
 
 /**
- * Alterna el estado oculto_web de un producto
+ * Alterna el estado oculto_web / visible_web de un producto
  */
 window.toggleVisibilidadProductoWeb = async function(id, estadoActualOculto) {
   try {
     const client = window.supabaseClient || window.supabase;
     const { error } = await client
       .from('productos')
-      .update({ oculto_web: !estadoActualOculto })
+      .update({
+        oculto_web: !estadoActualOculto,
+        visible_web: estadoActualOculto
+      })
       .eq('id', id);
 
     if (error) throw error;
@@ -217,7 +219,7 @@ window.eliminarProductoWeb = async function(id) {
 };
 
 /**
- * Muestra/Oculta los campos de alquiler en el formulario según el checkbox
+ * Muestra u oculta la sección de alquiler según el checkbox
  */
 window.toggleSeccionAlquilerAdmin = function(isRent) {
   const box = document.getElementById('seccion-alquiler-admin-box');
@@ -228,7 +230,7 @@ window.toggleSeccionAlquilerAdmin = function(isRent) {
 };
 
 /**
- * Gestión dinámica de Tallas (Agregar / Eliminar)
+ * Gestión de Tallas
  */
 window.agregarTallaAlProductoAdmin = function() {
   const inpNombre = document.getElementById('input-nueva-talla-nombre');
@@ -276,7 +278,7 @@ window.renderListaTallasAdmin = function() {
 };
 
 /**
- * Gestión dinámica de Colores (Agregar / Eliminar)
+ * Gestión de Colores
  */
 window.agregarColorAlProductoAdmin = function() {
   const inpNombre = document.getElementById('input-nuevo-color-nombre');
@@ -324,7 +326,7 @@ window.renderListaColoresAdmin = function() {
 };
 
 /**
- * Abre el modal para crear o editar producto
+ * Abre el modal de producto para creación o edición
  */
 window.abrirModalProductoWeb = function(prod = null) {
   const modal = document.getElementById('modal-producto-web');
@@ -344,13 +346,27 @@ window.abrirModalProductoWeb = function(prod = null) {
     document.getElementById('prod-web-subcategoria').value = prod.subcategoria || '';
     document.getElementById('prod-web-temporada').value = prod.temporada || '';
 
+    if (document.getElementById('prod-web-origen')) {
+      document.getElementById('prod-web-origen').value = prod.origen || 'sobre_pedido';
+    }
+    if (document.getElementById('prod-web-dias-fabricacion')) {
+      document.getElementById('prod-web-dias-fabricacion').value = prod.dias_fabricacion || 3;
+    }
+
     document.getElementById('prod-web-precio-detal').value = prod.precio_detal || prod.price || 0;
     document.getElementById('prod-web-precio-mayor').value = prod.precio_mayorista || 0;
     document.getElementById('prod-web-cant-mayor').value = prod.cant_minima_mayorista || 6;
-    document.getElementById('prod-web-porcentaje-anticipo').value = prod.porcentaje_anticipo || 50;
 
-    document.getElementById('prod-web-precio-alquiler').value = prod.precio_alquiler || 0;
-    document.getElementById('prod-web-valor-deposito').value = prod.valor_deposito || 0;
+    if (document.getElementById('prod-web-porcentaje-anticipo')) {
+      document.getElementById('prod-web-porcentaje-anticipo').value = prod.porcentaje_anticipo || 50;
+    }
+
+    if (document.getElementById('prod-web-precio-alquiler')) {
+      document.getElementById('prod-web-precio-alquiler').value = prod.precio_alquiler || 0;
+    }
+    if (document.getElementById('prod-web-valor-deposito')) {
+      document.getElementById('prod-web-valor-deposito').value = prod.valor_deposito || 0;
+    }
 
     document.getElementById('prod-web-check-personalizable').checked = prod.es_personalizable || false;
     document.getElementById('prod-web-check-mayorista').checked = prod.es_mayorista || false;
@@ -373,13 +389,18 @@ window.abrirModalProductoWeb = function(prod = null) {
     } catch (e) { window.currentAdminColores = []; }
 
     const imgPreview = document.getElementById('prod-web-img-preview');
-    const foto = prod.image_url || prod.imagen || 'images/logo.png';
+    const foto = (prod.imagenes && prod.imagenes.length > 0) ? prod.imagenes[0] : (prod.image_url || prod.imagen || 'images/logo.png');
     if (imgPreview) imgPreview.src = foto;
     window.currentProductWebImgBase64 = foto;
 
   } else {
     document.getElementById('prod-web-id').value = '';
-    document.getElementById('prod-web-porcentaje-anticipo').value = 50;
+    if (document.getElementById('prod-web-porcentaje-anticipo')) {
+      document.getElementById('prod-web-porcentaje-anticipo').value = 50;
+    }
+    if (document.getElementById('prod-web-dias-fabricacion')) {
+      document.getElementById('prod-web-dias-fabricacion').value = 3;
+    }
     window.toggleSeccionAlquilerAdmin(false);
 
     const imgPreview = document.getElementById('prod-web-img-preview');
@@ -393,7 +414,7 @@ window.abrirModalProductoWeb = function(prod = null) {
 };
 
 /**
- * Eventos para Drag & Drop, Clic en Dropzone y Pegar desde el portapapeles
+ * Eventos para Drag & Drop e imagen pegada
  */
 window.initDragDropAndPasteImageWeb = function() {
   const dropZone = document.getElementById('prod-web-drop-zone');
@@ -409,16 +430,16 @@ window.initDragDropAndPasteImageWeb = function() {
 
     dropZone.addEventListener('dragover', (e) => {
       e.preventDefault();
-      dropZone.classList.add('border-brand-500', 'bg-brand-50/50');
+      dropZone.classList.add('border-indigo-500', 'bg-indigo-50/50');
     });
 
     dropZone.addEventListener('dragleave', () => {
-      dropZone.classList.remove('border-brand-500', 'bg-brand-50/50');
+      dropZone.classList.remove('border-indigo-500', 'bg-indigo-50/50');
     });
 
     dropZone.addEventListener('drop', (e) => {
       e.preventDefault();
-      dropZone.classList.remove('border-brand-500', 'bg-brand-50/50');
+      dropZone.classList.remove('border-indigo-500', 'bg-indigo-50/50');
       if (e.dataTransfer.files && e.dataTransfer.files[0]) {
         window.procesarFotoProductoWeb(e.dataTransfer.files[0]);
       }
@@ -447,7 +468,7 @@ window.initDragDropAndPasteImageWeb = function() {
 };
 
 /**
- * Lee la imagen y activa el recortador Cropper.js
+ * Lee la imagen y activa Cropper.js si está disponible
  */
 window.procesarFotoProductoWeb = function(file) {
   if (!file || !file.type.startsWith('image/')) {
@@ -483,7 +504,7 @@ window.procesarFotoProductoWeb = function(file) {
 };
 
 /**
- * Confirma el recorte y comprime la imagen
+ * Confirma el recorte con Cropper.js
  */
 window.confirmarRecorteFotoWeb = function() {
   if (window.webCropperInstance) {
@@ -504,12 +525,12 @@ window.confirmarRecorteFotoWeb = function() {
     window.webCropperInstance.destroy();
     window.webCropperInstance = null;
 
-    safeShowToastWeb("Imagen recortada y lista para subir.");
+    safeShowToastWeb("Imagen recortada correctamente.");
   }
 };
 
 /**
- * Inserción / Actualización segura en Supabase con subida a Supabase Storage
+ * Inserción o actualización en Supabase
  */
 window.guardarProductoWeb = async function(e) {
   if (e) e.preventDefault();
@@ -517,13 +538,13 @@ window.guardarProductoWeb = async function(e) {
   const btnSubmit = e?.target?.querySelector('button[type="submit"]');
   if (btnSubmit) {
     btnSubmit.disabled = true;
-    btnSubmit.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-1"></i> Subiendo imagen y guardando...`;
+    btnSubmit.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-1"></i> Guardando en Supabase...`;
   }
 
   try {
     const client = window.supabaseClient || window.supabase;
     if (!client) {
-      throw new Error("El cliente de Supabase no se encuentra inicializado.");
+      throw new Error("El cliente de Supabase no está inicializado.");
     }
 
     const id = document.getElementById('prod-web-id')?.value;
@@ -532,6 +553,9 @@ window.guardarProductoWeb = async function(e) {
     const categoria = (document.getElementById('prod-web-categoria')?.value || '').trim();
     const subcategoria = (document.getElementById('prod-web-subcategoria')?.value || '').trim();
     const temporada = (document.getElementById('prod-web-temporada')?.value || '').trim().toUpperCase();
+
+    const origen = document.getElementById('prod-web-origen')?.value || 'sobre_pedido';
+    const dias_fabricacion = parseInt(document.getElementById('prod-web-dias-fabricacion')?.value || 3, 10) || 3;
 
     const precio_detal = safeParseMontoWeb(document.getElementById('prod-web-precio-detal')?.value);
     const precio_mayorista = safeParseMontoWeb(document.getElementById('prod-web-precio-mayor')?.value);
@@ -553,7 +577,7 @@ window.guardarProductoWeb = async function(e) {
 
     let finalImageUrl = null;
 
-    // Subir imagen a Supabase Storage si es una data URL en base64
+    // Subir imagen a Supabase Storage si es un data URL
     if (window.currentProductWebImgBase64) {
       if (window.currentProductWebImgBase64.startsWith('data:')) {
         try {
@@ -562,7 +586,7 @@ window.guardarProductoWeb = async function(e) {
           const ext = blob.type.split('/')[1] || 'jpg';
           const fileName = `catalog/${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${ext}`;
 
-          const { data: uploadData, error: uploadError } = await client
+          const { error: uploadError } = await client
             .storage
             .from('productos')
             .upload(fileName, blob, {
@@ -572,7 +596,7 @@ window.guardarProductoWeb = async function(e) {
             });
 
           if (uploadError) {
-            console.warn('No se pudo subir la imagen a Supabase Storage. Usando Base64 fallback:', uploadError.message);
+            console.warn('Fallback imagen Base64 por error de Storage:', uploadError.message);
             finalImageUrl = window.currentProductWebImgBase64;
           } else {
             const { data: publicUrlData } = client
@@ -583,7 +607,7 @@ window.guardarProductoWeb = async function(e) {
             finalImageUrl = publicUrlData?.publicUrl || window.currentProductWebImgBase64;
           }
         } catch (storageErr) {
-          console.warn('Error al procesar la imagen para Storage:', storageErr);
+          console.warn('Error procesando archivo para Storage:', storageErr);
           finalImageUrl = window.currentProductWebImgBase64;
         }
       } else {
@@ -597,6 +621,8 @@ window.guardarProductoWeb = async function(e) {
       categoria,
       subcategoria,
       temporada,
+      origen,
+      dias_fabricacion,
       precio_detal,
       price: precio_detal,
       precio_mayorista,
@@ -611,24 +637,25 @@ window.guardarProductoWeb = async function(e) {
       permitir_venta,
       permitir_alquiler,
       permitir_credito,
-      is_active: true,
+      visible_web: true,
       oculto_web: false
     };
 
     if (finalImageUrl) {
       payload.image_url = finalImageUrl;
       payload.imagen = finalImageUrl;
+      payload.imagenes = [finalImageUrl];
     }
 
     if (id) {
       const { error } = await client.from('productos').update(payload).eq('id', id);
       if (error) throw error;
-      safeShowToastWeb("Producto actualizado correctamente.");
+      safeShowToastWeb("Producto actualizado en la tienda web.");
     } else {
       payload.referencia = 'CUP-' + Math.floor(1000 + Math.random() * 9000);
       const { error } = await client.from('productos').insert([payload]);
       if (error) throw error;
-      safeShowToastWeb("¡Producto creado y publicado en la tienda!");
+      safeShowToastWeb("¡Producto publicado correctamente!");
     }
 
     const modal = document.getElementById('modal-producto-web');
@@ -636,7 +663,7 @@ window.guardarProductoWeb = async function(e) {
     window.cargarProductosWeb();
   } catch (err) {
     console.error("Error al guardar producto en Supabase:", err);
-    safeShowToastWeb(err.message || "Error de conexión al guardar el producto en Supabase.", "error");
+    safeShowToastWeb(err.message || "Error al guardar producto en Supabase.", "error");
   } finally {
     if (btnSubmit) {
       btnSubmit.disabled = false;
@@ -645,7 +672,7 @@ window.guardarProductoWeb = async function(e) {
   }
 };
 
-// Inicialización automática de eventos
+// Auto-inicialización de eventos
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => {
     window.initDragDropAndPasteImageWeb();
