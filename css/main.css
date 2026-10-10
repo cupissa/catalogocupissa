@@ -1,7 +1,12 @@
+/* ==========================================================================
+   ESTILOS GENERALES Y MAQUETACIÓN GLOBAL
+   ========================================================================== */
+
 html {
   scroll-behavior: smooth;
 }
 
+/* Ocultar barra de desplazamiento manteniendo funcionalidad de scroll */
 .scrollbar-none::-webkit-scrollbar {
   display: none;
 }
@@ -9,4 +14,86 @@ html {
 .scrollbar-none {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+/* Grilla / Cuadrícula Dinámica para la Sección de Mundos */
+.worlds-grid,
+#contenedor-mundos-home {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1.5rem;
+}
+
+/* Animaciones de transición suave para la carga de vistas y pestañas */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.25s ease-out forwards;
+}
+
+/* Área de Arrastrar y Soltar Fotos (Drag & Drop Zone Admin) */
+.drop-zone-area {
+  border: 2px dashed #f472b6;
+  background-color: rgba(253, 242, 248, 0.4);
+  border-radius: 1rem;
+  padding: 1.5rem;
+  text-align: center;
+  transition: all 0.2s ease-in-out;
+  cursor: pointer;
+}
+
+.drop-zone-area:hover,
+.drop-zone-area.drag-over {
+  background-color: rgba(252, 231, 243, 0.8);
+  border-color: #db2777;
+}
+
+/* Cropper Container Wrapper (Modal Recortador de Imagen) */
+.cropper-container-wrapper {
+  max-height: 380px;
+  width: 100%;
+  overflow: hidden;
+  background-color: #000;
+  border-radius: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cropper-container-wrapper img {
+  max-width: 100%;
+  max-height: 380px;
+  display: block;
+}
+
+/* Reglas especiales de Impresión (Reportes PDF Gerenciales) */
+@media print {
+  body {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+  }
+  
+  .no-print,
+  header,
+  footer,
+  #toast-container,
+  button,
+  .modal-overlay {
+    display: none !important;
+  }
+
+  #printable-area {
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+  }
 }
