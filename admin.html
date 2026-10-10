@@ -16,7 +16,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
     
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="css/admin.css?v=1.6">
+    <link rel="stylesheet" href="css/admin.css?v=1.7">
 </head>
 <body class="bg-slate-100 text-slate-800 font-sans antialiased pb-20">
 
@@ -369,6 +369,15 @@
                         <p class="text-xs text-slate-400">Suma stock directo (+ / -) y edita en tiempo real</p>
                     </div>
                     <div class="flex flex-wrap gap-2 w-full sm:w-auto">
+                        <!-- 1. FILTRO PARA QUIÉN EN INVENTARIO FÍSICO -->
+                        <select id="filtro-para-quien-inv" onchange="renderizarTablaInventarioAdmin(window.adminProductsCache)" class="p-2.5 border rounded-xl text-xs bg-slate-50 font-semibold text-indigo-900">
+                            <option value="todos">👧🏻 ¿Para quién? (Todos)</option>
+                            <option value="Niñas">Niñas</option>
+                            <option value="Niños">Niños</option>
+                            <option value="Damas">Damas</option>
+                            <option value="Caballeros">Caballeros</option>
+                            <option value="Bebés">Bebés</option>
+                        </select>
                         <select id="filtro-origen-inv" onchange="cargarInventarioAdmin()" class="p-2.5 border rounded-xl text-xs bg-slate-50 font-semibold">
                             <option value="todos">Todos los Orígenes</option>
                             <option value="Venezuela">Venezuela</option>
@@ -381,7 +390,7 @@
                 <div class="overflow-x-auto border rounded-xl">
                     <table class="w-full text-left border-collapse sheets-table">
                         <thead>
-                            <tr><th>Ref / Origen</th><th>Producto & Mundo</th><th>Stock (+ / -)</th><th>Precios (Detal / Mayor)</th><th>Acciones</th></tr>
+                            <tr><th>Ref / Origen</th><th>Producto & Público</th><th>Stock (+ / -)</th><th>Precios (Detal / Mayor)</th><th>Crédito CUPISSA</th><th>Visibilidad</th><th>Acciones</th></tr>
                         </thead>
                         <tbody id="tabla-inventario-admin" class="text-xs"></tbody>
                     </table>
@@ -598,7 +607,7 @@
                         <h2 class="text-base sm:text-lg font-black text-pink-700 flex items-center gap-2">
                             <i class="fa-solid fa-globe"></i> Administración de la Tienda Online
                         </h2>
-                        <p class="text-xs text-slate-500">Gestión de clientes web, catálogo inteligente, fotos, precios y créditos</p>
+                        <p class="text-xs text-slate-500">Gestión de clientes web, catálogo inteligente, fotos por color, precios y crédito CUPISSA</p>
                     </div>
                     <div class="flex gap-2 w-full sm:w-auto">
                         <button onclick="switchSubTabWeb('clientes')" id="btn-subtab-web-clientes" class="px-4 py-2 bg-brand-600 text-white font-extrabold rounded-xl text-xs shadow transition">
@@ -642,14 +651,14 @@
                 <!-- SUB-PESTAÑA 2: CATÁLOGO DE PRODUCTOS ONLINE -->
                 <div id="subtab-web-productos" class="hidden pt-4 space-y-4">
                     
-                    <!-- BARRA / BLOQUE DE CONFIGURACIÓN DE TEMPORADA ACTUAL -->
+                    <!-- BARRA DE CONFIGURACIÓN DE TEMPORADA -->
                     <div class="bg-gradient-to-r from-pink-50 via-purple-50 to-indigo-50 p-4 rounded-2xl border border-pink-200 shadow-sm space-y-2">
                         <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                             <div class="flex items-center gap-2">
                                 <span class="text-xl">🎉</span>
                                 <div>
                                     <h3 class="font-black text-xs sm:text-sm text-slate-800 uppercase tracking-wide">Temporada Actual Destacada</h3>
-                                    <p class="text-[11px] text-slate-500">Define la temporada activa (ej. NAVIDAD). Los productos con esta temporada aparecerán de forma rotativa (5 aleatorios) en la sección de Productos Destacados de la página principal.</p>
+                                    <p class="text-[11px] text-slate-500">Define la temporada activa (ej. NAVIDAD). Aparecerán de forma rotativa en la sección principal.</p>
                                 </div>
                             </div>
                             <div class="flex items-center gap-2 w-full sm:w-auto shrink-0">
@@ -662,13 +671,24 @@
                     </div>
 
                     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                        <div class="relative w-full sm:w-80">
-                            <input type="text" id="buscador-productos-web" oninput="filtrarProductosWeb()" placeholder="🔍 Buscar en la tienda pública..." class="p-2.5 pl-9 border rounded-xl w-full text-xs bg-slate-50 font-medium">
-                            <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-slate-400 text-xs"></i>
+                        <div class="flex flex-wrap gap-2 w-full sm:w-auto">
+                            <!-- 1. FILTRO PARA QUIÉN EN LA TIENDA WEB -->
+                            <select id="filtro-para-quien-web" onchange="filtrarProductosWeb()" class="p-2.5 border rounded-xl text-xs bg-slate-50 font-bold text-pink-700">
+                                <option value="todos">👧🏻 ¿Para quién? (Todos)</option>
+                                <option value="Niñas">Niñas</option>
+                                <option value="Niños">Niños</option>
+                                <option value="Damas">Damas</option>
+                                <option value="Caballeros">Caballeros</option>
+                                <option value="Bebés">Bebés</option>
+                            </select>
+                            <div class="relative w-full sm:w-64">
+                                <input type="text" id="buscador-productos-web" oninput="filtrarProductosWeb()" placeholder="🔍 Buscar en la tienda..." class="p-2.5 pl-9 border rounded-xl w-full text-xs bg-slate-50 font-medium">
+                                <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-slate-400 text-xs"></i>
+                            </div>
                         </div>
                         <button onclick="abrirModalProductoWeb()" class="bg-pink-600 hover:bg-pink-700 text-white px-4 py-2.5 rounded-xl font-extrabold text-xs shadow-md transition-all flex items-center gap-2">
                             <i class="fa-solid fa-plus"></i>
-                            <span>Nuevo Producto Web</span>
+                            <span>Nuevo Producto Inteligente</span>
                         </button>
                     </div>
 
@@ -676,9 +696,10 @@
                         <table class="w-full text-left border-collapse sheets-table">
                             <thead>
                                 <tr>
-                                    <th>Producto & Categoría</th>
-                                    <th>Precios (Detal / Mayor)</th>
+                                    <th>Producto, Público & Categoría</th>
+                                    <th>Precios / Producción</th>
                                     <th>Modalidades</th>
+                                    <th>Crédito CUPISSA</th>
                                     <th class="text-center">Personalizable</th>
                                     <th class="text-center">Visibilidad</th>
                                     <th class="text-right">Acciones</th>
@@ -768,7 +789,7 @@
         </div>
     </div>
 
-    <!-- MODAL CREACIÓN Y EDICIÓN DE PRODUCTO WEB CON TALLAS, COLORES Y VALORES DE ALQUILER/ANTICIPO -->
+    <!-- MODAL CREACIÓN Y EDICIÓN DE PRODUCTO INTELIGENTE WEB -->
     <div id="modal-producto-web" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
         <div class="bg-white rounded-3xl max-w-3xl w-full p-6 space-y-4 shadow-2xl text-xs relative max-h-[92vh] overflow-y-auto">
             <button onclick="document.getElementById('modal-producto-web').classList.add('hidden')" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600">
@@ -776,7 +797,7 @@
             </button>
 
             <h3 class="text-base font-black text-pink-700 border-b pb-2 flex items-center gap-2">
-                <i class="fa-solid fa-wand-magic-sparkles"></i> Configuración Inteligente de Producto Web
+                <i class="fa-solid fa-wand-magic-sparkles"></i> Carga Inteligente de Producto Web
             </h3>
 
             <form id="form-producto-web" onsubmit="guardarProductoWeb(event)" class="space-y-4">
@@ -785,7 +806,7 @@
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div class="sm:col-span-2">
                         <label class="font-bold text-slate-700">Nombre del Producto *</label>
-                        <input type="text" id="prod-web-nombre" required placeholder="Ej: Vestido Elegante Gala Red" class="p-2.5 border rounded-xl w-full mt-1 bg-slate-50">
+                        <input type="text" id="prod-web-nombre" required placeholder="Ej: Vestido Gala Princesa" class="p-2.5 border rounded-xl w-full mt-1 bg-slate-50">
                     </div>
                     <div>
                         <label class="font-bold text-slate-700">Mundo *</label>
@@ -794,25 +815,38 @@
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <!-- 1. MULTISELECT ¿PARA QUIÉN? -->
                     <div>
-                        <label class="font-bold text-slate-700">Categoría</label>
-                        <input type="text" id="prod-web-categoria" placeholder="Ej: Vestuario, Mobiliario..." class="p-2.5 border rounded-xl w-full mt-1 bg-slate-50">
+                        <label class="font-bold text-pink-700">¿Para quién? (Multiselección) *</label>
+                        <select id="prod-web-para-quien" multiple class="p-2 border rounded-xl w-full mt-1 bg-pink-50 h-20 font-semibold text-slate-800">
+                            <option value="Niñas">Niñas</option>
+                            <option value="Niños">Niños</option>
+                            <option value="Damas">Damas</option>
+                            <option value="Caballeros">Caballeros</option>
+                            <option value="Bebés">Bebés</option>
+                            <option value="Unisex">Unisex</option>
+                        </select>
+                        <span class="text-[9px] text-slate-400">Usa Ctrl / Cmd para seleccionar varios</span>
                     </div>
-                    <div>
-                        <label class="font-bold text-slate-700">Subcategoría</label>
 
-                        <input type="text" id="prod-web-subcategoria" placeholder="Ej: Vestidos Gala, Sillas..." class="p-2.5 border rounded-xl w-full mt-1 bg-slate-50">
-                    </div>
                     <div>
-                        <label class="font-bold text-slate-700">Temporada</label>
-                        <input type="text" id="prod-web-temporada" placeholder="Ej: NAVIDAD, MADRES, AMOR Y AMISTAD..." class="p-2.5 border rounded-xl w-full mt-1 bg-slate-50 uppercase">
+                        <label class="font-bold text-slate-700">Categoría / Subcategoría</label>
+                        <input type="text" id="prod-web-categoria" placeholder="Ej: Vestuario Gala" class="p-2.5 border rounded-xl w-full mt-1 bg-slate-50 mb-1">
+                        <input type="text" id="prod-web-subcategoria" placeholder="Ej: Infantil" class="p-2.5 border rounded-xl w-full bg-slate-50">
+                    </div>
+
+                    <!-- 2. DÍAS DE PRODUCCIÓN -->
+                    <div>
+                        <label class="font-bold text-amber-700">Días de Producción Requeridos *</label>
+                        <input type="number" id="prod-web-dias-fabricacion" min="0" value="0" placeholder="0 = Entrega Inmediata" class="p-2.5 border rounded-xl w-full mt-1 bg-amber-50 font-bold text-amber-900">
+                        <span class="text-[9px] text-slate-400">0 si es de entrega inmediata</span>
                     </div>
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-4 gap-3 bg-slate-50 p-3 rounded-2xl border">
                     <div>
                         <label class="font-bold text-slate-700">Precio Detal / Venta ($) *</label>
-                        <input type="text" id="prod-web-precio-detal" required placeholder="0" class="p-2.5 border rounded-xl w-full mt-1 bg-white font-bold text-indigo-700">
+                        <input type="text" id="prod-web-precio-detal" required placeholder="0" oninput="actualizarSimulacionCreditoModal()" class="p-2.5 border rounded-xl w-full mt-1 bg-white font-bold text-indigo-700">
                     </div>
                     <div>
                         <label class="font-bold text-slate-700">Precio Mayorista ($)</label>
@@ -828,8 +862,32 @@
                     </div>
                 </div>
 
-                <!-- OPCIONES AVANZADAS: PERSONALIZABLE, MAYORISTA, MODALIDADES -->
-                <div class="grid grid-cols-2 sm:grid-cols-5 gap-2 p-3 bg-pink-50/50 rounded-2xl border border-pink-100">
+                <!-- 6. CONFIGURACIÓN Y CALCULADORA CRÉDITO CUPISSA -->
+                <div class="bg-indigo-50/70 p-3.5 rounded-2xl border border-indigo-200 space-y-2">
+                    <div class="flex items-center justify-between">
+                        <label class="flex items-center gap-2 font-black text-indigo-900 cursor-pointer text-xs">
+                            <input type="checkbox" id="prod-web-check-credito" onchange="actualizarSimulacionCreditoModal()" class="rounded text-indigo-600">
+                            <span>💳 Habilitar Crédito CUPISSA para este producto</span>
+                        </label>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3 pt-1">
+                        <div>
+                            <label class="font-bold text-slate-700 text-[11px]">% Cuota Inicial</label>
+                            <input type="number" id="prod-web-cuota-inicial-pct" value="20" min="0" max="100" oninput="actualizarSimulacionCreditoModal()" class="p-2 border rounded-xl w-full bg-white font-bold text-indigo-700 mt-0.5">
+                        </div>
+                        <div>
+                            <label class="font-bold text-slate-700 text-[11px]">% Tasa Interés Mensual</label>
+                            <input type="number" id="prod-web-tasa-interes" value="2.5" step="0.1" min="0" oninput="actualizarSimulacionCreditoModal()" class="p-2 border rounded-xl w-full bg-white font-bold text-indigo-700 mt-0.5">
+                        </div>
+                    </div>
+
+                    <!-- Panel Dinámico de Simulación -->
+                    <div id="resumen-simulacion-credito" class="hidden"></div>
+                </div>
+
+                <!-- OPCIONES DE MODALIDADES -->
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 p-3 bg-pink-50/50 rounded-2xl border border-pink-100">
                     <label class="flex items-center gap-1.5 font-bold text-slate-700 cursor-pointer">
                         <input type="checkbox" id="prod-web-check-personalizable" class="rounded text-pink-600">
                         <span>Personalizable</span>
@@ -846,13 +904,9 @@
                         <input type="checkbox" id="prod-web-check-alquiler" onchange="toggleSeccionAlquilerAdmin(this.checked)" class="rounded text-pink-600">
                         <span>Alquiler</span>
                     </label>
-                    <label class="flex items-center gap-1.5 font-bold text-slate-700 cursor-pointer">
-                        <input type="checkbox" id="prod-web-check-credito" class="rounded text-pink-600">
-                        <span>Crédito</span>
-                    </label>
                 </div>
 
-                <!-- VALORES EXCLUSIVOS PARA ALQUILER DE VESTUARIO O MOBILIARIO -->
+                <!-- VALORES EXCLUSIVOS PARA ALQUILER -->
                 <div id="seccion-alquiler-admin-box" class="hidden grid grid-cols-1 sm:grid-cols-2 gap-3 bg-purple-50 p-3 rounded-2xl border border-purple-200">
                     <div>
                         <label class="font-bold text-purple-900">Valor de Alquiler ($) *</label>
@@ -864,49 +918,71 @@
                     </div>
                 </div>
 
-                <!-- CONSTRUCTOR DINÁMICO DE TALLAS CON INCREMENTO -->
+                <!-- 3. CONSTRUCTOR DE TALLAS CON INCREMENTO -->
                 <div class="bg-slate-50 p-3.5 rounded-2xl border space-y-2">
                     <div class="flex justify-between items-center">
                         <h4 class="font-black text-slate-800 uppercase tracking-wide text-[11px] flex items-center gap-1.5">
-                            <i class="fa-solid fa-ruler-combined text-indigo-600"></i> Tallas Disponibles & Incremento
+                            <i class="fa-solid fa-ruler-combined text-indigo-600"></i> Tallas Seleccionables con Incremento
                         </h4>
-                        <span class="text-[10px] text-slate-400">Opcional para vestidos, calzado o empaques</span>
                     </div>
 
                     <div class="flex items-center gap-2">
-                        <input type="text" id="input-nueva-talla-nombre" placeholder="Ej: S, M, L, XL, 40x40cm" class="p-2 border rounded-xl w-1/2 bg-white font-semibold">
-                        <input type="text" id="input-nueva-talla-precio" placeholder="Incremento $ (Ej: 0 o 5000)" class="p-2 border rounded-xl w-1/2 bg-white font-bold text-indigo-700">
-                        <button type="button" onclick="agregarTallaAlProductoAdmin()" class="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl whitespace-nowrap shadow">+ Agregar</button>
+                        <input type="text" id="input-nueva-talla-nombre" list="datalist-atributos-globales" placeholder="Ej: S, M, XL, 38..." class="p-2 border rounded-xl w-1/3 bg-white font-semibold">
+                        <input type="text" id="input-nueva-talla-precio" placeholder="+$ Incremento" class="p-2 border rounded-xl w-1/3 bg-white font-bold text-indigo-700">
+                        <label class="flex items-center gap-1 text-[10px] text-slate-600 font-bold whitespace-nowrap">
+                            <input type="checkbox" id="chk-guardar-talla-global" class="rounded"> Guardar Global
+                        </label>
+                        <button type="button" onclick="agregarTallaAlProductoAdmin()" class="px-3 py-2 bg-indigo-600 text-white font-bold rounded-xl whitespace-nowrap shadow">+ Agregar</button>
                     </div>
 
-                    <div id="contenedor-lista-tallas-admin" class="flex flex-wrap gap-2 pt-1">
-                        <span class="text-[11px] text-slate-400 italic">No hay tallas agregadas aún.</span>
-                    </div>
+                    <div id="contenedor-lista-tallas-admin" class="flex flex-wrap gap-2 pt-1"></div>
                 </div>
 
-                <!-- CONSTRUCTOR DINÁMICO DE COLORES CON INCREMENTO -->
-                <div class="bg-slate-50 p-3.5 rounded-2xl border space-y-2">
+                <!-- 3. CONSTRUCTOR DE VARIABLES (MATERIALES Y ACCESORIOS REUTILIZABLES) -->
+                <div class="bg-amber-50/60 p-3.5 rounded-2xl border border-amber-200 space-y-2">
                     <div class="flex justify-between items-center">
-                        <h4 class="font-black text-slate-800 uppercase tracking-wide text-[11px] flex items-center gap-1.5">
-                            <i class="fa-solid fa-palette text-pink-600"></i> Colores / Tonos Disponibles & Incremento
+                        <h4 class="font-black text-amber-900 uppercase tracking-wide text-[11px] flex items-center gap-1.5">
+                            <i class="fa-solid fa-gem text-amber-600"></i> Materiales y Accesorios / Complementos Reutilizables
                         </h4>
-                        <span class="text-[10px] text-slate-400">Opcional para variedad de presentaciones</span>
                     </div>
 
                     <div class="flex items-center gap-2">
-                        <input type="text" id="input-nuevo-color-nombre" placeholder="Ej: Rojo Pasión, Dorado, Blanco" class="p-2.5 border rounded-xl w-1/2 bg-white font-semibold">
-                        <input type="text" id="input-nuevo-color-precio" placeholder="Incremento $ (Ej: 0 o 2000)" class="p-2.5 border rounded-xl w-1/2 bg-white font-bold text-pink-700">
-                        <button type="button" onclick="agregarColorAlProductoAdmin()" class="px-3 py-2 bg-pink-600 hover:bg-pink-700 text-white font-bold rounded-xl whitespace-nowrap shadow">+ Agregar</button>
+                        <select id="input-variable-tipo" class="p-2 border rounded-xl bg-white text-[11px] font-bold">
+                            <option value="material">Material</option>
+                            <option value="accesorio">Accesorio</option>
+                            <option value="complemento">Complemento</option>
+                        </select>
+                        <input type="text" id="input-variable-nombre" list="datalist-atributos-globales" placeholder="Ej: Encaje Premium, Cinturón Seda" class="p-2 border rounded-xl w-1/3 bg-white font-semibold">
+                        <input type="text" id="input-variable-precio" placeholder="+$ Incremento" class="p-2 border rounded-xl w-1/4 bg-white font-bold text-amber-800">
+                        <label class="flex items-center gap-1 text-[10px] text-slate-600 font-bold whitespace-nowrap">
+                            <input type="checkbox" id="chk-guardar-variable-global" checked class="rounded"> Guardar Global
+                        </label>
+                        <button type="button" onclick="agregarVariableAccesorioProductoAdmin()" class="px-3 py-2 bg-amber-600 text-white font-bold rounded-xl whitespace-nowrap shadow">+ Guardar</button>
                     </div>
 
-                    <div id="contenedor-lista-colores-admin" class="flex flex-wrap gap-2 pt-1">
-                        <span class="text-[11px] text-slate-400 italic">No hay colores agregados aún.</span>
-                    </div>
+                    <div id="contenedor-lista-variables-admin" class="flex flex-wrap gap-2 pt-1"></div>
                 </div>
 
-                <!-- SUBIDA DE IMAGEN DROPZONE Y FILE INPUT -->
+                <!-- 5. CONSTRUCTOR DE COLORES CON FOTO ESPECÍFICA (O REFERENCIA ÚNICA) -->
+                <div class="bg-pink-50/60 p-3.5 rounded-2xl border border-pink-200 space-y-2">
+                    <div class="flex justify-between items-center">
+                        <h4 class="font-black text-pink-900 uppercase tracking-wide text-[11px] flex items-center gap-1.5">
+                            <i class="fa-solid fa-palette text-pink-600"></i> Colores y Fotos (Carpetas en Storage)
+                        </h4>
+                        <span class="text-[9px] text-pink-700">Sin colores = Referencia Única</span>
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                        <input type="text" id="input-nuevo-color-nombre" placeholder="Ej: Rojo Pasión, Blanco Marfil" class="p-2.5 border rounded-xl w-full bg-white font-semibold">
+                        <button type="button" onclick="agregarColorAlProductoAdmin()" class="px-3 py-2 bg-pink-600 text-white font-bold rounded-xl whitespace-nowrap shadow">+ Crear Color</button>
+                    </div>
+
+                    <div id="contenedor-lista-colores-admin" class="space-y-1.5 pt-1"></div>
+                </div>
+
+                <!-- 4. SUBIDA Y RECORTE LIBRE DE FOTO PRINCIPAL -->
                 <div>
-                    <label class="font-bold text-slate-700 mb-1 block">Imagen del Producto (Arrastra, Pega con Ctrl+V o Selecciona)</label>
+                    <label class="font-bold text-slate-700 mb-1 block">Imagen Principal (Cuerpo Completo / Recorte Libre)</label>
                     <div id="prod-web-drop-zone" class="drop-zone-area flex flex-col items-center justify-center p-6 border-2 border-dashed border-pink-300 rounded-2xl bg-pink-50/30 cursor-pointer hover:bg-pink-50 transition-colors">
                         <i class="fa-solid fa-cloud-arrow-up text-3xl text-pink-500 mb-2"></i>
                         <p class="font-bold text-slate-700">Arrastra tu imagen aquí o haz clic para subir</p>
@@ -914,7 +990,7 @@
                         <input type="file" id="prod-web-file-input" accept="image/*" class="hidden">
                     </div>
                     <div class="mt-2 flex justify-center">
-                        <img id="prod-web-img-preview" src="images/logo.png" class="w-20 h-20 object-contain rounded-xl border p-1 bg-white">
+                        <img id="prod-web-img-preview" src="images/logo.png" class="w-24 h-28 object-contain rounded-xl border p-1 bg-white shadow-sm">
                     </div>
                 </div>
 
@@ -926,14 +1002,14 @@
         </div>
     </div>
 
-    <!-- MODAL RECORTADOR DE FOTOS CROPPER.JS -->
+    <!-- MODAL RECORTADOR DE FOTOS CROPPER.JS LIBRE -->
     <div id="modal-cropper-web" class="fixed inset-0 bg-black/80 backdrop-blur-md hidden flex items-center justify-center p-4 z-50">
         <div class="bg-white rounded-3xl max-w-lg w-full p-6 space-y-4 shadow-2xl text-xs">
             <h3 class="text-base font-black text-slate-900 flex items-center gap-2">
-                <i class="fa-solid fa-crop-simple text-pink-600"></i> Ajustar y Recortar Foto del Producto
+                <i class="fa-solid fa-crop-simple text-pink-600"></i> Recorte Libre de Imagen (Cuerpo Completo)
             </h3>
             
-            <div class="cropper-container-wrapper">
+            <div class="cropper-container-wrapper max-h-96 overflow-hidden">
                 <img id="cropper-web-target" src="">
             </div>
 
@@ -949,21 +1025,21 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <!-- Configuración y servicios de conexión -->
-  <script src="js/config/constants.js?v=1.6"></script>
-  <script src="js/config/supabase.js?v=1.6"></script>
-  <script src="js/services/storage.js?v=1.6"></script>
-  <script src="js/services/settings.js?v=1.6"></script>
-  <script src="js/utils/supabase-sync.js?v=1.6"></script>
-  <script src="js/utils/ui.js?v=1.6"></script>
+  <script src="js/config/constants.js?v=1.7"></script>
+  <script src="js/config/supabase.js?v=1.7"></script>
+  <script src="js/services/storage.js?v=1.7"></script>
+  <script src="js/services/settings.js?v=1.7"></script>
+  <script src="js/utils/supabase-sync.js?v=1.7"></script>
+  <script src="js/utils/ui.js?v=1.7"></script>
 
   <!-- Módulos administrativos -->
-  <script src="js/modules/admin/admin-dashboard.js?v=1.6"></script>
-  <script src="js/modules/admin/admin-products.js?v=1.6"></script>
-  <script src="js/modules/admin/admin-orders.js?v=1.6"></script>
-  <script src="js/modules/admin/web/web-products.js?v=1.6"></script>
-  <script src="js/modules/admin/web/web-clients.js?v=1.6"></script>
+  <script src="js/modules/admin/admin-dashboard.js?v=1.7"></script>
+  <script src="js/modules/admin/admin-products.js?v=1.7"></script>
+  <script src="js/modules/admin/admin-orders.js?v=1.7"></script>
+  <script src="js/modules/admin/web/web-products.js?v=1.7"></script>
+  <script src="js/modules/admin/web/web-clients.js?v=1.7"></script>
 
   <!-- Controlador principal del panel -->
-  <script src="js/pages/admin-page.js?v=1.6"></script>
+  <script src="js/pages/admin-page.js?v=1.7"></script>
 </body>
 </html>
