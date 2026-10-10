@@ -1,12 +1,31 @@
 /**
  * js/modules/admin/admin-products.js
- * Módulo de Gestión de Inventario Interno y Catálogo Directo en Supabase (Sin datos piloto)
+ * Módulo de Gestión de Inventario, Subida de Imágenes y Catálogo en Supabase
  */
 
 window.adminProductsCache = [];
+window.currentProdImageBase64 = '';
+
+// Helpers de conversión de moneda
+function parseMontoLocal(val) {
+  if (typeof window.parseMonto === 'function') {
+    return window.parseMonto(val);
+  }
+  if (val === null || val === undefined || val === '') return 0;
+  if (typeof val === 'number') return isNaN(val) ? 0 : val;
+  const num = parseFloat(String(val).replace(/[^0-9.-]/g, ''));
+  return isNaN(num) ? 0 : num;
+}
+
+function formatMonedaLocal(val) {
+  if (typeof window.formatMoneda === 'function') {
+    return window.formatMoneda(val);
+  }
+  return Number(val || 0).toLocaleString('es-CO');
+}
 
 /**
- * Carga exclusivamente los productos reales registrados en la tabla 'productos' de Supabase
+ * Carga el inventario desde la tabla 'productos' en Supabase
  */
 window.cargarInventarioAdmin = async function() {
   const tbody = document.getElementById('tabla-inventario-admin');
@@ -17,13 +36,16 @@ window.cargarInventarioAdmin = async function() {
     <tr>
       <td colspan="5" class="py-8 text-center text-slate-400">
         <i class="fa-solid fa-spinner fa-spin text-lg mb-2"></i>
-        <p>Cargando catálogo real desde Supabase...</p>
+        <p>Cargando inventario real desde Supabase...</p>
       </td>
     </tr>
   `;
 
   try {
-    const { data: productos, error } = await supabaseClient
+    const client = window.supabaseClient || window.supabase;
+    if (!client) throw new Error('Cliente Supabase no inicializado');
+
+    const { data: productos, error } = await client
       .from('productos')
       .select('*')
       .order('nombre', { ascending: true });
@@ -31,7 +53,7 @@ window.cargarInventarioAdmin = async function() {
     if (error) throw error;
 
     window.adminProductsCache = productos || [];
-    window.productosCache = window.adminProductsCache; // Mantener sincro global
+    window.productosCache = window.adminProductsCache;
 
     if (countSpan) countSpan.textContent = window.adminProductsCache.length;
 
@@ -40,8 +62,8 @@ window.cargarInventarioAdmin = async function() {
     console.error("Error al cargar inventario admin desde Supabase:", err);
     tbody.innerHTML = `
       <tr>
-        <td colspan="5" class="py-6 text-center text-red-500 font-bold">
-          Error al obtener los productos desde Supabase. Revisa la conexión o las políticas RLS.
+        <td colspan="5" class="py-6 text-center text-rose-500 font-bold">
+          Error al consultar el catálogo en la base de datos.
         </td>
       </tr>
     `;
@@ -49,13 +71,12 @@ window.cargarInventarioAdmin = async function() {
 };
 
 /**
- * Renderiza los registros en la tabla de inventario del panel administrativo
+ * Renderiza la lista de productos en la tabla del panel de control
  */
 window.renderizarTablaInventarioAdmin = function(lista) {
   const tbody = document.getElementById('tabla-inventario-admin');
   if (!tbody) return;
 
-  // Filtrado secundario por buscador y origen
   const query = (document.getElementById('buscador-inventario')?.value || '').toLowerCase().trim();
   const origenSel = document.getElementById('filtro-origen-inv')?.value || 'todos';
 
@@ -74,7 +95,7 @@ window.renderizarTablaInventarioAdmin = function(lista) {
     tbody.innerHTML = `
       <tr>
         <td colspan="5" class="py-8 text-center text-slate-400 font-bold">
-          No hay productos registrados en la base de datos.
+          No hay productos registrados en el inventario.
         </td>
       </tr>
     `;
@@ -82,38 +103,44 @@ window.renderizarTablaInventarioAdmin = function(lista) {
   }
 
   tbody.innerHTML = filtrados.map(p => {
-    const stock = p.sin_stock ? '<span class="text-amber-600 font-bold">Sin Stock (Bajo Pedido)</span>' : `<span class="font-black ${p.stock <= 3 ? 'text-red-600' : 'text-slate-800'}">${p.stock || 0} unid.</span>`;
-    const precioDetal = parseMonto(p.precio_detal || p.price);
-    const precioMayor = parseMonto(p.precio_mayorista);
+    const refCode = p.referencia || 'REF-' + (p.id ? String(p.id).slice(0, 6) : '000');
+    const precioDetal = parseMontoLocal(p.precio_detal || p.price);
+    const precioMayor = parseMontoLocal(p.precio_mayorista);
+    const foto = p.image_url || p.imagen || 'images/logo.png';
 
     return `
-      <tr class="border-b hover:bg-slate-50 transition-colors">
+      <tr class="border-b hover:bg-slate-50 dark:hover:bg-gray-700/50 transition-colors text-xs">
         <td class="p-3">
-          <div class="font-bold text-slate-900">${p.referencia || 'REF-' + p.id.slice(0, 4)}</div>
-          <div class="text-[10px] text-slate-400">${p.origen || 'Colombia'}</div>
+          <div class="flex items-center gap-3">
+            <img src="${foto}" alt="${p.nombre}" class="w-10 h-10 object-cover rounded-xl border border-gray-200 shadow-sm bg-white shrink-0">
+            <div>
+              <div class="font-extrabold text-indigo-900 dark:text-indigo-300">${refCode}</div>
+              <div class="text-[10px] text-slate-400">${p.origen || 'Colombia'}</div>
+            </div>
+          </div>
         </td>
         <td class="p-3">
-          <div class="font-extrabold text-indigo-900">${p.nombre}</div>
-          <div class="text-[10px] font-bold text-pink-600">${p.mundo || 'General'}</div>
+          <div class="font-black text-slate-900 dark:text-white uppercase">${p.nombre}</div>
+          <div class="text-[10px] font-bold text-pink-600 dark:text-pink-400">${p.mundo || 'General'}</div>
         </td>
         <td class="p-3">
           <div class="flex items-center gap-2">
-            ${stock}
-            <button onclick="sumarStockLote('${p.id}')" class="px-2 py-1 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 rounded-lg text-[10px] font-extrabold transition" title="Sumar lote al stock">
+            <span class="font-black text-slate-900 dark:text-white">${p.stock || 0} unid.</span>
+            <button type="button" onclick="sumarStockLote('${p.id}')" class="px-2 py-0.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300 rounded-lg text-[10px] font-extrabold transition">
               + Sumar Lote
             </button>
           </div>
         </td>
-        <td class="p-3 text-xs">
-          <div class="font-bold text-indigo-700">Detal: $${formatMoneda(precioDetal)}</div>
-          ${precioMayor > 0 ? `<div class="text-[10px] font-bold text-amber-700">Mayor: $${formatMoneda(precioMayor)}</div>` : ''}
+        <td class="p-3">
+          <div class="font-bold text-slate-800 dark:text-gray-200">Detal: $${formatMonedaLocal(precioDetal)}</div>
+          <div class="text-[10px] font-extrabold text-amber-700 dark:text-amber-400">Mayor: $${formatMonedaLocal(precioMayor)}</div>
         </td>
         <td class="p-3 text-right">
           <div class="flex items-center justify-end gap-1.5">
-            <button onclick='editarProductoAdmin(${JSON.stringify(p).replace(/'/g, "&apos;")})' class="p-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl transition" title="Editar Producto">
+            <button type="button" onclick='editarProductoAdmin(${JSON.stringify(p).replace(/'/g, "&apos;")})' class="p-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300 rounded-xl transition" title="Editar">
               ✏️
             </button>
-            <button onclick="eliminarProductoAdmin('${p.id}')" class="p-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl transition" title="Eliminar de Supabase">
+            <button type="button" onclick="eliminarProductoAdmin('${p.id}')" class="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 dark:bg-rose-950 dark:text-rose-300 rounded-xl transition" title="Eliminar">
               🗑️
             </button>
           </div>
@@ -124,34 +151,117 @@ window.renderizarTablaInventarioAdmin = function(lista) {
 };
 
 /**
- * Inicializa el formulario de inventario para guardar o editar productos en Supabase
+ * Inicialización de eventos del formulario e interfaz de subida de imágenes
  */
 window.initAdminProductsForm = function() {
   const form = document.getElementById('form-producto-admin');
-  if (!form) return;
+  if (form) {
+    form.addEventListener('submit', window.guardarProductoAdmin);
+  }
 
-  form.addEventListener('submit', window.guardarProductoAdmin);
+  window.initImageUploadZone();
 };
 
 /**
- * Procesa la creación o edición de un producto directamente en Supabase
+ * Conecta el clic y arrastrar/soltar a la zona de subida de imagen (Dropzone)
+ */
+window.initImageUploadZone = function() {
+  const dropZone = document.getElementById('drop-zone-prod') || document.querySelector('.drop-zone-area');
+  const fileInput = document.getElementById('prod-imagen-file') || document.getElementById('prod-file');
+
+  if (!dropZone || !fileInput) return;
+
+  // Al hacer clic sobre el recuadro visual, abre la ventana de archivos
+  dropZone.onclick = function(e) {
+    if (e.target !== fileInput) {
+      fileInput.click();
+    }
+  };
+
+  // Arrastrar y soltar archivos (Drag and Drop)
+  ['dragenter', 'dragover'].forEach(eventName => {
+    dropZone.addEventListener(eventName, (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      dropZone.classList.add('drag-over');
+    }, false);
+  });
+
+  ['dragleave', 'drop'].forEach(eventName => {
+    dropZone.addEventListener(eventName, (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      dropZone.classList.remove('drag-over');
+    }, false);
+  });
+
+  dropZone.addEventListener('drop', (e) => {
+    const dt = e.dataTransfer;
+    const files = dt.files;
+    if (files && files.length > 0) {
+      fileInput.files = files;
+      window.procesarArchivoImagen(files[0]);
+    }
+  }, false);
+
+  fileInput.onchange = function(e) {
+    if (e.target.files && e.target.files[0]) {
+      window.procesarArchivoImagen(e.target.files[0]);
+    }
+  };
+};
+
+/**
+ * Lee el archivo de imagen seleccionado y genera una vista previa
+ */
+window.procesarArchivoImagen = function(file) {
+  if (!file || !file.type.startsWith('image/')) {
+    if (typeof showToast === 'function') showToast("Por favor selecciona un archivo de imagen válido.", "error");
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    window.currentProdImageBase64 = e.target.result;
+
+    // Actualizar vista previa en pantalla
+    const imgPreview = document.getElementById('preview-prod-imagen');
+    const containerPreview = document.getElementById('container-preview-imagen');
+    const txtDrop = document.getElementById('txt-drop-zone');
+
+    if (imgPreview) imgPreview.src = e.target.result;
+    if (containerPreview) containerPreview.classList.remove('hidden');
+    if (txtDrop) txtDrop.classList.add('hidden');
+
+    if (typeof showToast === 'function') showToast("Imagen cargada correctamente.");
+  };
+
+  reader.readAsDataURL(file);
+};
+
+/**
+ * Guarda o actualiza el producto en la base de datos Supabase
  */
 window.guardarProductoAdmin = async function(e) {
   if (e) e.preventDefault();
 
   const id = document.getElementById('prod-id-edit')?.value || null;
   const nombre = document.getElementById('prod-nombre')?.value.trim();
-  const mundo = document.getElementById('prod-mundo')?.value.trim();
+  const mundo = (document.getElementById('prod-mundo')?.value || '').trim().toUpperCase();
   const origen = document.getElementById('prod-origen')?.value || 'Colombia';
   const sin_stock = document.getElementById('prod-sin-stock')?.checked || false;
   const stock = parseInt(document.getElementById('prod-stock')?.value, 10) || 0;
-  const precio_detal = parseMonto(document.getElementById('prod-detal')?.value);
-  const precio_mayorista = parseMonto(document.getElementById('prod-mayor')?.value);
+  const precio_detal = parseMontoLocal(document.getElementById('prod-detal')?.value);
+  const precio_mayorista = parseMontoLocal(document.getElementById('prod-mayor')?.value);
+  const urlDirecta = document.getElementById('prod-imagen-url')?.value.trim() || '';
 
   if (!nombre || !mundo) {
     if (typeof showToast === 'function') showToast("Ingresa el nombre y el mundo del producto.", "error");
     return;
   }
+
+  // Determinar la imagen final (archivo subido Base64 o URL ingresada)
+  const imagenFinal = window.currentProdImageBase64 || urlDirecta || 'images/logo.png';
 
   const payload = {
     nombre,
@@ -160,68 +270,109 @@ window.guardarProductoAdmin = async function(e) {
     sin_stock,
     stock,
     precio_detal,
-    price: precio_detal, // Compatibilidad con catálogo
+    price: precio_detal,
     precio_mayorista,
-    is_active: true
+    image_url: imagenFinal,
+    imagen: imagenFinal,
+    oculto_web: false
   };
 
   try {
+    const client = window.supabaseClient || window.supabase;
+    if (!client) throw new Error('Cliente Supabase no inicializado');
+
     if (id) {
-      const { error } = await supabaseClient
+      const { error } = await client
         .from('productos')
         .update(payload)
         .eq('id', id);
 
       if (error) throw error;
-      if (typeof showToast === 'function') showToast("Producto actualizado en Supabase.");
+      if (typeof showToast === 'function') showToast("Producto actualizado en Supabase con éxito.");
     } else {
       payload.referencia = 'CUP-' + Math.floor(1000 + Math.random() * 9000);
-      const { error } = await supabaseClient
+      const { error } = await client
         .from('productos')
         .insert([payload]);
 
       if (error) throw error;
-      if (typeof showToast === 'function') showToast("Nuevo producto registrado en Supabase.");
+      if (typeof showToast === 'function') showToast("Nuevo producto publicado en Supabase.");
     }
 
     window.cancelarEdicionProd();
     window.cargarInventarioAdmin();
   } catch (err) {
     console.error("Error al guardar producto en Supabase:", err);
-    if (typeof showToast === 'function') showToast("Error al guardar en Supabase. Verifica la tabla de productos.", "error");
+    if (typeof showToast === 'function') showToast("Error al guardar el producto en la base de datos.", "error");
   }
 };
 
 /**
- * Carga los datos de un producto existente en el formulario para modificarlo
+ * Carga los datos de un producto en el formulario para modificarlo
  */
 window.editarProductoAdmin = function(prod) {
   if (!prod) return;
 
-  document.getElementById('prod-id-edit').value = prod.id;
-  document.getElementById('prod-nombre').value = prod.nombre || '';
-  document.getElementById('prod-mundo').value = prod.mundo || '';
-  document.getElementById('prod-origen').value = prod.origen || 'Colombia';
-  document.getElementById('prod-sin-stock').checked = prod.sin_stock || false;
-  document.getElementById('prod-stock').value = prod.stock || 0;
-  document.getElementById('prod-detal').value = prod.precio_detal || prod.price || 0;
-  document.getElementById('prod-mayor').value = prod.precio_mayorista || 0;
+  const idInput = document.getElementById('prod-id-edit');
+  const nombreInput = document.getElementById('prod-nombre');
+  const mundoInput = document.getElementById('prod-mundo');
+  const origenInput = document.getElementById('prod-origen');
+  const sinStockInput = document.getElementById('prod-sin-stock');
+  const stockInput = document.getElementById('prod-stock');
+  const detalInput = document.getElementById('prod-detal');
+  const mayorInput = document.getElementById('prod-mayor');
+  const urlInput = document.getElementById('prod-imagen-url');
+
+  if (idInput) idInput.value = prod.id || '';
+  if (nombreInput) nombreInput.value = prod.nombre || '';
+  if (mundoInput) mundoInput.value = prod.mundo || '';
+  if (origenInput) origenInput.value = prod.origen || 'Colombia';
+  if (sinStockInput) sinStockInput.checked = prod.sin_stock || false;
+  if (stockInput) stockInput.value = prod.stock || 0;
+  if (detalInput) detalInput.value = prod.precio_detal || prod.price || 0;
+  if (mayorInput) mayorInput.value = prod.precio_mayorista || 0;
+
+  const foto = prod.image_url || prod.imagen || '';
+  window.currentProdImageBase64 = foto;
+
+  if (urlInput) urlInput.value = foto.startsWith('http') ? foto : '';
+
+  const imgPreview = document.getElementById('preview-prod-imagen');
+  const containerPreview = document.getElementById('container-preview-imagen');
+  const txtDrop = document.getElementById('txt-drop-zone');
+
+  if (foto && imgPreview) {
+    imgPreview.src = foto;
+    if (containerPreview) containerPreview.classList.remove('hidden');
+    if (txtDrop) txtDrop.classList.add('hidden');
+  }
 
   const btnGuardar = document.getElementById('btn-guardar-prod');
   const btnCancelar = document.getElementById('btn-cancelar-edit-prod');
 
   if (btnGuardar) btnGuardar.textContent = '💾 Actualizar Producto';
   if (btnCancelar) btnCancelar.classList.remove('hidden');
+
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 };
 
 /**
- * Restablece el formulario de productos
+ * Limpia el formulario y restablece los botones
  */
 window.cancelarEdicionProd = function() {
   const form = document.getElementById('form-producto-admin');
   if (form) form.reset();
 
-  document.getElementById('prod-id-edit').value = '';
+  window.currentProdImageBase64 = '';
+
+  const idInput = document.getElementById('prod-id-edit');
+  if (idInput) idInput.value = '';
+
+  const containerPreview = document.getElementById('container-preview-imagen');
+  const txtDrop = document.getElementById('txt-drop-zone');
+
+  if (containerPreview) containerPreview.classList.add('hidden');
+  if (txtDrop) txtDrop.classList.remove('hidden');
 
   const btnGuardar = document.getElementById('btn-guardar-prod');
   const btnCancelar = document.getElementById('btn-cancelar-edit-prod');
@@ -231,53 +382,66 @@ window.cancelarEdicionProd = function() {
 };
 
 /**
- * Elimina un producto de la tabla 'productos'
+ * Elimina un producto de la base de datos
  */
 window.eliminarProductoAdmin = async function(id) {
   if (!confirm("¿Deseas eliminar este producto de Supabase?")) return;
 
   try {
-    const { error } = await supabaseClient.from('productos').delete().eq('id', id);
+    const client = window.supabaseClient || window.supabase;
+    if (!client) throw new Error('Cliente Supabase no inicializado');
+
+    const { error } = await client.from('productos').delete().eq('id', id);
     if (error) throw error;
 
     if (typeof showToast === 'function') showToast("Producto eliminado de Supabase.");
     window.cargarInventarioAdmin();
   } catch (err) {
     console.error("Error al eliminar producto:", err);
-    if (typeof showToast === 'function') showToast("Error al eliminar de Supabase.", "error");
+    if (typeof showToast === 'function') showToast("Error al eliminar producto.", "error");
   }
 };
 
 /**
- * Abre el modal para incrementar el stock por lote
+ * Modales de incremento rápido de stock
  */
 window.sumarStockLote = function(id) {
-  const prod = window.adminProductsCache.find(p => p.id === id);
+  const prod = (window.adminProductsCache || []).find(p => String(p.id) === String(id));
   if (!prod) return;
 
-  document.getElementById('lote-prod-id').value = prod.id;
-  document.getElementById('lbl-lote-prod-nombre').textContent = prod.nombre;
-  document.getElementById('modal-sumar-lote').classList.remove('hidden');
+  const loteIdInput = document.getElementById('lote-prod-id');
+  const loteNombreLbl = document.getElementById('lbl-lote-prod-nombre');
+  const modal = document.getElementById('modal-sumar-lote');
+
+  if (loteIdInput) loteIdInput.value = prod.id;
+  if (loteNombreLbl) loteNombreLbl.textContent = prod.nombre;
+  if (modal) modal.classList.remove('hidden');
 };
 
 window.cerrarModalLote = function() {
-  document.getElementById('modal-sumar-lote').classList.add('hidden');
+  const modal = document.getElementById('modal-sumar-lote');
+  if (modal) modal.classList.add('hidden');
 };
 
-/**
- * Suma la cantidad de lote al stock en Supabase
- */
 window.confirmarSumarLote = async function() {
-  const id = document.getElementById('lote-prod-id').value;
-  const cantSumar = parseInt(document.getElementById('lote-cantidad').value, 10) || 0;
+  const idInput = document.getElementById('lote-prod-id');
+  const cantInput = document.getElementById('lote-cantidad');
 
-  const prod = window.adminProductsCache.find(p => p.id === id);
+  if (!idInput) return;
+
+  const id = idInput.value;
+  const cantSumar = parseInt(cantInput ? cantInput.value : 0, 10) || 0;
+
+  const prod = (window.adminProductsCache || []).find(p => String(p.id) === String(id));
   if (!prod) return;
 
   const nuevoStock = (prod.stock || 0) + cantSumar;
 
   try {
-    const { error } = await supabaseClient
+    const client = window.supabaseClient || window.supabase;
+    if (!client) throw new Error('Cliente Supabase no inicializado');
+
+    const { error } = await client
       .from('productos')
       .update({ stock: nuevoStock })
       .eq('id', id);
@@ -292,3 +456,8 @@ window.confirmarSumarLote = async function() {
     if (typeof showToast === 'function') showToast("Error al actualizar stock.", "error");
   }
 };
+
+// Inicialización de eventos al cargar el DOM
+document.addEventListener('DOMContentLoaded', () => {
+  window.initAdminProductsForm();
+});
