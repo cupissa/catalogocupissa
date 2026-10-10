@@ -1,3 +1,8 @@
+/* ==========================================================================
+   COMPONENTES UI: SLIDER, MODALES, BOTONES, CAPTCHA Y TARJETAS
+   ========================================================================== */
+
+/* Slider e Imágenes del Hero */
 #heroSlideImg {
   will-change: opacity, transform;
   transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
@@ -12,19 +17,94 @@
   text-transform: uppercase;
 }
 
+/* Pestañas de Navegación de Mundos */
 .world-tab {
   transition: all 0.2s ease-in-out;
+  border-bottom: 2px solid transparent;
+}
+
+.world-tab:hover {
+  color: #db2777;
 }
 
 .world-tab.active {
   color: #db2777;
-  border-bottom: 2px solid #db2777;
+  border-bottom-color: #db2777;
+  font-weight: 800;
 }
 
+/* Tarjetas de Producto */
 .product-card {
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .product-card:hover {
-  transform: translateY(-2px);
-} 
+  transform: translateY(-3px);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+}
+
+/* Captcha Gráfico en Canvas */
+#captchaCanvas,
+.captcha-canvas {
+  background-color: #f3f4f6;
+  border: 1px solid #d1d5db;
+  border-radius: 0.75rem;
+  user-select: none;
+  cursor: pointer;
+  display: block;
+}
+
+.captcha-container {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Toasts / Notificaciones Flotantes */
+.toast-notification {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem 1.25rem;
+  border-radius: 1rem;
+  background-color: #ffffff;
+  color: #1f2937;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15);
+  font-size: 0.75rem;
+  font-weight: 700;
+  border-left: 4px solid #db2777;
+  pointer-events: auto;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.toast-notification.success {
+  border-left-color: #10b981;
+}
+
+.toast-notification.error {
+  border-left-color: #ef4444;
+}
+
+.toast-notification.warning {
+  border-left-color: #f59e0b;
+}
+
+/* Modal Drawer de Carrito y Favoritos */
+.cart-drawer {
+  position: fixed;
+  top: 0;
+  right: -100%;
+  width: 100%;
+  max-width: 400px;
+  height: 100vh;
+  background-color: #ffffff;
+  z-index: 50;
+  box-shadow: -5px 0 25px rgba(0, 0, 0, 0.15);
+  transition: right 0.3s ease-in-out;
+  display: flex;
+  flex-direction: column;
+}
+
+.cart-drawer.active {
+  right: 0;
+}
