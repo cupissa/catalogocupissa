@@ -1,12 +1,20 @@
 /**
+ * js/services/orders.js
+ * Servicio para gestión de órdenes de compra, solicitudes de crédito y métricas de ventas
+ */
+
+/**
  * Crea una orden de compra directa (pago de anticipo) en Supabase
  */
 window.createOrderInSupabase = async function(orderPayload) {
   try {
-    const { data: { session } } = await supabaseClient.auth.getSession();
+    const client = window.supabaseClient || window.supabase;
+    if (!client) throw new Error('El cliente de Supabase no está inicializado.');
+
+    const { data: { session } } = await client.auth.getSession();
     const userId = session?.user?.id || null;
 
-    const { data, error } = await supabaseClient
+    const { data, error } = await client
       .from('orders')
       .insert([
         {
@@ -38,10 +46,13 @@ window.createOrderInSupabase = async function(orderPayload) {
  */
 window.createCreditRequestInSupabase = async function(creditPayload) {
   try {
-    const { data: { session } } = await supabaseClient.auth.getSession();
+    const client = window.supabaseClient || window.supabase;
+    if (!client) throw new Error('El cliente de Supabase no está inicializado.');
+
+    const { data: { session } } = await client.auth.getSession();
     const userId = session?.user?.id || null;
 
-    const { data, error } = await supabaseClient
+    const { data, error } = await client
       .from('credit_requests')
       .insert([
         {
@@ -57,7 +68,7 @@ window.createCreditRequestInSupabase = async function(creditPayload) {
           shipping_fee: creditPayload.shippingFee,
           interest_rate: creditPayload.interestRate,
           items: creditPayload.items,
-          status: 'pending_approval' // Espera aprobación del Admin
+          status: 'pending_approval'
         }
       ])
       .select();
@@ -66,6 +77,75 @@ window.createCreditRequestInSupabase = async function(creditPayload) {
     return { data, error: null };
   } catch (err) {
     console.error('Error al guardar solicitud de crédito en Supabase:', err);
+    return { data: null, error: err };
+  }
+};
+
+/**
+ * Obtiene las órdenes del mes en curso exclusivamente para el cálculo de "Ventas del Mes"
+ */
+window.getOrdersForCurrentMonth = async function() {
+  try {
+    const client = window.supabaseClient || window.supabase;
+    if (!client) throw new Error('El cliente de Supabase no está inicializado.');
+
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0).toISOString();
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999).toISOString();
+
+    const { data, error } = await client
+      .from('orders')
+      .select('*')
+      .gte('created_at', startOfMonth)
+      .lte('created_at', endOfMonth);
+
+    if (error) throw error;
+    return { data: data || [], error: null };
+  } catch (err) {
+    console.error('Error al consultar las ventas del mes actual:', err);
+    return { data: [], error: err };
+  }
+};
+
+/**
+ * Obtiene el listado completo de órdenes para el panel de administración
+ */
+window.getAllOrdersAdmin = async function() {
+  try {
+    const client = window.supabaseClient || window.supabase;
+    if (!client) throw new Error('El cliente de Supabase no está inicializado.');
+
+    const { data, error } = await client
+      .from('orders')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return { data: data || [], error: null };
+  } catch (err) {
+    console.error('Error al obtener el historial de órdenes para Admin:', err);
+    return { data: [], error: err };
+  }
+};
+
+/**
+ * Actualiza el estado de una orden de compra
+ */
+window.updateOrderStatusInSupabase = async function(orderId, newStatus) {
+  try {
+    const client = window.supabaseClient || window.supabase;
+    if (!client) throw new Error('El cliente de Supabase no está inicializado.');
+
+    const { data, error } = await client
+      .from('orders')
+      .update({ status: newStatus })
+      .eq('id', orderId)
+      .select();
+
+    if (error) throw error;
+    return { data, error: null };
+  } catch (err) {
+    console.error('Error actualizando el estado de la orden:', err);
     return { data: null, error: err };
   }
 };
