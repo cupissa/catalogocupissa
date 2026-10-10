@@ -1,355 +1,194 @@
 /**
  * js/modules/admin/admin-orders.js
- * Módulo de Pedidos, CRM y Gestión de Clientes en el Panel Administrativo
+ * Módulo de Gestión de Pedidos y CRM (Vinculado a la tabla 'cliente')
  */
 
-window.carritoAdmin = [];
+window.adminCarritoItems = [];
 
-/**
- * Poblar el selector de clientes existentes en el formulario de pedidos
- */
-window.poblarSelectClientes = function() {
-  const sel = document.getElementById('select-cliente-existente');
-  if (!sel) return;
-  sel.innerHTML = '<option value="">👤 Seleccionar cliente registrado...</option>';
-  const clientes = window.clientesCache || [];
-  clientes.forEach(c => {
-    sel.innerHTML += `<option value="${c.id}">${c.nombre} (${c.telefono || 'Sin telf'})</option>`;
-  });
-};
-
-/**
- * Autocompletar formulario con los datos del cliente seleccionado
- */
-window.autocompletarClienteExistente = function() {
-  const sel = document.getElementById('select-cliente-existente');
-  if (!sel || !sel.value) return;
-  const c = (window.clientesCache || []).find(x => x.id === sel.value);
-  if (c) {
-    document.getElementById('cli-id-seleccionado').value = c.id;
-    document.getElementById('cli-nombre').value = c.nombre || '';
-    document.getElementById('cli-telefono').value = c.telefono || '';
-    document.getElementById('cli-direccion').value = c.direccion || '';
-    document.getElementById('cli-email-cc').value = c.email || '';
-  }
-};
-
-/**
- * Busca coincidencia de cliente por teléfono ingresado
- */
-window.buscarClientePorTelefono = function() {
-  const input = document.getElementById('cli-telefono');
-  if (!input) return;
-  const tel = input.value.trim();
-  if (tel.length < 5) return;
-  const c = (window.clientesCache || []).find(x => (x.telefono || '').includes(tel));
-  if (c) {
-    document.getElementById('cli-id-seleccionado').value = c.id;
-    document.getElementById('cli-nombre').value = c.nombre || '';
-    document.getElementById('cli-direccion').value = c.direccion || '';
-    document.getElementById('cli-email-cc').value = c.email || '';
-  }
-};
-
-/**
- * Filtra sugerencias de productos para agregar al pedido
- */
-window.filtrarInvPedido = function() {
-  const input = document.getElementById('buscador-prod-pedido');
-  const box = document.getElementById('sugerencias-inv-box');
-  if (!input || !box) return;
-
-  const q = input.value.toLowerCase().trim();
-  if (!q) { box.classList.add('hidden'); return; }
-
-  const productos = window.productosCache || [];
-  let matches = productos.filter(p => (p.nombre || '').toLowerCase().includes(q) || (p.referencia || '').toLowerCase().includes(q));
-  if (matches.length === 0) { box.classList.add('hidden'); return; }
-
-  box.innerHTML = '';
-  matches.forEach(p => {
-    box.innerHTML += `
-      <div onclick='seleccionarProdParaItem(${JSON.stringify(p)})' class="p-2 hover:bg-indigo-50 cursor-pointer border-b text-xs flex justify-between">
-        <span><strong>${p.nombre}</strong> (${p.mundo || 'General'})</span>
-        <span class="text-indigo-600 font-bold">$${formatMoneda(parseMonto(p.precio_detal || 0))}</span>
-      </div>
-    `;
-  });
-  box.classList.remove('hidden');
-};
-
-/**
- * Selecciona un producto del autocompletado para el ítem del pedido
- */
-window.seleccionarProdParaItem = function(p) {
-  window.productoSeleccionadoCache = p;
-  document.getElementById('buscador-prod-pedido').value = p.nombre;
-  document.getElementById('item-nombre').value = p.nombre;
-  window.actualizarPrecioItem();
-  const box = document.getElementById('sugerencias-inv-box');
-  if (box) box.classList.add('hidden');
-};
-
-/**
- * Actualiza el precio según sea detal o mayorista
- */
-window.actualizarPrecioItem = function() {
-  if (!window.productoSeleccionadoCache) return;
-  const tipoP = document.getElementById('select-tipo-precio')?.value || 'detal';
-  let precio = tipoP === 'detal' ? window.productoSeleccionadoCache.precio_detal : window.productoSeleccionadoCache.precio_mayorista;
-  const priceInput = document.getElementById('item-precio');
-  if (priceInput) priceInput.value = precio || 0;
-};
-
-/**
- * Agrega un ítem a la lista temporal del pedido
- */
-window.agregarItemPedidoAdmin = function() {
-  const nombre = document.getElementById('item-nombre')?.value.trim();
-  const precio = parseMonto(document.getElementById('item-precio')?.value);
-  const cantidad = parseFloat(document.getElementById('item-cantidad')?.value) || 1;
-
-  if (!nombre || precio <= 0) {
-    if (typeof showToast === 'function') showToast("Ingresa un nombre y precio válido para el ítem", "error");
-    return;
-  }
-
-  window.carritoAdmin.push({
-    producto_id: window.productoSeleccionadoCache ? window.productoSeleccionadoCache.id : null,
-    nombre_producto: nombre,
-    precio_unitario: precio,
-    cantidad: cantidad,
-    subtotal: precio * cantidad
-  });
-
-  window.productoSeleccionadoCache = null;
-  document.getElementById('item-nombre').value = '';
-  document.getElementById('item-precio').value = '';
-  document.getElementById('buscador-prod-pedido').value = '';
-  window.renderizarCarritoAdmin();
-};
-
-/**
- * Renderiza los ítems agregados al pedido actual
- */
-window.renderizarCarritoAdmin = function() {
-  const tbody = document.getElementById('tabla-carrito-admin');
-  if (!tbody) return;
-  tbody.innerHTML = '';
-
-  if (window.carritoAdmin.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-slate-400 text-xs">No hay ítems agregados.</td></tr>`;
-    window.calcularTotalAdmin();
-    return;
-  }
-
-  window.carritoAdmin.forEach((item, idx) => {
-    tbody.innerHTML += `
-      <tr class="border-b">
-        <td class="p-2 font-bold">${item.nombre_producto}</td>
-        <td class="p-2">${item.cantidad}</td>
-        <td class="p-2">$${formatMoneda(item.precio_unitario)}</td>
-        <td class="p-2 font-black">$${formatMoneda(item.subtotal)}</td>
-        <td class="p-2"><button type="button" onclick="window.carritoAdmin.splice(${idx},1);window.renderizarCarritoAdmin();" class="text-red-600 font-bold">🗑️</button></td>
-      </tr>
-    `;
-  });
-  window.calcularTotalAdmin();
-};
-
-/**
- * Calcula total, anticipo y saldo del pedido en tiempo real
- */
-window.calcularTotalAdmin = function() {
-  let subtotalCarrito = window.carritoAdmin.reduce((acc, i) => acc + i.subtotal, 0);
-  let domicilio = parseMonto(document.getElementById('ped-domicilio')?.value);
-  let total = subtotalCarrito + domicilio;
-  let anticipo = parseMonto(document.getElementById('ped-anticipo')?.value);
-  let saldo = total - anticipo;
-
-  const lblTotal = document.getElementById('lbl-total-admin');
-  const lblSaldo = document.getElementById('lbl-saldo-admin');
-  if (lblTotal) lblTotal.innerText = `$${formatMoneda(total)}`;
-  if (lblSaldo) lblSaldo.innerText = `$${formatMoneda(saldo)}`;
-};
-
-/**
- * Carga y renderiza la lista general de pedidos y alertas
- */
 window.cargarPedidosAdmin = async function() {
   const tbody = document.getElementById('tabla-pedidos-gral');
-  const tbodyAlertas = document.getElementById('tabla-alertas-dashboard');
   if (!tbody) return;
-  tbody.innerHTML = '';
-  if (tbodyAlertas) tbodyAlertas.innerHTML = '';
 
-  let filtroEstado = document.getElementById('filtro-estado-pedidos')?.value || 'todos';
-  let busq = (document.getElementById('buscador-pedidos-gral')?.value || document.getElementById('buscador-alertas')?.value || '').toLowerCase();
+  tbody.innerHTML = `
+    <tr>
+      <td colspan="5" class="py-8 text-center text-slate-400">
+        <i class="fa-solid fa-spinner fa-spin text-lg mb-2"></i>
+        <p>Cargando pedidos y clientes desde Supabase ('pedidos' & 'cliente')...</p>
+      </td>
+    </tr>
+  `;
 
-  const pedidos = window.pedidosCache || [];
-  const clientes = window.clientesCache || [];
+  try {
+    // Consultar pedidos y la tabla 'cliente' en paralelo
+    const [pedidos, clientes] = await Promise.all([
+      SupabaseSync.getPedidos(),
+      SupabaseSync.getClientes()
+    ]);
 
-  let filtrados = pedidos.filter(p => {
-    let cli = clientes.find(c => c.id === p.cliente_id) || {};
-    let okE = filtroEstado === 'todos' || p.estado === filtroEstado;
-    let okB = !busq || (cli.nombre || '').toLowerCase().includes(busq) || p.id.toLowerCase().includes(busq);
-    return okE && okB;
-  });
+    // Mapeo rápido de clientes por id, cedula y teléfono
+    const clienteMap = new Map();
+    (clientes || []).forEach(c => {
+      if (c.id) clienteMap.set(String(c.id), c);
+      if (c.cedula) clienteMap.set(String(c.cedula), c);
+      if (c.telefono) clienteMap.set(String(c.telefono), c);
+    });
 
-  let ventasMes = 0, porCobrar = 0;
-  let mesActual = new Date().getMonth();
+    const pedidosConCliente = (pedidos || []).map(p => {
+      const cli = clienteMap.get(String(p.cliente_id || p.id_cliente)) ||
+                  clienteMap.get(String(p.cedula_cliente || p.cliente_cedula)) ||
+                  clienteMap.get(String(p.cliente_telefono || p.telefono));
 
-  filtrados.forEach(p => {
-    let cli = clientes.find(c => c.id === p.cliente_id) || { nombre: 'Cliente General', telefono: '' };
-    let total = parseMonto(p.total || 0);
-    let pagado = parseMonto(p.pagado || 0);
-    let saldo = total - pagado;
+      const nomReal = p.cliente_nombre || p.nombre_cliente || (cli ? cli.nombre || `${cli.first_name || ''} ${cli.last_name || ''}`.trim() : '') || 'CLIENTE';
+      const telReal = p.cliente_telefono || p.telefono || (cli ? cli.telefono || cli.phone || cli.celular : '') || 'N/A';
 
-    if (new Date(p.fecha_agendamiento).getMonth() === mesActual) {
-      ventasMes += total;
-    }
-    porCobrar += saldo;
+      return {
+        ...p,
+        cliente_nombre_completo: nomReal,
+        cliente_telefono_completo: telReal
+      };
+    });
 
-    let badgeEstado = `bg-amber-100 text-amber-800`;
-    if (p.estado === 'Entregado' || p.estado === 'Finalizado') badgeEstado = 'bg-emerald-100 text-emerald-800';
-    if (p.estado === 'Cancelado') badgeEstado = 'bg-red-100 text-red-800';
-
-    let filaHtml = `
-      <tr class="border-b">
-        <td class="p-2.5 font-bold text-indigo-900">${p.id.slice(0, 6)}<br><span class="text-[10px] font-normal text-slate-400">Entrega: ${p.fecha_entrega || 'N/A'}</span></td>
-        <td class="p-2.5"><strong>${cli.nombre}</strong><br><span class="text-[10px] text-slate-500">📞 ${cli.telefono || 'Sin telf'}</span></td>
-        <td class="p-2.5">${p.tipo_operacion}<br><span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${badgeEstado}">${p.estado}</span></td>
-        <td class="p-2.5">Total: <strong>$${formatMoneda(total)}</strong><br><span class="text-amber-600 font-bold">Saldo: $${formatMoneda(saldo)}</span></td>
-        <td class="p-2.5 flex gap-1">
-          <button onclick="cambiarEstadoPedido('${p.id}', 'Entregado')" class="bg-emerald-50 hover:bg-emerald-100 p-1.5 rounded text-emerald-700 font-bold text-[10px]">Entregar</button>
-          <button onclick="cambiarEstadoPedido('${p.id}', 'Cancelado')" class="bg-red-50 hover:bg-red-100 p-1.5 rounded text-red-700 font-bold text-[10px]">Cancelar</button>
+    window.renderizarTablaPedidosGral(pedidosConCliente);
+  } catch (err) {
+    console.warn("Error al procesar pedidos y clientes:", err);
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="5" class="py-6 text-center text-slate-400 font-bold">
+          No hay pedidos registrados en Supabase.
         </td>
       </tr>
     `;
-    tbody.innerHTML += filaHtml;
-
-    if (p.estado === 'Pendiente' && tbodyAlertas) {
-      tbodyAlertas.innerHTML += filaHtml;
-    }
-  });
-
-  const statVentas = document.getElementById('stat-ventas-mes');
-  const statCobrar = document.getElementById('stat-por-cobrar');
-  if (statVentas) statVentas.innerText = `$${formatMoneda(ventasMes)}`;
-  if (statCobrar) statCobrar.innerText = `$${formatMoneda(porCobrar)}`;
-};
-
-/**
- * Cambia el estado del pedido en Supabase
- */
-window.cambiarEstadoPedido = async function(id, nuevoEstado) {
-  try {
-    const { error } = await supabaseClient.from('pedidos').update({ estado: nuevoEstado }).eq('id', id);
-    if (error) throw error;
-    if (typeof showToast === 'function') showToast(`Pedido actualizado a ${nuevoEstado}`);
-    if (typeof cargarDatosGlobales === 'function') cargarDatosGlobales();
-  } catch (err) {
-    console.error("Error cambiando estado de pedido:", err);
-    if (typeof showToast === 'function') showToast("Error al actualizar pedido", "error");
   }
 };
 
-/**
- * Inicializador de escuchadores del formulario de creación de pedidos
- */
-window.initAdminOrdersForm = function() {
-  const form = document.getElementById('form-pedido-admin');
-  if (!form) return;
+window.renderizarTablaPedidosGral = function(lista = []) {
+  const tbody = document.getElementById('tabla-pedidos-gral');
+  if (!tbody) return;
 
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    if (window.carritoAdmin.length === 0) {
-      if (typeof showToast === 'function') showToast("Agrega al menos un ítem al pedido", "error");
+  const filtroEstado = document.getElementById('filtro-estado-pedidos')?.value || 'todos';
+  const query = (document.getElementById('buscador-pedidos-gral')?.value || '').toLowerCase().trim();
+
+  let filtrados = (lista || []).filter(p => {
+    const okEstado = filtroEstado === 'todos' || (p.estado || '').toLowerCase() === filtroEstado.toLowerCase();
+    const okQuery = !query ||
+      (p.cliente_nombre_completo || '').toLowerCase().includes(query) ||
+      (p.cliente_telefono_completo || '').toLowerCase().includes(query) ||
+      (p.referencia_pedido || p.referencia || '').toLowerCase().includes(query) ||
+      (p.id || '').toLowerCase().includes(query);
+
+    return okEstado && okQuery;
+  });
+
+  if (filtrados.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-slate-400 font-bold">No se encontraron pedidos en la base de datos.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = filtrados.map(p => {
+    const tot = window.parseMonto(p.total !== undefined ? p.total : (p.monto || p.valor || 0));
+    const pag = window.parseMonto(p.pagado !== undefined ? p.pagado : (p.anticipo !== undefined ? p.anticipo : p.monto_pagado || 0));
+    const saldo = p.saldo !== undefined ? window.parseMonto(p.saldo) : Math.max(0, tot - pag);
+    const refDisplay = p.referencia_pedido || p.referencia || (p.id ? 'CUP-' + String(p.id).slice(0, 4) : 'CUP-0000');
+    const fechaDisplay = p.fecha_entrega || p.fecha_agendamiento || (p.created_at ? p.created_at.split('T')[0] : 'Hoy');
+
+    return `
+      <tr class="border-b hover:bg-slate-50 text-xs transition-colors">
+        <td class="p-3">
+          <div class="font-extrabold text-indigo-900">${refDisplay}</div>
+          <div class="text-[10px] text-slate-400">Entrega: ${fechaDisplay}</div>
+        </td>
+        <td class="p-3">
+          <div class="font-bold text-slate-800 uppercase">${p.cliente_nombre_completo}</div>
+          <div class="text-[10px] text-slate-500"><i class="fa-solid fa-phone mr-1"></i> ${p.cliente_telefono_completo}</div>
+        </td>
+        <td class="p-3">
+          <div class="font-bold text-slate-700">${p.tipo_operacion || 'Venta Contado'}</div>
+          <span class="inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold ${p.estado === 'Entregado' || p.estado === 'Finalizado' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}">
+            ${p.estado || 'Pendiente'}
+          </span>
+        </td>
+        <td class="p-3">
+          <div class="font-bold text-slate-900">Total: $${window.formatMoneda(tot)}</div>
+          <div class="text-[10px] font-extrabold ${saldo > 0 ? 'text-amber-600' : 'text-emerald-600'}">
+            Saldo: $${window.formatMoneda(saldo)}
+          </div>
+        </td>
+        <td class="p-3 text-right">
+          <div class="flex items-center justify-end gap-1.5">
+            <button onclick="cambiarEstadoPedido('${p.id}', 'Entregado')" class="px-2.5 py-1 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 rounded-xl font-bold text-[10px] transition">
+              Entregar
+            </button>
+            <button onclick="cambiarEstadoPedido('${p.id}', 'Cancelado')" class="px-2.5 py-1 bg-rose-100 hover:bg-rose-200 text-rose-800 rounded-xl font-bold text-[10px] transition">
+              Cancelar
+            </button>
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
+};
+
+window.cargarClientesCRMSelector = async function() {
+  const select = document.getElementById('select-cliente-existente');
+  if (!select) return;
+
+  try {
+    const clientes = await SupabaseSync.getClientes();
+    if (!clientes || clientes.length === 0) {
+      select.innerHTML = '<option value="">👤 No hay clientes en la tabla "cliente"...</option>';
       return;
     }
 
-    const nombre = document.getElementById('cli-nombre').value.trim();
-    const telefono = document.getElementById('cli-telefono').value.trim();
-    const direccion = document.getElementById('cli-direccion').value.trim();
-    const emailCc = document.getElementById('cli-email-cc').value.trim();
-    let cliId = document.getElementById('cli-id-seleccionado').value;
+    select.innerHTML = '<option value="">👤 Seleccionar cliente registrado...</option>' +
+      clientes.map(c => {
+        const nom = c.nombre || `${c.first_name || ''} ${c.last_name || ''}`.trim() || 'Cliente';
+        const tel = c.telefono || c.phone || c.celular || 'Sin teléfono';
+        return `
+          <option value='${JSON.stringify(c).replace(/'/g, "&apos;")}'>
+            ${nom} (${tel})
+          </option>
+        `;
+      }).join('');
+  } catch (err) {
+    console.warn("Error cargando selector de clientes CRM:", err);
+  }
+};
 
-    try {
-      if (!cliId) {
-        const { data: cIns, error: cErr } = await supabaseClient.from('clientes').insert([{
-          nombre, telefono, direccion, email: emailCc
-        }]).select();
-        if (cErr) throw cErr;
-        if (cIns && cIns.length > 0) cliId = cIns[0].id;
-      }
+window.autocompletarClienteExistente = function() {
+  const select = document.getElementById('select-cliente-existente');
+  if (!select || !select.value) return;
 
-      let subtotalCarrito = window.carritoAdmin.reduce((acc, i) => acc + i.subtotal, 0);
-      let domicilio = parseMonto(document.getElementById('ped-domicilio').value);
-      let total = subtotalCarrito + domicilio;
-      let pagado = parseMonto(document.getElementById('ped-anticipo').value);
-      let costoManual = parseMonto(document.getElementById('ped-costo-manual').value);
-      let fechaAgendamiento = document.getElementById('ped-fecha-agendamiento').value;
-      let fechaEntrega = document.getElementById('ped-fecha-entrega').value;
-      let tipoOp = document.getElementById('ped-tipo').value;
-      let metodoPago = document.getElementById('ped-metodo').value;
+  try {
+    const cli = JSON.parse(select.value);
+    const idElem = document.getElementById('cli-id-seleccionado');
+    const nomElem = document.getElementById('cli-nombre');
+    const telElem = document.getElementById('cli-telefono');
+    const dirElem = document.getElementById('cli-direccion');
 
-      const referenciaGenerada = 'CUP-' + Math.floor(1000 + Math.random() * 9000);
+    if (idElem) idElem.value = cli.id || '';
+    if (nomElem) nomElem.value = cli.nombre || `${cli.first_name || ''} ${cli.last_name || ''}`.trim();
+    if (telElem) telElem.value = cli.telefono || cli.phone || cli.celular || '';
+    if (dirElem) dirElem.value = cli.direccion || cli.city || '';
+  } catch (err) {
+    console.error("Error al autocompletar cliente:", err);
+  }
+};
 
-      const { data: pIns, error: pErr } = await supabaseClient.from('pedidos').insert([{
-        referencia_pedido: referenciaGenerada,
-        cliente_id: cliId,
-        tipo_operacion: tipoOp,
-        total: total,
-        pagado: pagado,
-        domicilio: domicilio,
-        costo_produccion_manual: costoManual,
-        estado_pago: pagado >= total ? 'Pagado' : (pagado > 0 ? 'Abonado' : 'Pendiente'),
-        estado: 'Pendiente',
-        fecha_agendamiento: fechaAgendamiento,
-        fecha_entrega: fechaEntrega
-      }]).select();
+window.cambiarEstadoPedido = async function(id, nuevoEstado) {
+  try {
+    const client = window.supabaseClient;
+    if (!client) return;
 
-      if (pErr || !pIns) throw pErr;
+    const { error } = await client
+      .from('pedidos')
+      .update({ estado: nuevoEstado })
+      .eq('id', id);
 
-      let pedidoId = pIns[0].id;
+    if (error) throw error;
 
-      for (let item of window.carritoAdmin) {
-        await supabaseClient.from('detalle_pedido').insert([{
-          pedido_id: pedidoId,
-          producto_id: item.producto_id,
-          nombre_producto: item.nombre_producto,
-          cantidad: item.cantidad,
-          precio_unitario: item.precio_unitario
-        }]);
-
-        if (item.producto_id && document.getElementById('ped-descontar-stock').value === 'si') {
-          let prod = (window.productosCache || []).find(x => x.id === item.producto_id);
-          if (prod && !prod.sin_stock) {
-            let nuevoStock = Math.max(0, (prod.stock || 0) - item.cantidad);
-            await supabaseClient.from('productos').update({ stock: nuevoStock }).eq('id', item.producto_id);
-          }
-        }
-      }
-
-      if (pagado > 0) {
-        await supabaseClient.from('flujo_caja').insert([{
-          fecha: new Date().toISOString().split('T')[0],
-          tipo: 'INGRESO',
-          concepto: 'Anticipo/Pago Pedido Ref: ' + pedidoId.slice(0, 6),
-          tercero: nombre,
-          metodo_pago: metodoPago,
-          valor: pagado
-        }]);
-      }
-
-      if (typeof showToast === 'function') showToast("¡Pedido guardado y sincronizado con éxito!");
-      window.carritoAdmin = [];
-      window.renderizarCarritoAdmin();
-      form.reset();
-      if (typeof cargarDatosGlobales === 'function') cargarDatosGlobales();
-    } catch (err) {
-      console.error("Error guardando pedido:", err);
-      if (typeof showToast === 'function') showToast("Error al guardar pedido en Supabase", "error");
-    }
-  });
+    if (typeof showToast === 'function') showToast(`Estado actualizado: ${nuevoEstado}`);
+    window.cargarPedidosAdmin();
+  } catch (err) {
+    console.error("Error al cambiar estado:", err);
+  }
 };
