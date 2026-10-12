@@ -641,6 +641,26 @@
 
                 <!-- SUB-PESTAÑA 2: CATÁLOGO DE PRODUCTOS ONLINE -->
                 <div id="subtab-web-productos" class="hidden pt-4 space-y-4">
+                    
+                    <!-- BARRA / BLOQUE DE CONFIGURACIÓN DE TEMPORADA ACTUAL -->
+                    <div class="bg-gradient-to-r from-pink-50 via-purple-50 to-indigo-50 p-4 rounded-2xl border border-pink-200 shadow-sm space-y-2">
+                        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                            <div class="flex items-center gap-2">
+                                <span class="text-xl">🎉</span>
+                                <div>
+                                    <h3 class="font-black text-xs sm:text-sm text-slate-800 uppercase tracking-wide">Temporada Actual Destacada</h3>
+                                    <p class="text-[11px] text-slate-500">Define la temporada activa (ej. NAVIDAD). Los productos con esta temporada aparecerán de forma rotativa (5 aleatorios) en la sección de Productos Destacados de la página principal.</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2 w-full sm:w-auto shrink-0">
+                                <input type="text" id="input-temporada-actual" placeholder="Ej: NAVIDAD, MADRES, AMOR Y AMISTAD..." class="p-2.5 border rounded-xl text-xs w-full sm:w-64 bg-white font-bold text-pink-700 uppercase tracking-wide focus:outline-none focus:ring-2 focus:ring-pink-500">
+                                <button type="button" id="btn-guardar-temporada" onclick="guardarConfiguracionTemporada()" class="bg-pink-600 hover:bg-pink-700 text-white px-4 py-2.5 rounded-xl font-extrabold text-xs shadow-md transition-all whitespace-nowrap flex items-center gap-1.5">
+                                    <i class="fa-solid fa-floppy-disk"></i> Guardar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                         <div class="relative w-full sm:w-80">
                             <input type="text" id="buscador-productos-web" oninput="filtrarProductosWeb()" placeholder="🔍 Buscar en la tienda pública..." class="p-2.5 pl-9 border rounded-xl w-full text-xs bg-slate-50 font-medium">
@@ -748,7 +768,7 @@
         </div>
     </div>
 
-    <!-- MODAL CREACIÓN Y EDICIÓN DE PRODUCTO WEB -->
+    <!-- MODAL CREACIÓN Y EDICIÓN DE PRODUCTO WEB CON TALLAS, COLORES Y VALORES DE ALQUILER/ANTICIPO -->
     <div id="modal-producto-web" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
         <div class="bg-white rounded-3xl max-w-3xl w-full p-6 space-y-4 shadow-2xl text-xs relative max-h-[92vh] overflow-y-auto">
             <button onclick="document.getElementById('modal-producto-web').classList.add('hidden')" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600">
@@ -765,32 +785,33 @@
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div class="sm:col-span-2">
                         <label class="font-bold text-slate-700">Nombre del Producto *</label>
-                        <input type="text" id="prod-web-nombre" required placeholder="Ej: Silla Tiffany Blanca Resina" class="p-2.5 border rounded-xl w-full mt-1 bg-slate-50">
+                        <input type="text" id="prod-web-nombre" required placeholder="Ej: Vestido Elegante Gala Red" class="p-2.5 border rounded-xl w-full mt-1 bg-slate-50">
                     </div>
                     <div>
                         <label class="font-bold text-slate-700">Mundo *</label>
-                        <input type="text" id="prod-web-mundo" required placeholder="Ej: EVENTOS, FAMILIAR, B2B..." class="p-2.5 border rounded-xl w-full mt-1 bg-slate-50 font-semibold">
+                        <input type="text" id="prod-web-mundo" required placeholder="Ej: EVENTOS, FAMILIAR, B2B..." class="p-2.5 border rounded-xl w-full mt-1 bg-slate-50 font-semibold uppercase">
                     </div>
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div>
                         <label class="font-bold text-slate-700">Categoría</label>
-                        <input type="text" id="prod-web-categoria" placeholder="Ej: Mobiliario, Decoración..." class="p-2.5 border rounded-xl w-full mt-1 bg-slate-50">
+                        <input type="text" id="prod-web-categoria" placeholder="Ej: Vestuario, Mobiliario..." class="p-2.5 border rounded-xl w-full mt-1 bg-slate-50">
                     </div>
                     <div>
                         <label class="font-bold text-slate-700">Subcategoría</label>
-                        <input type="text" id="prod-web-subcategoria" placeholder="Ej: Sillas, Cajas..." class="p-2.5 border rounded-xl w-full mt-1 bg-slate-50">
+
+                        <input type="text" id="prod-web-subcategoria" placeholder="Ej: Vestidos Gala, Sillas..." class="p-2.5 border rounded-xl w-full mt-1 bg-slate-50">
                     </div>
                     <div>
                         <label class="font-bold text-slate-700">Temporada</label>
-                        <input type="text" id="prod-web-temporada" placeholder="Ej: Navidad, Amor y Amistad..." class="p-2.5 border rounded-xl w-full mt-1 bg-slate-50">
+                        <input type="text" id="prod-web-temporada" placeholder="Ej: NAVIDAD, MADRES, AMOR Y AMISTAD..." class="p-2.5 border rounded-xl w-full mt-1 bg-slate-50 uppercase">
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-slate-50 p-3 rounded-2xl border">
+                <div class="grid grid-cols-1 sm:grid-cols-4 gap-3 bg-slate-50 p-3 rounded-2xl border">
                     <div>
-                        <label class="font-bold text-slate-700">Precio Detal ($) *</label>
+                        <label class="font-bold text-slate-700">Precio Detal / Venta ($) *</label>
                         <input type="text" id="prod-web-precio-detal" required placeholder="0" class="p-2.5 border rounded-xl w-full mt-1 bg-white font-bold text-indigo-700">
                     </div>
                     <div>
@@ -800,6 +821,10 @@
                     <div>
                         <label class="font-bold text-slate-700">Cant. Mínima Mayorista</label>
                         <input type="number" id="prod-web-cant-mayor" value="6" min="1" class="p-2.5 border rounded-xl w-full mt-1 bg-white font-bold">
+                    </div>
+                    <div>
+                        <label class="font-bold text-slate-700">% Anticipo Requerido</label>
+                        <input type="number" id="prod-web-porcentaje-anticipo" value="50" min="1" max="100" placeholder="50" class="p-2.5 border rounded-xl w-full mt-1 bg-white font-bold text-emerald-700">
                     </div>
                 </div>
 
@@ -818,13 +843,65 @@
                         <span>Venta</span>
                     </label>
                     <label class="flex items-center gap-1.5 font-bold text-slate-700 cursor-pointer">
-                        <input type="checkbox" id="prod-web-check-alquiler" class="rounded text-pink-600">
+                        <input type="checkbox" id="prod-web-check-alquiler" onchange="toggleSeccionAlquilerAdmin(this.checked)" class="rounded text-pink-600">
                         <span>Alquiler</span>
                     </label>
                     <label class="flex items-center gap-1.5 font-bold text-slate-700 cursor-pointer">
                         <input type="checkbox" id="prod-web-check-credito" class="rounded text-pink-600">
                         <span>Crédito</span>
                     </label>
+                </div>
+
+                <!-- VALORES EXCLUSIVOS PARA ALQUILER DE VESTUARIO O MOBILIARIO -->
+                <div id="seccion-alquiler-admin-box" class="hidden grid grid-cols-1 sm:grid-cols-2 gap-3 bg-purple-50 p-3 rounded-2xl border border-purple-200">
+                    <div>
+                        <label class="font-bold text-purple-900">Valor de Alquiler ($) *</label>
+                        <input type="text" id="prod-web-precio-alquiler" placeholder="0" class="p-2.5 border rounded-xl w-full mt-1 bg-white font-bold text-purple-700">
+                    </div>
+                    <div>
+                        <label class="font-bold text-purple-900">Depósito de Garantía ($)</label>
+                        <input type="text" id="prod-web-valor-deposito" placeholder="0" class="p-2.5 border rounded-xl w-full mt-1 bg-white font-bold text-amber-700">
+                    </div>
+                </div>
+
+                <!-- CONSTRUCTOR DINÁMICO DE TALLAS CON INCREMENTO -->
+                <div class="bg-slate-50 p-3.5 rounded-2xl border space-y-2">
+                    <div class="flex justify-between items-center">
+                        <h4 class="font-black text-slate-800 uppercase tracking-wide text-[11px] flex items-center gap-1.5">
+                            <i class="fa-solid fa-ruler-combined text-indigo-600"></i> Tallas Disponibles & Incremento
+                        </h4>
+                        <span class="text-[10px] text-slate-400">Opcional para vestidos, calzado o empaques</span>
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                        <input type="text" id="input-nueva-talla-nombre" placeholder="Ej: S, M, L, XL, 40x40cm" class="p-2 border rounded-xl w-1/2 bg-white font-semibold">
+                        <input type="text" id="input-nueva-talla-precio" placeholder="Incremento $ (Ej: 0 o 5000)" class="p-2 border rounded-xl w-1/2 bg-white font-bold text-indigo-700">
+                        <button type="button" onclick="agregarTallaAlProductoAdmin()" class="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl whitespace-nowrap shadow">+ Agregar</button>
+                    </div>
+
+                    <div id="contenedor-lista-tallas-admin" class="flex flex-wrap gap-2 pt-1">
+                        <span class="text-[11px] text-slate-400 italic">No hay tallas agregadas aún.</span>
+                    </div>
+                </div>
+
+                <!-- CONSTRUCTOR DINÁMICO DE COLORES CON INCREMENTO -->
+                <div class="bg-slate-50 p-3.5 rounded-2xl border space-y-2">
+                    <div class="flex justify-between items-center">
+                        <h4 class="font-black text-slate-800 uppercase tracking-wide text-[11px] flex items-center gap-1.5">
+                            <i class="fa-solid fa-palette text-pink-600"></i> Colores / Tonos Disponibles & Incremento
+                        </h4>
+                        <span class="text-[10px] text-slate-400">Opcional para variedad de presentaciones</span>
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                        <input type="text" id="input-nuevo-color-nombre" placeholder="Ej: Rojo Pasión, Dorado, Blanco" class="p-2.5 border rounded-xl w-1/2 bg-white font-semibold">
+                        <input type="text" id="input-nuevo-color-precio" placeholder="Incremento $ (Ej: 0 o 2000)" class="p-2.5 border rounded-xl w-1/2 bg-white font-bold text-pink-700">
+                        <button type="button" onclick="agregarColorAlProductoAdmin()" class="px-3 py-2 bg-pink-600 hover:bg-pink-700 text-white font-bold rounded-xl whitespace-nowrap shadow">+ Agregar</button>
+                    </div>
+
+                    <div id="contenedor-lista-colores-admin" class="flex flex-wrap gap-2 pt-1">
+                        <span class="text-[11px] text-slate-400 italic">No hay colores agregados aún.</span>
+                    </div>
                 </div>
 
                 <!-- SUBIDA DE IMAGEN DROPZONE Y FILE INPUT -->
@@ -875,6 +952,7 @@
   <script src="js/config/constants.js?v=1.6"></script>
   <script src="js/config/supabase.js?v=1.6"></script>
   <script src="js/services/storage.js?v=1.6"></script>
+  <script src="js/services/settings.js?v=1.6"></script>
   <script src="js/utils/supabase-sync.js?v=1.6"></script>
   <script src="js/utils/ui.js?v=1.6"></script>
 
