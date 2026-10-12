@@ -1,6 +1,6 @@
 /**
- * js/modules/admin/web/web-products.js
- * Carga Inteligente de Productos en Supabase, Visibilidad en Tienda Cliente, Precios Mayoristas e Imágenes
+ * js/modules/admin/admin-products.js
+ * Carga Inteligente de Productos en la tabla 'productos' (Inventario Interno) y sincronización web
  */
 
 window.webCropperInstance = null;
@@ -28,17 +28,18 @@ function safeShowToastWeb(msg, type = 'success') {
 }
 
 /**
- * Carga el catálogo completo de productos directamente desde Supabase
+ * Carga el inventario completo de productos directamente desde la tabla 'productos' de Supabase
  */
-window.cargarProductosWeb = async function() {
-  const tbody = document.getElementById('tabla-productos-web');
+window.cargarInventarioAdmin = async function() {
+  const tbody = document.getElementById('tabla-inventario-admin') || document.getElementById('tabla-productos-web');
+  const countSpan = document.getElementById('count-productos-inv');
   if (!tbody) return;
 
   tbody.innerHTML = `
     <tr>
       <td colspan="6" class="py-8 text-center text-slate-400">
         <i class="fa-solid fa-spinner fa-spin text-lg mb-2"></i>
-        <p>Sincronizando productos desde Supabase...</p>
+        <p>Sincronizando inventario ('productos') desde Supabase...</p>
       </td>
     </tr>
   `;
@@ -56,14 +57,18 @@ window.cargarProductosWeb = async function() {
 
     if (error) throw error;
 
-    window.productosCache = prods || [];
-    window.renderizarTablaProductosWeb(window.productosCache);
+    window.adminProductsCache = prods || [];
+    window.productosCache = window.adminProductsCache;
+
+    if (countSpan) countSpan.textContent = window.adminProductsCache.length;
+
+    window.renderizarTablaInventarioAdmin(window.adminProductsCache);
   } catch (err) {
-    console.error("Error al cargar catálogo de productos web:", err);
+    console.error("Error al cargar inventario interno:", err);
     tbody.innerHTML = `
       <tr>
         <td colspan="6" class="py-6 text-center text-red-500 font-bold">
-          Error al conectar con la base de datos de Supabase. Revisa la configuración o RLS.
+          Error al conectar con la tabla 'productos' de Supabase.
         </td>
       </tr>
     `;
@@ -71,17 +76,17 @@ window.cargarProductosWeb = async function() {
 };
 
 /**
- * Renderizado de productos en la tabla administrativa de la tienda
+ * Renderizado de productos en la tabla de inventario administrativo
  */
-window.renderizarTablaProductosWeb = function(lista) {
-  const tbody = document.getElementById('tabla-productos-web');
+window.renderizarTablaInventarioAdmin = function(lista) {
+  const tbody = document.getElementById('tabla-inventario-admin') || document.getElementById('tabla-productos-web');
   if (!tbody) return;
 
   if (!lista || lista.length === 0) {
     tbody.innerHTML = `
       <tr>
         <td colspan="6" class="py-8 text-center text-slate-400">
-          No hay productos creados en Supabase o coincidentes con la búsqueda.
+          No hay productos registrados en el inventario interno.
         </td>
       </tr>
     `;
@@ -90,51 +95,43 @@ window.renderizarTablaProductosWeb = function(lista) {
 
   tbody.innerHTML = lista.map(p => {
     const foto = p.image_url || p.imagen || 'images/logo.png';
-    const esOculto = p.oculto_web || false;
-    const esPersonalizable = p.es_personalizable || false;
-    const esMayorista = p.es_mayorista || false;
-
+    const stock = p.sin_stock ? '<span class="text-amber-600 font-bold">Sin Stock (Bajo Pedido)</span>' : `<span class="font-black ${(p.stock || 0) <= 3 ? 'text-red-600' : 'text-slate-800'}">${p.stock || 0} unid.</span>`;
     const precioDetal = safeParseMontoWeb(p.precio_detal || p.price);
     const precioMayor = safeParseMontoWeb(p.precio_mayorista);
 
     return `
-      <tr class="border-b hover:bg-slate-50/80 transition-colors ${esOculto ? 'bg-slate-100/60 opacity-60' : ''}">
+      <tr class="border-b hover:bg-slate-50/80 transition-colors">
         <td class="p-3">
           <div class="flex items-center gap-3">
             <img src="${foto}" alt="${p.nombre}" class="w-12 h-12 object-contain bg-white rounded-xl border p-1 shrink-0">
             <div>
               <div class="font-bold text-slate-900">${p.nombre}</div>
-              <div class="text-[10px] text-indigo-600 font-semibold">${p.mundo || 'General'} / ${p.categoria || 'Sin Categoría'}</div>
+              <div class="text-[10px] text-indigo-600 font-semibold">Ref: ${p.referencia || 'N/A'} | Mundo: ${p.mundo || 'General'}</div>
             </div>
           </div>
         </td>
         <td class="p-3 text-xs">
           <div class="font-bold text-slate-700">Detal: $${safeFormatMonedaWeb(precioDetal)}</div>
-          ${esMayorista ? `<div class="text-[10px] font-black text-amber-700">Mayor: $${safeFormatMonedaWeb(precioMayor)} (x${p.cant_minima_mayorista || 6})</div>` : ''}
+          ${precioMayor > 0 ? `<div class="text-[10px] font-black text-amber-700">Mayor: $${safeFormatMonedaWeb(precioMayor)}</div>` : ''}
         </td>
         <td class="p-3 text-xs">
-          <div class="flex flex-wrap gap-1">
-            ${p.permitir_venta ? '<span class="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[9px] font-bold">Venta</span>' : ''}
-            ${p.permitir_alquiler ? '<span class="px-1.5 py-0.5 rounded bg-purple-100 text-purple-800 text-[9px] font-bold">Alquiler</span>' : ''}
-            ${p.permitir_credito ? '<span class="px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 text-[9px] font-bold">Crédito</span>' : ''}
+          <div class="flex items-center gap-2">
+            ${stock}
+            <button type="button" onclick="sumarStockLote('${p.id}')" class="px-2 py-1 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 rounded-lg text-[10px] font-extrabold transition" title="Sumar lote al stock">
+              + Lote
+            </button>
           </div>
         </td>
         <td class="p-3 text-center">
-          ${esPersonalizable ? '<span class="text-indigo-600 text-xs font-extrabold" title="Requiere personalización"><i class="fa-solid fa-wand-magic-sparkles"></i> Sí</span>' : '<span class="text-slate-300 text-xs">No</span>'}
-        </td>
-        <td class="p-3 text-center">
-          <button type="button" onclick="toggleVisibilidadProductoWeb('${p.id}', ${esOculto})" class="px-2.5 py-1 rounded-xl text-xs font-bold transition-all ${esOculto ? 'bg-slate-200 text-slate-700' : 'bg-emerald-100 text-emerald-800'}">
-            <i class="fa-solid ${esOculto ? 'fa-eye-slash' : 'fa-eye'} mr-1"></i>
-            ${esOculto ? 'Oculto' : 'Visible'}
-          </button>
+          <span class="px-2 py-1 rounded bg-slate-100 text-slate-700 text-[10px] font-bold">${p.origen || p.origen_compra || 'Colombia'}</span>
         </td>
         <td class="p-3 text-right">
           <div class="flex items-center justify-end gap-1.5">
-            <button type="button" onclick='abrirModalProductoWeb(${JSON.stringify(p).replace(/'/g, "&apos;")})' class="p-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl transition-all" title="Editar Producto">
-              <i class="fa-solid fa-pen-to-square"></i>
+            <button type="button" onclick='editarProductoAdmin(${JSON.stringify(p).replace(/'/g, "&apos;")})' class="p-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl transition-all" title="Editar Producto">
+              ✏️
             </button>
-            <button type="button" onclick="eliminarProductoWeb('${p.id}')" class="p-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl transition-all" title="Eliminar">
-              <i class="fa-solid fa-trash"></i>
+            <button type="button" onclick="eliminarProductoAdmin('${p.id}')" class="p-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl transition-all" title="Eliminar">
+              🗑️
             </button>
           </div>
         </td>
@@ -144,355 +141,248 @@ window.renderizarTablaProductosWeb = function(lista) {
 };
 
 /**
- * Filtro de búsqueda en tiempo real
+ * Filtro de búsqueda en tiempo real para el inventario
  */
-window.filtrarProductosWeb = function() {
-  const query = (document.getElementById('buscador-productos-web')?.value || '').toLowerCase().trim();
-  if (!query) {
-    window.renderizarTablaProductosWeb(window.productosCache);
-    return;
-  }
+window.filtrarInventarioAdmin = function() {
+  const query = (document.getElementById('buscador-inventario')?.value || '').toLowerCase().trim();
+  const origenSel = document.getElementById('filtro-origen-inv')?.value || 'todos';
 
-  const filtrados = (window.productosCache || []).filter(p =>
-    (p.nombre || '').toLowerCase().includes(query) ||
-    (p.mundo || '').toLowerCase().includes(query) ||
-    (p.categoria || '').toLowerCase().includes(query) ||
-    (p.referencia || '').toLowerCase().includes(query)
-  );
+  const filtrados = (window.adminProductsCache || []).filter(p => {
+    const okQuery = !query || 
+      (p.nombre || '').toLowerCase().includes(query) ||
+      (p.mundo || '').toLowerCase().includes(query) ||
+      (p.referencia || '').toLowerCase().includes(query);
 
-  window.renderizarTablaProductosWeb(filtrados);
+    const origenVal = p.origen || p.origen_compra || '';
+    const okOrigen = origenSel === 'todos' || origenVal.toLowerCase().includes(origenSel.toLowerCase());
+
+    return okQuery && okOrigen;
+  });
+
+  window.renderizarTablaInventarioAdmin(filtrados);
 };
 
 /**
- * Alterna el estado oculto_web de un producto
+ * Elimina un producto permanentemente de la tabla 'productos' y de 'productos_web'
  */
-window.toggleVisibilidadProductoWeb = async function(id, estadoActualOculto) {
-  try {
-    const client = window.supabaseClient || window.supabase;
-    const { error } = await client
-      .from('productos')
-      .update({ oculto_web: !estadoActualOculto })
-      .eq('id', id);
-
-    if (error) throw error;
-
-    safeShowToastWeb(!estadoActualOculto ? "Producto ocultado de la tienda pública." : "Producto visible nuevamente.");
-    window.cargarProductosWeb();
-  } catch (err) {
-    console.error("Error al actualizar visibilidad en Supabase:", err);
-    safeShowToastWeb("Error al modificar visibilidad.", "error");
-  }
-};
-
-/**
- * Elimina un producto permanentemente
- */
-window.eliminarProductoWeb = async function(id) {
-  if (!confirm("¿Eliminar este producto permanentemente de Supabase?")) return;
+window.eliminarProductoAdmin = async function(id) {
+  if (!confirm("¿Deseas eliminar este producto del inventario interno y de la web?")) return;
 
   try {
     const client = window.supabaseClient || window.supabase;
+    // Eliminar de productos internos
     const { error } = await client.from('productos').delete().eq('id', id);
     if (error) throw error;
 
-    safeShowToastWeb("Producto eliminado de Supabase.");
-    window.cargarProductosWeb();
+    // Intentar eliminar también de productos_web si coincide el ID o referencia
+    await client.from('productos_web').delete().eq('id', id);
+
+    safeShowToastWeb("Producto eliminado del inventario y de la web.");
+    window.cargarInventarioAdmin();
   } catch (err) {
-    console.error("Error al eliminar producto:", err);
+    console.error("Error al eliminar producto del inventario:", err);
     safeShowToastWeb("Error al eliminar producto.", "error");
   }
 };
 
 /**
- * Abre el modal para crear/editar producto
+ * Abre el formulario / modal para editar un producto del inventario
  */
-window.abrirModalProductoWeb = function(prod = null) {
-  const modal = document.getElementById('modal-producto-web');
-  const form = document.getElementById('form-producto-web');
-  if (!modal || !form) return;
+window.editarProductoAdmin = function(prod) {
+  if (!prod) return;
 
-  form.reset();
-  window.currentProductWebImgBase64 = null;
+  const idField = document.getElementById('prod-id-edit');
+  const nombreField = document.getElementById('prod-nombre');
+  const mundoField = document.getElementById('prod-mundo');
+  const origenField = document.getElementById('prod-origen');
+  const sinStockField = document.getElementById('prod-sin-stock');
+  const stockField = document.getElementById('prod-stock');
+  const detalField = document.getElementById('prod-detal');
+  const mayorField = document.getElementById('prod-mayor');
 
-  if (prod) {
-    document.getElementById('prod-web-id').value = prod.id || '';
-    document.getElementById('prod-web-nombre').value = prod.nombre || '';
-    document.getElementById('prod-web-mundo').value = prod.mundo || '';
-    document.getElementById('prod-web-categoria').value = prod.categoria || '';
-    document.getElementById('prod-web-subcategoria').value = prod.subcategoria || '';
-    document.getElementById('prod-web-temporada').value = prod.temporada || '';
-    document.getElementById('prod-web-precio-detal').value = prod.precio_detal || prod.price || 0;
-    document.getElementById('prod-web-precio-mayor').value = prod.precio_mayorista || 0;
-    document.getElementById('prod-web-cant-mayor').value = prod.cant_minima_mayorista || 6;
+  if (idField) idField.value = prod.id || '';
+  if (nombreField) nombreField.value = prod.nombre || '';
+  if (mundoField) mundoField.value = prod.mundo || '';
+  if (origenField) origenField.value = prod.origen || prod.origen_compra || 'Colombia';
+  if (sinStockField) sinStockField.checked = prod.sin_stock || false;
+  if (stockField) stockField.value = prod.stock || 0;
+  if (detalField) detalField.value = prod.precio_detal || prod.price || 0;
+  if (mayorField) mayorField.value = prod.precio_mayorista || 0;
 
-    document.getElementById('prod-web-check-personalizable').checked = prod.es_personalizable || false;
-    document.getElementById('prod-web-check-mayorista').checked = prod.es_mayorista || false;
-    document.getElementById('prod-web-check-venta').checked = prod.permitir_venta !== false;
-    document.getElementById('prod-web-check-alquiler').checked = prod.permitir_alquiler || false;
-    document.getElementById('prod-web-check-credito').checked = prod.permitir_credito || false;
+  const btnGuardar = document.getElementById('btn-guardar-prod');
+  const btnCancelar = document.getElementById('btn-cancelar-edit-prod');
 
-    const imgPreview = document.getElementById('prod-web-img-preview');
-    const foto = prod.image_url || prod.imagen || 'images/logo.png';
-    if (imgPreview) imgPreview.src = foto;
-    window.currentProductWebImgBase64 = foto;
-  } else {
-    document.getElementById('prod-web-id').value = '';
-    const imgPreview = document.getElementById('prod-web-img-preview');
-    if (imgPreview) imgPreview.src = 'images/logo.png';
-  }
-
-  modal.classList.remove('hidden');
+  if (btnGuardar) btnGuardar.textContent = '💾 Actualizar Producto';
+  if (btnCancelar) btnCancelar.classList.remove('hidden');
 };
 
 /**
- * Eventos para Drag & Drop, Clic en Dropzone y Pegar desde el portapapeles
+ * Restablece el formulario de inventario
  */
-window.initDragDropAndPasteImageWeb = function() {
-  const dropZone = document.getElementById('prod-web-drop-zone');
-  const fileInput = document.getElementById('prod-web-file-input');
+window.cancelarEdicionProd = function() {
+  const form = document.getElementById('form-producto-admin');
+  if (form) form.reset();
 
-  if (dropZone && fileInput) {
-    dropZone.onclick = function(e) {
-      if (e.target !== fileInput) {
-        e.preventDefault();
-        fileInput.click();
-      }
-    };
+  const idField = document.getElementById('prod-id-edit');
+  if (idField) idField.value = '';
 
-    dropZone.addEventListener('dragover', (e) => {
-      e.preventDefault();
-      dropZone.classList.add('border-brand-500', 'bg-brand-50/50');
-    });
+  const btnGuardar = document.getElementById('btn-guardar-prod');
+  const btnCancelar = document.getElementById('btn-cancelar-edit-prod');
 
-    dropZone.addEventListener('dragleave', () => {
-      dropZone.classList.remove('border-brand-500', 'bg-brand-50/50');
-    });
-
-    dropZone.addEventListener('drop', (e) => {
-      e.preventDefault();
-      dropZone.classList.remove('border-brand-500', 'bg-brand-50/50');
-      if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-        window.procesarFotoProductoWeb(e.dataTransfer.files[0]);
-      }
-    });
-
-    fileInput.addEventListener('change', (e) => {
-      if (e.target.files && e.target.files[0]) {
-        window.procesarFotoProductoWeb(e.target.files[0]);
-      }
-    });
-
-    window.addEventListener('paste', (e) => {
-      const modal = document.getElementById('modal-producto-web');
-      if (modal && !modal.classList.contains('hidden')) {
-        const items = (e.clipboardData || e.originalEvent?.clipboardData)?.items || [];
-        for (let item of items) {
-          if (item.type.indexOf('image') !== -1) {
-            const blob = item.getAsFile();
-            window.procesarFotoProductoWeb(blob);
-            break;
-          }
-        }
-      }
-    });
-  }
+  if (btnGuardar) btnGuardar.textContent = '💾 Guardar Catálogo';
+  if (btnCancelar) btnCancelar.classList.add('hidden');
 };
 
 /**
- * Lee la imagen y activa el recortador Cropper.js
+ * Sumar lote de stock rápido
  */
-window.procesarFotoProductoWeb = function(file) {
-  if (!file || !file.type.startsWith('image/')) {
-    safeShowToastWeb("Por favor selecciona una imagen válida.", "error");
-    return;
-  }
+window.sumarStockLote = function(id) {
+  const prod = (window.adminProductsCache || []).find(p => p.id === id);
+  if (!prod) return;
 
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    const src = e.target.result;
-    const cropImg = document.getElementById('cropper-web-target');
-    const cropModal = document.getElementById('modal-cropper-web');
+  const loteIdField = document.getElementById('lote-prod-id');
+  const lblNombre = document.getElementById('lbl-lote-prod-nombre');
+  const modalLote = document.getElementById('modal-sumar-lote');
 
-    if (cropImg && cropModal && typeof Cropper !== 'undefined') {
-      cropImg.src = src;
-      cropModal.classList.remove('hidden');
-
-      if (window.webCropperInstance) {
-        window.webCropperInstance.destroy();
-      }
-
-      window.webCropperInstance = new Cropper(cropImg, {
-        aspectRatio: 1,
-        viewMode: 1
-      });
-    } else {
-      window.currentProductWebImgBase64 = src;
-      const imgPreview = document.getElementById('prod-web-img-preview');
-      if (imgPreview) imgPreview.src = src;
-    }
-  };
-  reader.readAsDataURL(file);
+  if (loteIdField) loteIdField.value = prod.id;
+  if (lblNombre) lblNombre.textContent = prod.nombre;
+  if (modalLote) modalLote.classList.remove('hidden');
 };
 
-/**
- * Confirma el recorte y comprime la imagen
- */
-window.confirmarRecorteFotoWeb = function() {
-  if (window.webCropperInstance) {
-    const canvas = window.webCropperInstance.getCroppedCanvas({
-      width: 600,
-      height: 600
-    });
-
-    const croppedBase64 = canvas.toDataURL('image/jpeg', 0.85);
-    window.currentProductWebImgBase64 = croppedBase64;
-
-    const imgPreview = document.getElementById('prod-web-img-preview');
-    if (imgPreview) imgPreview.src = croppedBase64;
-
-    const cropModal = document.getElementById('modal-cropper-web');
-    if (cropModal) cropModal.classList.add('hidden');
-
-    window.webCropperInstance.destroy();
-    window.webCropperInstance = null;
-
-    safeShowToastWeb("Imagen recortada y lista para subir.");
-  }
+window.cerrarModalLote = function() {
+  const modalLote = document.getElementById('modal-sumar-lote');
+  if (modalLote) modalLote.classList.add('hidden');
 };
 
-/**
- * Inserción / Actualización segura en Supabase con subida a Supabase Storage
- */
-window.guardarProductoWeb = async function(e) {
-  if (e) e.preventDefault();
+window.confirmarSumarLote = async function() {
+  const loteIdField = document.getElementById('lote-prod-id');
+  const cantidadInput = document.getElementById('lote-cantidad');
+  if (!loteIdField) return;
 
-  const btnSubmit = e?.target?.querySelector('button[type="submit"]');
-  if (btnSubmit) {
-    btnSubmit.disabled = true;
-    btnSubmit.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-1"></i> Subiendo imagen y guardando...`;
-  }
+  const id = loteIdField.value;
+  const cantSumar = parseInt(cantidadInput?.value || 0, 10) || 0;
+
+  const prod = (window.adminProductsCache || []).find(p => p.id === id);
+  if (!prod) return;
+
+  const nuevoStock = (prod.stock || 0) + cantSumar;
 
   try {
     const client = window.supabaseClient || window.supabase;
-    if (!client) {
-      throw new Error("El cliente de Supabase no se encuentra inicializado.");
-    }
+    const { error } = await client
+      .from('productos')
+      .update({ stock: nuevoStock })
+      .eq('id', id);
 
-    const id = document.getElementById('prod-web-id')?.value;
-    const nombre = (document.getElementById('prod-web-nombre')?.value || '').trim();
-    const mundo = (document.getElementById('prod-web-mundo')?.value || '').trim().toUpperCase();
-    const categoria = (document.getElementById('prod-web-categoria')?.value || '').trim();
-    const subcategoria = (document.getElementById('prod-web-subcategoria')?.value || '').trim();
-    const temporada = (document.getElementById('prod-web-temporada')?.value || '').trim();
+    if (error) throw error;
 
-    const precio_detal = safeParseMontoWeb(document.getElementById('prod-web-precio-detal')?.value);
-    const precio_mayorista = safeParseMontoWeb(document.getElementById('prod-web-precio-mayor')?.value);
-    const cant_minima_mayorista = parseInt(document.getElementById('prod-web-cant-mayor')?.value || 6, 10) || 6;
+    // Sincronizar el stock en productos_web también
+    await client
+      .from('productos_web')
+      .update({ stock: nuevoStock })
+      .eq('id', id);
 
-    const es_personalizable = document.getElementById('prod-web-check-personalizable')?.checked || false;
-    const es_mayorista = document.getElementById('prod-web-check-mayorista')?.checked || false;
-    const permitir_venta = document.getElementById('prod-web-check-venta')?.checked || false;
-    const permitir_alquiler = document.getElementById('prod-web-check-alquiler')?.checked || false;
-    const permitir_credito = document.getElementById('prod-web-check-credito')?.checked || false;
+    safeShowToastWeb(`Stock actualizado: +${cantSumar} unidades.`);
+    window.cerrarModalLote();
+    window.cargarInventarioAdmin();
+  } catch (err) {
+    console.error("Error al sumar lote:", err);
+    safeShowToastWeb("Error al actualizar stock.", "error");
+  }
+};
+
+/**
+ * Inicializador del formulario de productos del inventario y sincronización web
+ */
+window.initAdminProductsForm = function() {
+  const form = document.getElementById('form-producto-admin');
+  if (!form) return;
+
+  form.addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    const id = document.getElementById('prod-id-edit')?.value;
+    const nombre = (document.getElementById('prod-nombre')?.value || '').trim();
+    const mundo = (document.getElementById('prod-mundo')?.value || '').trim().toUpperCase();
+    const origen = document.getElementById('prod-origen')?.value || 'Colombia';
+    const sin_stock = document.getElementById('prod-sin-stock')?.checked || false;
+    const stock = parseInt(document.getElementById('prod-stock')?.value || 0, 10) || 0;
+    const precio_detal = safeParseMontoWeb(document.getElementById('prod-detal')?.value);
+    const precio_mayorista = safeParseMontoWeb(document.getElementById('prod-mayor')?.value);
 
     if (!nombre || !mundo) {
-      throw new Error("El nombre y el mundo del producto son obligatorios.");
-    }
-
-    let finalImageUrl = null;
-
-    // Subir imagen a Supabase Storage si es una data URL en base64
-    if (window.currentProductWebImgBase64) {
-      if (window.currentProductWebImgBase64.startsWith('data:')) {
-        try {
-          const fetchRes = await fetch(window.currentProductWebImgBase64);
-          const blob = await fetchRes.blob();
-          const ext = blob.type.split('/')[1] || 'jpg';
-          const fileName = `catalog/${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${ext}`;
-
-          const { data: uploadData, error: uploadError } = await client
-            .storage
-            .from('productos')
-            .upload(fileName, blob, {
-              contentType: blob.type || 'image/jpeg',
-              cacheControl: '3600',
-              upsert: true
-            });
-
-          if (uploadError) {
-            console.warn('No se pudo subir la imagen a Supabase Storage. Usando Base64 fallback:', uploadError.message);
-            finalImageUrl = window.currentProductWebImgBase64;
-          } else {
-            const { data: publicUrlData } = client
-              .storage
-              .from('productos')
-              .getPublicUrl(fileName);
-
-            finalImageUrl = publicUrlData?.publicUrl || window.currentProductWebImgBase64;
-          }
-        } catch (storageErr) {
-          console.warn('Error al procesar la imagen para Storage:', storageErr);
-          finalImageUrl = window.currentProductWebImgBase64;
-        }
-      } else {
-        finalImageUrl = window.currentProductWebImgBase64;
-      }
+      safeShowToastWeb("El nombre y el mundo del producto son obligatorios.", "error");
+      return;
     }
 
     const payload = {
       nombre,
       mundo,
-      categoria,
-      subcategoria,
-      temporada,
+      origen,
+      origen_compra: origen,
+      sin_stock,
+      stock,
       precio_detal,
       price: precio_detal,
       precio_mayorista,
-      cant_minima_mayorista,
-      es_personalizable,
-      es_mayorista,
-      permitir_venta,
-      permitir_alquiler,
-      permitir_credito,
-      is_active: true,
-      oculto_web: false
+      is_active: true
     };
 
-    if (finalImageUrl) {
-      payload.image_url = finalImageUrl;
-      payload.imagen = finalImageUrl;
-    }
+    // Payload adaptado para la tabla de clientes (productos_web)
+    const webPayload = {
+      title: nombre,
+      description: `Mundo: ${mundo} | Origen: ${origen}`,
+      price: precio_detal,
+      category: mundo,
+      stock: stock,
+      is_active: true
+    };
 
-    if (id) {
-      const { error } = await client.from('productos').update(payload).eq('id', id);
-      if (error) throw error;
-      safeShowToastWeb("Producto actualizado correctamente.");
-    } else {
-      payload.referencia = 'CUP-' + Math.floor(1000 + Math.random() * 9000);
-      const { error } = await client.from('productos').insert([payload]);
-      if (error) throw error;
-      safeShowToastWeb("¡Producto creado y publicado en la tienda!");
-    }
+    try {
+      const client = window.supabaseClient || window.supabase;
+      if (!client) throw new Error("Supabase no disponible.");
 
-    const modal = document.getElementById('modal-producto-web');
-    if (modal) modal.classList.add('hidden');
-    window.cargarProductosWeb();
-  } catch (err) {
-    console.error("Error al guardar producto en Supabase:", err);
-    safeShowToastWeb(err.message || "Error de conexión al guardar el producto en Supabase.", "error");
-  } finally {
-    if (btnSubmit) {
-      btnSubmit.disabled = false;
-      btnSubmit.innerHTML = `💾 Guardar Producto Web`;
+      if (id) {
+        // Actualizar en inventario interno
+        const { error } = await client.from('productos').update(payload).eq('id', id);
+        if (error) throw error;
+
+        // Actualizar o insertar en productos_web para la página de clientes
+        await client.from('productos_web').upsert({ id, ...webPayload });
+
+        safeShowToastWeb("Producto actualizado en el inventario y en la web.");
+      } else {
+        const ref = 'CUP-' + Math.floor(1000 + Math.random() * 9000);
+        payload.referencia = ref;
+        
+        // Insertar en inventario interno
+        const { data: insertedData, error } = await client.from('productos').insert([payload]).select().single();
+        if (error) throw error;
+
+        // Insertar también en productos_web para clientes usando el mismo ID generado
+        if (insertedData && insertedData.id) {
+          await client.from('productos_web').insert([{ id: insertedData.id, ...webPayload }]);
+        } else {
+          await client.from('productos_web').insert([webPayload]);
+        }
+
+        safeShowToastWeb("Nuevo producto registrado y publicado en la web.");
+      }
+
+      window.cancelarEdicionProd();
+      window.cargarInventarioAdmin();
+    } catch (err) {
+      console.error("Error al guardar en inventario:", err);
+      safeShowToastWeb("Error al guardar en la base de datos.", "error");
     }
-  }
+  });
 };
 
-// Inicialización automática de eventos
+// Inicialización automática de eventos de búsqueda o formularios si aplica
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => {
-    window.initDragDropAndPasteImageWeb();
+    window.initAdminProductsForm();
   });
 } else {
-  window.initDragDropAndPasteImageWeb();
+  window.initAdminProductsForm();
 }
