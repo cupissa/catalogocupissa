@@ -1,11 +1,11 @@
 /**
  * js/utils/supabase-sync.js
- * Capa de Sincronización Directa con Tablas Reales de Supabase
+ * Capa de Sincronización Directa con Tablas Reales de Supabase (Cuentas por Cobrar, 4x1000 y Movimientos)
  */
 
 window.SupabaseSync = {
   /**
-   * Obtiene la lista general de clientes del CRM (Tabla 'cliente')
+   * Obtiene la lista general de clientes del CRM (Tabla 'cliente' o 'clientes')
    */
   async getClientes() {
     try {
@@ -16,13 +16,30 @@ window.SupabaseSync = {
         .order('created_at', { ascending: false });
 
       if (error) {
-        // Fallback si la columna created_at varía
         const { data: altData } = await window.supabaseClient.from('clientes').select('*');
         return altData || [];
       }
       return data || [];
     } catch (err) {
       console.error('Error al consultar tabla cliente en Supabase:', err);
+      return [];
+    }
+  },
+
+  /**
+   * Obtiene las cuentas por cobrar / saldos actuales por cliente (Tabla 'customer_accounts')
+   */
+  async getCustomerAccounts() {
+    try {
+      if (!window.supabaseClient) return [];
+      const { data, error } = await window.supabaseClient
+        .from('customer_accounts')
+        .select('*');
+
+      if (error) throw error;
+      return data || [];
+    } catch (err) {
+      console.error('Error al consultar customer_accounts en Supabase:', err);
       return [];
     }
   },
@@ -47,7 +64,7 @@ window.SupabaseSync = {
   },
 
   /**
-   * Obtiene los pedidos (Tabla 'pedidos')
+   * Obtiene los pedidos (Tabla 'pedidos' / 'orders')
    */
   async getPedidos() {
     try {
@@ -85,13 +102,20 @@ window.SupabaseSync = {
   },
 
   /**
-   * Registra un movimiento en 'flujo_caja'
+   * Registra un movimiento en 'flujo_caja' con cálculo automático del 4x1000
    */
   async insertFlujoCaja(movimiento) {
     try {
       if (!window.supabaseClient) throw new Error('Cliente Supabase no disponible');
       
       const valorNum = window.parseMonto(movimiento.valor !== undefined ? movimiento.valor : movimiento.monto || 0);
+      const metodo = (movimiento.metodo_pago || 'Efectivo').toLowerCase();
+      
+      // Cálculo automático del 4x1000 si es transacción bancaria o si viene especificado
+      const impuestoCalculado = movimiento.impuesto_4x1000 !== undefined 
+        ? window.parseMonto(movimiento.impuesto_4x1000) 
+        : (metodo !== 'efectivo' ? Number((valorNum * 0.004).toFixed(2)) : 0);
+
       const payload = {
         fecha: movimiento.fecha || new Date().toISOString().split('T')[0],
         tipo: movimiento.tipo || 'INGRESO',
@@ -101,7 +125,7 @@ window.SupabaseSync = {
         valor: valorNum,
         monto: valorNum,
         descripcion: movimiento.descripcion || '',
-        impuesto_4x1000: movimiento.impuesto_4x1000 || 0
+        impuesto_4x1000: impuestoCalculado
       };
 
       const { data, error } = await window.supabaseClient
@@ -172,6 +196,44 @@ window.SupabaseSync = {
     } catch (err) {
       console.error('Error al consultar deudas_mensuales:', err);
       return [];
+    }
+  },
+
+  /**
+   * Inserta una nueva deuda mensual
+   */
+  async insertDeuda(deudaPayload) {
+    try {
+      if (!window.supabaseClient) throw new Error('Cliente Supabase no disponible');
+      const { data, error } = await window.supabaseClient
+        .from('deudas_mensuales')
+        .insert([deudaPayload])
+        .select();
+
+      if (error) throw error;
+      return { success: true, data };
+    } catch (err) {
+      console.error('Error al insertar deuda:', err);
+      return { success: false, error: err.message };
+    }
+  },
+
+  /**
+   * Elimina una deuda mensual
+   */
+  async deleteDeuda(id) {
+    try {
+      if (!window.supabaseClient) throw new Error('Cliente Supabase no disponible');
+      const { error } = await window.supabaseClient
+        .from('deudas_mensuales')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      return { success: true };
+    } catch (err) {
+      console.error('Error al eliminar deuda:', err);
+      return { success: false, error: err.message };
     }
   }
 };
