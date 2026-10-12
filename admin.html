@@ -16,7 +16,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
     
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="css/admin.css?v=1.6">
+    <link rel="stylesheet" href="css/admin.css?v=1.7">
 </head>
 <body class="bg-slate-100 text-slate-800 font-sans antialiased pb-20">
 
@@ -102,7 +102,12 @@
 
             <!-- GRAFICO DIARIO DE FLUJO DE CAJA -->
             <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200">
-                <h2 class="text-base sm:text-lg font-bold text-slate-800 mb-3">📈 Ingresos vs Egresos (Movimiento Diario)</h2>
+                <h2 id="lbl-chart-title" class="text-base sm:text-lg font-bold text-slate-800 mb-3">📈 Ingresos vs Egresos (Movimiento Diario)</h2>
+                <div class="flex justify-end mb-2">
+                    <button id="btn-reset-chart-view" onclick="resetearVistaGrafica()" class="hidden px-3 py-1 bg-indigo-100 hover:bg-indigo-200 text-indigo-800 rounded-lg text-xs font-bold transition">
+                        ⬅️ Volver a Vista Mensual
+                    </button>
+                </div>
                 <div class="relative w-full h-64 sm:h-80">
                     <canvas id="chart-flujo-diario"></canvas>
                 </div>
@@ -949,21 +954,21 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <!-- Configuración y servicios de conexión -->
-  <script src="js/config/constants.js?v=1.6"></script>
-  <script src="js/config/supabase.js?v=1.6"></script>
-  <script src="js/services/storage.js?v=1.6"></script>
-  <script src="js/services/settings.js?v=1.6"></script>
-  <script src="js/utils/supabase-sync.js?v=1.6"></script>
-  <script src="js/utils/ui.js?v=1.6"></script>
+  <script src="js/config/constants.js?v=1.7"></script>
+  <script src="js/config/supabase.js?v=1.7"></script>
+  <script src="js/services/storage.js?v=1.7"></script>
+  <script src="js/services/settings.js?v=1.7"></script>
+  <script src="js/utils/supabase-sync.js?v=1.7"></script>
+  <script src="js/utils/ui.js?v=1.7"></script>
 
   <!-- Módulos administrativos -->
-  <script src="js/modules/admin/admin-dashboard.js?v=1.6"></script>
-  <script src="js/modules/admin/admin-products.js?v=1.6"></script>
-  <script src="js/modules/admin/admin-orders.js?v=1.6"></script>
-  <script src="js/modules/admin/web/web-products.js?v=1.6"></script>
-  <script src="js/modules/admin/web/web-clients.js?v=1.6"></script>
+  <script src="js/modules/admin/admin-dashboard.js?v=1.7"></script>
+  <script src="js/modules/admin/admin-products.js?v=1.7"></script>
+  <script src="js/modules/admin/admin-orders.js?v=1.7"></script>
+  <script src="js/modules/admin/web/web-products.js?v=1.7"></script>
+  <script src="js/modules/admin/web/web-clients.js?v=1.7"></script>
 
   <!-- Controlador principal del panel -->
-  <script src="js/pages/admin-page.js?v=1.6"></script>
+  <script src="js/pages/admin-page.js?v=1.7"></script>
 </body>
 </html>
