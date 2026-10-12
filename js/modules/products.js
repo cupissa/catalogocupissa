@@ -2,36 +2,40 @@
  * js/modules/products.js
  * Módulo de Gestión de Productos y Catálogo Público para la Tienda Cliente.
  * Soporta renderizado de Mundos, filtros, cuadrícula dinámica con Favoritos
- * y apertura del modal interactivo de detalle de producto.
+ * y apertura del modal interactivo de detalle de producto con todos sus atributos.
  */
 
 window.StoreProducts = {
   cache: [],
 
   /**
-   * Carga los productos reales desde Supabase sin mockups
+   * Carga los productos reales desde la tabla 'productos_web' en Supabase asegurando select('*')
    */
   async loadProducts() {
     try {
+      const client = window.supabaseClient || window.supabase;
+      if (client) {
+        const { data, error } = await client
+          .from('productos_web')
+          .select('*')
+          .or('oculto_web.eq.false,oculto_web.is.null')
+          .order('nombre', { ascending: true });
+
+        if (!error && data) {
+          this.cache = data;
+          console.log("Productos web cargados correctamente con todos los campos:", data);
+          return this.cache;
+        } else {
+          console.error("Error en la consulta de Supabase para productos_web:", error);
+        }
+      }
+
       if (typeof SupabaseSync !== 'undefined' && SupabaseSync.getPublicProducts) {
         this.cache = await SupabaseSync.getPublicProducts();
-      } else {
-        const client = window.supabaseClient || window.supabase;
-        if (client) {
-          const { data, error } = await client
-            .from('productos')
-            .select('*')
-            .or('oculto_web.eq.false,oculto_web.is.null')
-            .order('nombre', { ascending: true });
-
-          if (!error && data) {
-            this.cache = data;
-          }
-        }
       }
       return this.cache || [];
     } catch (err) {
-      console.error('Error cargando productos públicos en la tienda:', err);
+      console.error('Error cargando productos públicos de la web:', err);
       this.cache = [];
       return [];
     }
@@ -172,7 +176,7 @@ window.StoreProducts = {
       container.innerHTML = `
         <div class="col-span-full text-center py-12 bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700/60 p-6 shadow-sm">
           <i class="fa-solid fa-box-open text-4xl text-gray-300 dark:text-gray-600 mb-3"></i>
-          <p class="text-gray-500 dark:text-gray-400 font-bold text-sm">No hay productos disponibles por el momento.</p>
+          <p class="text-gray-500 dark:text-gray-400 font-bold text-sm">No hay productos web disponibles por el momento.</p>
         </div>
       `;
       return;
@@ -186,17 +190,16 @@ window.StoreProducts = {
       const formattedPrice = typeof formatMoneda === 'function' ? formatMoneda(precioDetal) : precioDetal.toLocaleString('es-CO');
 
       const isFav = favs.some(f => f.id === p.id);
-      const strObj = JSON.stringify(p).replace(/'/g, "&apos;");
+      const prodId = p.id;
 
       return `
         <div class="bg-white dark:bg-gray-800 rounded-3xl p-4 shadow-sm hover:shadow-md border border-gray-100 dark:border-gray-700/60 transition-all duration-300 flex flex-col justify-between group relative">
           
-          <!-- Botón flotante de Favoritos en la tarjeta -->
-          <button type="button" onclick='event.stopPropagation(); window.toggleFavoriteItem(${strObj});' class="absolute top-6 right-6 z-10 w-8 h-8 rounded-full bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm flex items-center justify-center text-gray-400 hover:text-pink-600 shadow-sm transition-all">
+          <button type="button" onclick="event.stopPropagation(); window.toggleFavoriteItemFromCache('${prodId}');" class="absolute top-6 right-6 z-10 w-8 h-8 rounded-full bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm flex items-center justify-center text-gray-400 hover:text-pink-600 shadow-sm transition-all">
             <i class="fa-solid fa-heart ${isFav ? 'text-pink-600' : ''}"></i>
           </button>
 
-          <div onclick='StoreProducts.openDetailModal(${strObj})' class="cursor-pointer">
+          <div onclick="StoreProducts.openDetailModalById('${prodId}')" class="cursor-pointer">
             <div class="relative overflow-hidden rounded-2xl bg-gray-50 dark:bg-gray-700/40 mb-3 aspect-square flex items-center justify-center p-2">
               <img src="${foto}" alt="${p.nombre}" class="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300">
               
@@ -217,7 +220,7 @@ window.StoreProducts = {
               <span class="text-base font-black text-gray-900 dark:text-white">$${formattedPrice} COP</span>
             </div>
 
-            <button type="button" onclick='StoreProducts.openDetailModal(${strObj})' class="bg-brand-600 hover:bg-brand-700 text-white p-2.5 rounded-2xl shadow-sm transition-all flex items-center justify-center gap-1.5 font-bold text-xs">
+            <button type="button" onclick="StoreProducts.openDetailModalById('${prodId}')" class="bg-brand-600 hover:bg-brand-700 text-white p-2.5 rounded-2xl shadow-sm transition-all flex items-center justify-center gap-1.5 font-bold text-xs">
               <i class="fa-solid fa-bag-shopping text-xs"></i>
               <span>Ver Op.</span>
             </button>
@@ -228,18 +231,32 @@ window.StoreProducts = {
   },
 
   /**
-   * Abre el modal interactivo de detalles de producto
+   * Abre el modal buscando el producto completo por su ID en el caché global
    */
-  openDetailModal(product) {
-    if (typeof window.showProductDetail === 'function') {
-      window.showProductDetail(product);
+  openDetailModalById(productId) {
+    const product = (this.cache || []).find(p => String(p.id) === String(productId));
+    if (!product) {
+      console.error("Producto no encontrado en caché:", productId);
       return;
     }
 
-    const modal = document.getElementById('modal-detalle-producto-tienda');
-    if (!modal) return;
+    if (typeof window.showProductDetail === 'function') {
+      window.showProductDetail(product);
+    } else {
+      console.error("La función showProductDetail no está disponible.");
+    }
+  },
 
-    window.selectedStoreProduct = product;
-    modal.classList.remove('hidden');
+  openDetailModal(product) {
+    if (product && product.id) {
+      this.openDetailModalById(product.id);
+    }
+  }
+};
+
+window.toggleFavoriteItemFromCache = function(productId) {
+  const product = (window.StoreProducts?.cache || []).find(p => String(p.id) === String(productId));
+  if (product && typeof window.toggleFavoriteItem === 'function') {
+    window.toggleFavoriteItem(product);
   }
 };
