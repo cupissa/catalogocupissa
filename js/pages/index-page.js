@@ -12,7 +12,7 @@ window.heroSliderImages = [
 
 document.addEventListener('DOMContentLoaded', async () => {
   try {
-    // 1. Cargar productos directamente desde Supabase
+    // 1. Cargar productos directamente desde Supabase (productos_web vía StoreProducts)
     const productos = await StoreProducts.loadProducts();
 
     // 2. Obtener la Temporada Actual configurada desde el Admin
@@ -88,7 +88,7 @@ function renderMundosFallback(productos) {
       </button>
     `).join('');
   } else {
-    container.innerHTML = `<span class="text-xs text-gray-400 italic">No hay mundos registrados aún en el catálogo.</span>`;
+    container.innerHTML = `<span class="text-xs text-gray-400 italic">No hay mundos registrados aún en el catálogo web.</span>`;
   }
 }
 
