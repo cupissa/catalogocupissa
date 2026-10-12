@@ -125,7 +125,7 @@
       </div>
     </section>
 
-    <!-- SECCIÓN DE DETALLE DE PRODUCTO Y SIMULADOR DE CRÉDITO -->
+    <!-- SECCIÓN DE DETALLE DE PRODUCTO EN PÁGINA -->
     <section id="section-product-detail" class="hidden">
       <button onclick="showCatalogView()" class="mb-4 text-xs font-bold text-brand-600 dark:text-brand-400 hover:underline flex items-center gap-1">
         <i class="fa-solid fa-arrow-left"></i> Volver al Catálogo
@@ -551,6 +551,9 @@
     </div>
   </div>
 
+  <!-- MODAL DETALLE DE PRODUCTO UNIVERSAL (CLIENTES) -->
+  <div id="modal-detalle-producto-tienda" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 hidden overflow-y-auto"></div>
+
   <!-- LIBRERÍAS Y SCRIPTS MODULARES -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   
@@ -562,7 +565,6 @@
 
   <!-- Helpers y Utilidades -->
   <script src="js/utils/theme.js?v=1.6"></script>
-
   <script src="js/utils/ui.js?v=1.6"></script>
   <script src="js/utils/captcha-helper.js?v=1.6"></script>
 
@@ -573,6 +575,7 @@
   <script src="js/modules/cart.js?v=1.6"></script>
   <script src="js/modules/favorites.js?v=1.6"></script>
   <script src="js/modules/products.js?v=1.6"></script>
+  <script src="js/modules/product-detail-modal.js?v=1.6"></script>
   <script src="js/modules/checkout/step1-shipping.js?v=1.6"></script>
   <script src="js/modules/checkout/step2-payment.js?v=1.6"></script>
 
