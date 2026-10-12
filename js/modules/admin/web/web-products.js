@@ -1,13 +1,12 @@
 /**
  * js/modules/admin/web/web-products.js
- * Carga Inteligente de Productos en Supabase, Visibilidad en Tienda Cliente,
- * Precios Mayoristas, Tallas/Colores con Incrementos, Alquiler, Depósitos e Imágenes.
+ * Carga Inteligente de Productos en la tabla 'productos_web' (Gestión Web y Catálogo Online),
+ * Visibilidad en Tienda Cliente, Precios Mayoristas, Tallas/Colores con Incrementos, Alquiler, Depósitos e Imágenes.
  */
 
 window.webCropperInstance = null;
 window.currentProductWebImgBase64 = null;
 
-// Arreglos temporales para tallas y colores del producto en edición
 window.currentAdminTallas = [];
 window.currentAdminColores = [];
 
@@ -32,9 +31,6 @@ function safeShowToastWeb(msg, type = 'success') {
   }
 }
 
-/**
- * Carga el catálogo completo de productos directamente desde Supabase
- */
 window.cargarProductosWeb = async function() {
   const tbody = document.getElementById('tabla-productos-web');
   if (!tbody) return;
@@ -43,7 +39,7 @@ window.cargarProductosWeb = async function() {
     <tr>
       <td colspan="6" class="py-8 text-center text-slate-400">
         <i class="fa-solid fa-spinner fa-spin text-lg mb-2"></i>
-        <p>Sincronizando productos desde Supabase...</p>
+        <p>Sincronizando productos web desde 'productos_web'...</p>
       </td>
     </tr>
   `;
@@ -55,7 +51,7 @@ window.cargarProductosWeb = async function() {
     }
 
     const { data: prods, error } = await client
-      .from('productos')
+      .from('productos_web')
       .select('*')
       .order('nombre', { ascending: true });
 
@@ -68,16 +64,13 @@ window.cargarProductosWeb = async function() {
     tbody.innerHTML = `
       <tr>
         <td colspan="6" class="py-6 text-center text-red-500 font-bold">
-          Error al conectar con la base de datos de Supabase. Revisa la configuración o RLS.
+          Error al conectar con la tabla 'productos_web' en Supabase.
         </td>
       </tr>
     `;
   }
 };
 
-/**
- * Renderizado de productos en la tabla administrativa de la tienda
- */
 window.renderizarTablaProductosWeb = function(lista) {
   const tbody = document.getElementById('tabla-productos-web');
   if (!tbody) return;
@@ -86,7 +79,7 @@ window.renderizarTablaProductosWeb = function(lista) {
     tbody.innerHTML = `
       <tr>
         <td colspan="6" class="py-8 text-center text-slate-400">
-          No hay productos creados en Supabase o coincidentes con la búsqueda.
+          No hay productos creados en 'productos_web' o coincidentes con la búsqueda.
         </td>
       </tr>
     `;
@@ -154,9 +147,6 @@ window.renderizarTablaProductosWeb = function(lista) {
   }).join('');
 };
 
-/**
- * Filtro de búsqueda en tiempo real
- */
 window.filtrarProductosWeb = function() {
   const query = (document.getElementById('buscador-productos-web')?.value || '').toLowerCase().trim();
   if (!query) {
@@ -176,14 +166,11 @@ window.filtrarProductosWeb = function() {
   window.renderizarTablaProductosWeb(filtrados);
 };
 
-/**
- * Alterna el estado oculto_web de un producto
- */
 window.toggleVisibilidadProductoWeb = async function(id, estadoActualOculto) {
   try {
     const client = window.supabaseClient || window.supabase;
     const { error } = await client
-      .from('productos')
+      .from('productos_web')
       .update({ oculto_web: !estadoActualOculto })
       .eq('id', id);
 
@@ -197,28 +184,25 @@ window.toggleVisibilidadProductoWeb = async function(id, estadoActualOculto) {
   }
 };
 
-/**
- * Elimina un producto permanentemente
- */
 window.eliminarProductoWeb = async function(id) {
-  if (!confirm("¿Eliminar este producto permanentemente de Supabase?")) return;
+  if (!confirm("¿Eliminar este producto permanentemente de la tabla 'productos_web'?")) return;
 
   try {
     const client = window.supabaseClient || window.supabase;
-    const { error } = await client.from('productos').delete().eq('id', id);
+    const { error } = await client.from('productos_web').delete().eq('id', id);
     if (error) throw error;
 
-    safeShowToastWeb("Producto eliminado de Supabase.");
+    // Intentar eliminar también de la tabla interna de productos si existe
+    await client.from('productos').delete().eq('id', id);
+
+    safeShowToastWeb("Producto eliminado de la web.");
     window.cargarProductosWeb();
   } catch (err) {
-    console.error("Error al eliminar producto:", err);
+    console.error("Error al eliminar producto web:", err);
     safeShowToastWeb("Error al eliminar producto.", "error");
   }
 };
 
-/**
- * Muestra/Oculta los campos de alquiler en el formulario según el checkbox
- */
 window.toggleSeccionAlquilerAdmin = function(isRent) {
   const box = document.getElementById('seccion-alquiler-admin-box');
   if (box) {
@@ -227,9 +211,6 @@ window.toggleSeccionAlquilerAdmin = function(isRent) {
   }
 };
 
-/**
- * Gestión dinámica de Tallas (Agregar / Eliminar)
- */
 window.agregarTallaAlProductoAdmin = function() {
   const inpNombre = document.getElementById('input-nueva-talla-nombre');
   const inpPrecio = document.getElementById('input-nueva-talla-precio');
@@ -275,9 +256,6 @@ window.renderListaTallasAdmin = function() {
   `).join('');
 };
 
-/**
- * Gestión dinámica de Colores (Agregar / Eliminar)
- */
 window.agregarColorAlProductoAdmin = function() {
   const inpNombre = document.getElementById('input-nuevo-color-nombre');
   const inpPrecio = document.getElementById('input-nuevo-color-precio');
@@ -323,9 +301,6 @@ window.renderListaColoresAdmin = function() {
   `).join('');
 };
 
-/**
- * Abre el modal para crear o editar producto
- */
 window.abrirModalProductoWeb = function(prod = null) {
   const modal = document.getElementById('modal-producto-web');
   const form = document.getElementById('form-producto-web');
@@ -362,12 +337,10 @@ window.abrirModalProductoWeb = function(prod = null) {
 
     document.getElementById('prod-web-check-credito').checked = prod.permitir_credito || false;
 
-    // Cargar tallas existentes
     try {
       window.currentAdminTallas = typeof prod.tallas === 'string' ? JSON.parse(prod.tallas) : (prod.tallas || []);
     } catch (e) { window.currentAdminTallas = []; }
 
-    // Cargar colores existentes
     try {
       window.currentAdminColores = typeof prod.colores === 'string' ? JSON.parse(prod.colores) : (prod.colores || []);
     } catch (e) { window.currentAdminColores = []; }
@@ -392,9 +365,6 @@ window.abrirModalProductoWeb = function(prod = null) {
   modal.classList.remove('hidden');
 };
 
-/**
- * Eventos para Drag & Drop, Clic en Dropzone y Pegar desde el portapapeles
- */
 window.initDragDropAndPasteImageWeb = function() {
   const dropZone = document.getElementById('prod-web-drop-zone');
   const fileInput = document.getElementById('prod-web-file-input');
@@ -446,9 +416,6 @@ window.initDragDropAndPasteImageWeb = function() {
   }
 };
 
-/**
- * Lee la imagen y activa el recortador Cropper.js
- */
 window.procesarFotoProductoWeb = function(file) {
   if (!file || !file.type.startsWith('image/')) {
     safeShowToastWeb("Por favor selecciona una imagen válida.", "error");
@@ -482,9 +449,6 @@ window.procesarFotoProductoWeb = function(file) {
   reader.readAsDataURL(file);
 };
 
-/**
- * Confirma el recorte y comprime la imagen
- */
 window.confirmarRecorteFotoWeb = function() {
   if (window.webCropperInstance) {
     const canvas = window.webCropperInstance.getCroppedCanvas({
@@ -508,9 +472,6 @@ window.confirmarRecorteFotoWeb = function() {
   }
 };
 
-/**
- * Inserción / Actualización segura en Supabase con subida a Supabase Storage
- */
 window.guardarProductoWeb = async function(e) {
   if (e) e.preventDefault();
 
@@ -553,7 +514,6 @@ window.guardarProductoWeb = async function(e) {
 
     let finalImageUrl = null;
 
-    // Subir imagen a Supabase Storage si es una data URL en base64
     if (window.currentProductWebImgBase64) {
       if (window.currentProductWebImgBase64.startsWith('data:')) {
         try {
@@ -620,23 +580,57 @@ window.guardarProductoWeb = async function(e) {
       payload.imagen = finalImageUrl;
     }
 
+    // Payload de sincronización para la tabla general 'productos' (Inventario Interno)
+    const inventarioPayload = {
+      nombre,
+      mundo,
+      origen: 'Colombia',
+      origen_compra: 'Colombia',
+      precio_detal,
+      price: precio_detal,
+      precio_mayorista,
+      stock: 10, // Stock inicial por defecto
+      is_active: true
+    };
+    if (finalImageUrl) {
+      inventarioPayload.image_url = finalImageUrl;
+      inventarioPayload.imagen = finalImageUrl;
+    }
+
     if (id) {
-      const { error } = await client.from('productos').update(payload).eq('id', id);
+      // Actualizar en productos_web
+      const { error } = await client.from('productos_web').update(payload).eq('id', id);
       if (error) throw error;
-      safeShowToastWeb("Producto actualizado correctamente.");
+
+      // Sincronizar actualización en la tabla 'productos'
+      await client.from('productos').upsert({ id, ...inventarioPayload });
+
+      safeShowToastWeb("Producto web actualizado correctamente.");
     } else {
-      payload.referencia = 'CUP-' + Math.floor(1000 + Math.random() * 9000);
-      const { error } = await client.from('productos').insert([payload]);
+      const ref = 'CUP-' + Math.floor(1000 + Math.random() * 9000);
+      payload.referencia = ref;
+      inventarioPayload.referencia = ref;
+
+      // Insertar en productos_web y obtener el ID generado
+      const { data: insertedData, error } = await client.from('productos_web').insert([payload]).select().single();
       if (error) throw error;
-      safeShowToastWeb("¡Producto creado y publicado en la tienda!");
+
+      // Sincronizar inserción en la tabla 'productos' usando el mismo ID
+      if (insertedData && insertedData.id) {
+        await client.from('productos').insert([{ id: insertedData.id, ...inventarioPayload }]);
+      } else {
+        await client.from('productos').insert([inventarioPayload]);
+      }
+
+      safeShowToastWeb("¡Producto creado y publicado en la tienda web!");
     }
 
     const modal = document.getElementById('modal-producto-web');
     if (modal) modal.classList.add('hidden');
     window.cargarProductosWeb();
   } catch (err) {
-    console.error("Error al guardar producto en Supabase:", err);
-    safeShowToastWeb(err.message || "Error de conexión al guardar el producto en Supabase.", "error");
+    console.error("Error al guardar producto web en Supabase:", err);
+    safeShowToastWeb(err.message || "Error de conexión al guardar el producto web en Supabase.", "error");
   } finally {
     if (btnSubmit) {
       btnSubmit.disabled = false;
@@ -645,7 +639,6 @@ window.guardarProductoWeb = async function(e) {
   }
 };
 
-// Inicialización automática de eventos
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => {
     window.initDragDropAndPasteImageWeb();
