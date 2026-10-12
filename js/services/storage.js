@@ -1,17 +1,16 @@
-import { supabase } from '../config/supabase.js';
-
 /**
+ * js/modules/admin/storage.js
  * Sube la imagen seleccionada del producto a Supabase Storage y retorna la URL pública
  * @param {File} file - Archivo capturado desde el input type="file"
  * @param {string} bucket - Nombre del bucket en Supabase Storage (por defecto 'productos')
  * @returns {Promise<string>} URL pública de la imagen
  */
-export async function uploadProductImage(file, bucket = 'productos') {
+window.uploadProductImage = async function(file, bucket = 'productos') {
   if (!file) {
     throw new Error('No se seleccionó ningún archivo de imagen.');
   }
 
-  const client = window.supabaseClient || window.supabase || supabase;
+  const client = window.supabaseClient || window.supabase;
   if (!client) {
     throw new Error('Cliente Supabase no disponible.');
   }
@@ -40,4 +39,4 @@ export async function uploadProductImage(file, bucket = 'productos') {
     .getPublicUrl(filePath);
 
   return publicUrlData.publicUrl;
-}
+};
