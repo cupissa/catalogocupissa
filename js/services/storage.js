@@ -11,17 +11,22 @@ export async function uploadProductImage(file, bucket = 'productos') {
     throw new Error('No se seleccionó ningún archivo de imagen.');
   }
 
+  const client = window.supabaseClient || window.supabase || supabase;
+  if (!client) {
+    throw new Error('Cliente Supabase no disponible.');
+  }
+
   // Generar nombre de archivo único para evitar sobrescribir existentes
   const fileExt = file.name.split('.').pop();
   const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${fileExt}`;
   const filePath = `catalog/${fileName}`;
 
   // Subir archivo al bucket
-  const { data, error } = await supabase.storage
+  const { data, error } = await client.storage
     .from(bucket)
     .upload(filePath, file, {
       cacheControl: '3600',
-      upsert: false
+      upsert: true
     });
 
   if (error) {
@@ -30,7 +35,7 @@ export async function uploadProductImage(file, bucket = 'productos') {
   }
 
   // Obtener URL pública
-  const { data: publicUrlData } = supabase.storage
+  const { data: publicUrlData } = client.storage
     .from(bucket)
     .getPublicUrl(filePath);
 
