@@ -2,7 +2,8 @@
  * js/modules/product-detail-modal.js
  * Módulo para gestionar el modal interactivo de detalles de producto para clientes.
  * Soporta selección de talla, color, modalidad (compra vs alquiler con depósito),
- * simulador de crédito (+20%, 1 a 6 cuotas), campo de personalización y cálculo en tiempo real.
+ * simulador de crédito (+20%, 1 a 6 cuotas), campo de personalización,
+ * aplicación automática de precio mayorista por cantidad y cálculo en tiempo real.
  */
 
 window.currentDetailProduct = null;
@@ -68,6 +69,9 @@ window.showProductDetail = function(product) {
   const foto = product.image_url || product.imagen || 'images/logo.png';
   const esPersonalizable = Boolean(product.es_personalizable);
   const permiteCredito = Boolean(product.permitir_credito) && permiteVenta;
+  const esMayorista = Boolean(product.es_mayorista);
+  const cantMinimaMayor = parseInt(product.cant_minima_mayorista || 6, 10);
+  const precioMayoristaVal = parseNum(product.precio_mayorista);
 
   modal.innerHTML = `
     <div class="bg-white dark:bg-gray-800 rounded-3xl max-w-2xl w-full p-5 sm:p-7 shadow-2xl relative max-h-[92vh] overflow-y-auto text-xs text-gray-800 dark:text-gray-100 border border-gray-100 dark:border-gray-700 space-y-5 animate-fade-in">
@@ -92,6 +96,13 @@ window.showProductDetail = function(product) {
             <span class="text-[10px] font-black text-brand-600 dark:text-brand-400 uppercase tracking-widest">${product.categoria || 'Producto Cupissa'}</span>
             <h2 class="text-lg font-black text-gray-900 dark:text-white leading-tight mt-0.5">${product.nombre}</h2>
             ${product.referencia ? `<p class="text-[10px] text-gray-400 font-mono mt-0.5">Ref: ${product.referencia}</p>` : ''}
+            
+            <!-- Aviso de Precio Mayorista si aplica -->
+            ${esMayorista && precioMayoristaVal > 0 ? `
+              <div class="mt-1.5 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-[10px] font-bold text-amber-800 dark:text-amber-300">
+                <i class="fa-solid fa-tags"></i> Precio Mayorista: $${fmtMoney(precioMayoristaVal)} (Desde${cantMinimaMayor} unidades)
+              </div>
+            ` : ''}
           </div>
 
           <!-- Modalidad: Compra vs Alquiler -->
@@ -188,6 +199,7 @@ window.showProductDetail = function(product) {
           </div>
 
           <div class="text-right">
+            <span id="lbl-aviso-precio-aplicado" class="text-[10px] font-extrabold text-indigo-600 dark:text-indigo-400 block">Precio Detal</span>
             <span class="text-[10px] text-gray-400 block font-bold uppercase">Total Estimado del Pedido</span>
             <span id="lbl-modal-total-pedido" class="text-lg font-black text-brand-600 dark:text-brand-400">$0 COP</span>
           </div>
@@ -247,7 +259,7 @@ window.changeProductDetailQty = function(delta) {
 };
 
 /**
- * Recalcula en tiempo real los costos, depósito, anticipo y simulador de crédito
+ * Recalcula en tiempo real los costos, depósito, anticipo, simulador de crédito y precio mayorista automático
  */
 window.updateProductDetailCalculations = function() {
   const p = window.currentDetailProduct;
@@ -290,16 +302,31 @@ window.updateProductDetailCalculations = function() {
   const creditMonths = selCuotas ? parseInt(selCuotas.value, 10) || 1 : 1;
   window.selectedProductOptions.creditMonths = creditMonths;
 
-  // Determinar Precio Base por Unidad según la Modalidad
+  const qty = window.selectedProductOptions.quantity || 1;
+
+  // Determinar Precio Base por Unidad considerando Precio Mayorista automático
+  const esMayoristaHabilitado = Boolean(p.es_mayorista);
+  const cantMinimaMayor = parseInt(p.cant_minima_mayorista || 6, 10);
+  const precioDetalBase = parseNum(p.precio_detal || p.price);
+  const precioMayoristaBase = parseNum(p.precio_mayorista);
+
   let baseUnitPrice = 0;
-  let depositUnitPrice = 0;
+  let tipoPrecioTexto = "Precio Detal";
 
   if (mode === 'alquiler') {
-    baseUnitPrice = parseNum(p.precio_alquiler || p.precio_detal || p.price);
-    depositUnitPrice = parseNum(p.valor_deposito || 0);
+    baseUnitPrice = parseNum(p.precio_alquiler || precioDetalBase);
+    tipoPrecioTexto = "Precio Alquiler";
   } else {
-    baseUnitPrice = parseNum(p.precio_detal || p.price);
+    if (esMayoristaHabilitado && precioMayoristaBase > 0 && qty >= cantMinimaMayor) {
+      baseUnitPrice = precioMayoristaBase;
+      tipoPrecioTexto = `🔥 Precio Mayorista aplicado (x${qty})`;
+    } else {
+      baseUnitPrice = precioDetalBase;
+      tipoPrecioTexto = "Precio Detal";
+    }
   }
+
+  const depositUnitPrice = mode === 'alquiler' ? parseNum(p.valor_deposito || 0) : 0;
 
   // Sumar Incrementos por Talla y Color
   const sizeIncrement = sizeObj ? parseNum(sizeObj.price || sizeObj.precio || 0) : 0;
@@ -312,7 +339,6 @@ window.updateProductDetailCalculations = function() {
     unitTotal = unitTotal * 1.20;
   }
 
-  const qty = window.selectedProductOptions.quantity || 1;
   const totalPedido = (unitTotal * qty) + (mode === 'alquiler' ? (depositUnitPrice * qty) : 0);
 
   // Calcular Porcentaje de Anticipo
@@ -326,10 +352,12 @@ window.updateProductDetailCalculations = function() {
   const lblTotalDeposito = document.getElementById('lbl-modal-total-deposito');
   const boxDeposito = document.getElementById('box-modal-deposito-alquiler');
   const lblCuota = document.getElementById('lbl-modal-cuota-mensual');
+  const lblAvisoPrecio = document.getElementById('lbl-aviso-precio-aplicado');
 
   if (lblTotal) lblTotal.textContent = `$${fmtMoney(totalPedido)} COP`;
   if (lblPctAnticipo) lblPctAnticipo.textContent = pctAnticipo;
   if (lblTotalAnticipo) lblTotalAnticipo.textContent = `$${fmtMoney(totalAnticipo)} COP`;
+  if (lblAvisoPrecio) lblAvisoPrecio.textContent = tipoPrecioTexto;
 
   if (mode === 'alquiler' && depositUnitPrice > 0) {
     if (boxDeposito) boxDeposito.classList.remove('hidden');
@@ -370,7 +398,23 @@ window.confirmAddToCartFromDetail = function() {
   const isCredit = window.selectedProductOptions.isCredit;
   const qty = window.selectedProductOptions.quantity || 1;
 
-  let baseUnitPrice = mode === 'alquiler' ? parseNum(p.precio_alquiler || p.precio_detal || p.price) : parseNum(p.precio_detal || p.price);
+  // Calcular precio unitario final respetando mayorista por cantidad
+  const esMayoristaHabilitado = Boolean(p.es_mayorista);
+  const cantMinimaMayor = parseInt(p.cant_minima_mayorista || 6, 10);
+  const precioDetalBase = parseNum(p.precio_detal || p.price);
+  const precioMayoristaBase = parseNum(p.precio_mayorista);
+
+  let baseUnitPrice = 0;
+  if (mode === 'alquiler') {
+    baseUnitPrice = parseNum(p.precio_alquiler || precioDetalBase);
+  } else {
+    if (esMayoristaHabilitado && precioMayoristaBase > 0 && qty >= cantMinimaMayor) {
+      baseUnitPrice = precioMayoristaBase;
+    } else {
+      baseUnitPrice = precioDetalBase;
+    }
+  }
+
   const sizeInc = sizeObj ? parseNum(sizeObj.price || sizeObj.precio || 0) : 0;
   const colorInc = colorObj ? parseNum(colorObj.price || colorObj.precio || 0) : 0;
 
