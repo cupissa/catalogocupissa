@@ -1,13 +1,13 @@
 /**
  * Servicio para la gestión de configuraciones globales de la aplicación
- * (ej. Temporada actual, banners, ajustes de tienda).
+ * (ej. Temporada actual, banners, ajustes de tienda y parámetros fiscales como el 4x1000).
  */
 
 const SETTINGS_TABLE = 'settings';
 
 /**
  * Obtiene el valor de una configuración específica por su clave.
- * @param {string} key - Clave de la configuración (ej: 'current_season')
+ * @param {string} key - Clave de la configuración (ej: 'current_season', 'tax_4x1000_rate')
  * @returns {Promise<string|null>} Valor guardado o null
  */
 window.getSetting = async function(key) {
@@ -73,4 +73,12 @@ window.saveSetting = async function(key, value) {
     console.error(`[settings.js] Error inesperado al guardar '${key}':`, err);
     return { success: false, error: err.message };
   }
+};
+
+/**
+ * Obtiene específicamente la tasa del 4x1000 configurada (por defecto 0.004).
+ */
+window.getTax4x1000Rate = async function() {
+  const rateStr = await window.getSetting('tax_4x1000_rate');
+  return rateStr ? parseFloat(rateStr) : 0.004;
 };
