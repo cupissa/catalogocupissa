@@ -54,7 +54,6 @@ window.switchAuthMode = function(mode) {
       tabLogin.className = 'flex-1 pb-3 font-bold text-xs border-b-2 border-transparent text-gray-400';
     }
 
-    // Inicializar Captcha Gráfico al abrir registro
     if (typeof window.generateVisualCaptcha === 'function') {
       window.generateVisualCaptcha();
     }
@@ -115,7 +114,6 @@ window.handleClientLogin = async function(event) {
 window.handleClientRegister = async function(event) {
   if (event) event.preventDefault();
 
-  // Validar Captcha Gráfico
   const captchaInput = document.getElementById('captchaInput');
   const userInputCode = (captchaInput ? captchaInput.value : '').trim();
 
@@ -145,7 +143,6 @@ window.handleClientRegister = async function(event) {
       throw new Error('El cliente de Supabase no está listo.');
     }
 
-    // 1. Registro en Supabase Auth con Metadata del cliente
     const { data: authData, error: authError } = await client.auth.signUp({
       email,
       password,
@@ -163,12 +160,10 @@ window.handleClientRegister = async function(event) {
     const user = authData.user;
     if (!user) throw new Error('No se pudo completar el registro del usuario.');
 
-    // 2. Intentar inicio de sesión directo si no existe sesión activa automática
     if (!authData.session) {
       await client.auth.signInWithPassword({ email, password });
     }
 
-    // 3. Creación del perfil en la tabla 'profile' de Supabase
     const profilePayload = {
       id: user.id,
       first_name: firstName,
@@ -247,10 +242,19 @@ window.updateUserAuthUI = async function() {
         displayName = profile?.first_name || session.user.email.split('@')[0];
       }
 
+      // Sincronizar datos básicos en localStorage para el perfil modular
+      const localClient = {
+        firstName: displayName,
+        email: session.user.email,
+        ...session.user.user_metadata
+      };
+      localStorage.setItem("cupissa_client_user", JSON.stringify(localClient));
+
+      // 👈 MODIFICADO: Al hacer clic ahora se ejecuta toggleClientProfileModal(true) en lugar de confirmLogout
       authContainer.innerHTML = `
         <div class="relative group inline-block">
-          <button type="button" onclick="window.confirmLogout()" class="flex items-center space-x-1.5 text-xs font-bold text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 py-2 px-3 rounded-xl transition-all" title="Haz clic para cerrar sesión">
-            <i class="fa-solid fa-user-check text-emerald-500"></i>
+          <button type="button" onclick="toggleClientProfileModal(true)" class="flex items-center space-x-1.5 text-xs font-bold text-brand-700 dark:text-brand-300 bg-brand-50 dark:bg-brand-950/50 hover:bg-brand-100 py-2 px-3 rounded-xl border border-brand-200 dark:border-brand-800 transition-all shadow-sm" title="Ver mi cuenta y perfil">
+            <i class="fa-solid fa-user-gear"></i>
             <span>Hola, <strong>${displayName}</strong></span>
           </button>
         </div>
@@ -269,24 +273,20 @@ window.updateUserAuthUI = async function() {
 };
 
 /**
- * Solicita confirmación para cerrar sesión
+ * Función de cierre de sesión oficial (llamada desde el perfil modular)
  */
 window.confirmLogout = async function() {
-  if (confirm("¿Deseas cerrar tu sesión actual?")) {
-    const client = window.supabaseClient || window.supabase;
-    if (client) {
-      await client.auth.signOut();
-    }
-    if (typeof showToast === 'function') {
-      showToast('Has cerrado sesión correctamente.');
-    }
-    await window.updateUserAuthUI();
+  const client = window.supabaseClient || window.supabase;
+  if (client) {
+    await client.auth.signOut();
   }
+  localStorage.removeItem("cupissa_client_user");
+  if (typeof showToast === 'function') {
+    showToast('Has cerrado sesión correctamente.');
+  }
+  await window.updateUserAuthUI();
 };
 
-/**
- * Objeto global de compatibilidad ClientAuth
- */
 window.ClientAuth = {
   getActiveClient: async () => {
     const client = window.supabaseClient || window.supabase;
@@ -305,7 +305,6 @@ window.ClientAuth = {
   logoutClient: window.confirmLogout
 };
 
-// Verificación inicial al cargar la página
 document.addEventListener('DOMContentLoaded', () => {
   window.updateUserAuthUI();
 });
