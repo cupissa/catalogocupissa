@@ -50,16 +50,19 @@
         <img src="images/logo.png" alt="Cupissa Logo" class="h-10 w-auto object-contain">
       </a>
 
+      <!-- BUSCADOR PRINCIPAL (REDIRECCIONA A CATÁLOGO) -->
       <div class="flex-1 max-w-md hidden md:block relative">
-        <div class="relative">
+        <form action="catalogo.html" method="GET" class="relative">
           <input 
             type="text" 
+            name="search"
             id="searchInput" 
             placeholder="Buscar en Cupissa (ej. Sillas, Cajas, Eventos)..." 
             class="w-full bg-gray-100 dark:bg-gray-700 text-xs text-gray-800 dark:text-gray-100 rounded-xl pl-9 pr-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all placeholder-gray-400"
           >
           <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-xs text-gray-400"></i>
-        </div>
+          <button type="submit" class="hidden"></button>
+        </form>
       </div>
 
       <div class="flex items-center space-x-1 sm:space-x-3 shrink-0">
@@ -159,7 +162,7 @@
         </p>
       </div>
 
-      <!-- Contenedor dinámico en cuadrícula (Inicia vacío. Se genera automáticamente según los productos subidos) -->
+      <!-- Contenedor dinámico en cuadrícula (Se genera automáticamente según los productos subidos) -->
       <div id="contenedor-mundos-home" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"></div>
     </section>
 
@@ -167,7 +170,7 @@
     <section class="space-y-6">
       <div class="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-2 border-b border-gray-200 dark:border-gray-700 pb-4">
         <div>
-          <span class="text-[10px] font-extrabold text-brand-600 dark:text-brand-400 uppercase tracking-widest">Especial de Temporada</span>
+          <span id="seasonBadge" class="text-[10px] font-extrabold text-brand-600 dark:text-brand-400 uppercase tracking-widest">Especial de Temporada</span>
           <h2 id="seasonTitle" class="text-xl sm:text-2xl font-black text-gray-900 dark:text-white">
             Productos Destacados
           </h2>
@@ -404,12 +407,16 @@
     </div>
   </div>
 
+  <!-- MODAL DETALLE DE PRODUCTO (CLIENTES) -->
+  <div id="modal-detalle-producto-tienda" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 hidden overflow-y-auto"></div>
+
   <!-- LIBRERÍAS Y SCRIPTS MODULARES -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <!-- Configuración y conexión -->
   <script src="js/config/constants.js?v=1.6"></script>
   <script src="js/config/supabase.js?v=1.6"></script>
+  <script src="js/services/settings.js?v=1.6"></script>
   <script src="js/utils/supabase-sync.js?v=1.6"></script>
 
   <!-- Helpers y Utilidades -->
@@ -422,6 +429,7 @@
   <script src="js/modules/cart.js?v=1.6"></script>
   <script src="js/modules/favorites.js?v=1.6"></script>
   <script src="js/modules/products.js?v=1.6"></script>
+  <script src="js/modules/product-detail-modal.js?v=1.6"></script>
   <script src="js/modules/tracking.js?v=1.6"></script>
 
   <!-- Controlador de la página -->
