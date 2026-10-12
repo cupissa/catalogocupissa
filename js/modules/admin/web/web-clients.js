@@ -5,6 +5,28 @@
 
 window.webClientsCache = [];
 
+// Helper interno para parsing de montos seguro y exacto
+function parseMontoSeguro(val) {
+  if (typeof window.parseMonto === 'function') {
+    return window.parseMonto(val);
+  }
+  if (val === null || val === undefined || val === '') return 0;
+  if (typeof val === 'number') return isNaN(val) ? 0 : val;
+  const num = parseFloat(String(val).replace(/[^0-9.-]/g, ''));
+  return isNaN(num) ? 0 : num;
+}
+
+// Helper interno para formateo de moneda seguro conservando decimales exactos
+function formatMonedaSeguro(val) {
+  if (typeof window.formatMoneda === 'function') {
+    return window.formatMoneda(val);
+  }
+  return Number(val || 0).toLocaleString('es-CO', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  });
+}
+
 window.cargarClientesWeb = async function() {
   const tbody = document.getElementById('tabla-clientes-web');
   if (!tbody) return;
@@ -20,8 +42,8 @@ window.cargarClientesWeb = async function() {
 
   try {
     const [perfiles, pedidos] = await Promise.all([
-      SupabaseSync.getProfilesWeb(),
-      SupabaseSync.getPedidos()
+      SupabaseSync.getProfilesWeb ? SupabaseSync.getProfilesWeb() : Promise.resolve([]),
+      SupabaseSync.getPedidos ? SupabaseSync.getPedidos() : Promise.resolve([])
     ]);
 
     window.webClientsCache = (perfiles || []).map(cli => {
@@ -31,11 +53,24 @@ window.cargarClientesWeb = async function() {
         (p.cliente_email && cli.email && p.cliente_email.toLowerCase() === cli.email.toLowerCase())
       );
 
-      const totalComprado = pedsCliente.reduce((acc, p) => acc + window.parseMonto(p.total || 0), 0);
+      // Total comprado excluyendo pedidos cancelados
+      const totalComprado = pedsCliente.reduce((acc, p) => {
+        const est = (p.estado || p.status || '').toLowerCase();
+        if (est !== 'cancelado' && est !== 'cancelled') {
+          return acc + parseMontoSeguro(p.total !== undefined ? p.total : (p.monto || p.valor || 0));
+        }
+        return acc;
+      }, 0);
+
+      // Saldo de deuda actualizado automáticamente restando pagos/anticipos
       const saldoDeuda = pedsCliente.reduce((acc, p) => {
-        const tot = window.parseMonto(p.total || 0);
-        const pag = window.parseMonto(p.pagado !== undefined ? p.pagado : p.anticipo || 0);
-        return acc + Math.max(0, tot - pag);
+        const est = (p.estado || p.status || '').toLowerCase();
+        if (est !== 'cancelado' && est !== 'cancelled') {
+          const tot = parseMontoSeguro(p.total !== undefined ? p.total : (p.monto || p.valor || 0));
+          const pag = parseMontoSeguro(p.pagado !== undefined ? p.pagado : (p.anticipo !== undefined ? p.anticipo : p.monto_pagado || 0));
+          return acc + (p.saldo !== undefined ? parseMontoSeguro(p.saldo) : Math.max(0, tot - pag));
+        }
+        return acc;
       }, 0);
 
       return {
@@ -77,12 +112,12 @@ window.renderizarTablaClientesWeb = function(lista) {
 
   tbody.innerHTML = lista.map(c => {
     const nombreComp = `${c.first_name || c.nombre || 'Cliente Web'} ${c.last_name || ''}`.trim();
-    const cupoAprobado = window.parseMonto(c.cupo_credito || 0);
+    const cupoAprobado = parseMontoSeguro(c.cupo_credito || 0);
     const estadoCredito = c.estado_credito || 'sin_solicitud';
 
     let badgeCredito = `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600">Sin Crédito</span>`;
     if (estadoCredito === 'aprobado') {
-      badgeCredito = `<span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800">Aprobado ($${window.formatMoneda(cupoAprobado)})</span>`;
+      badgeCredito = `<span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800">Aprobado ($${formatMonedaSeguro(cupoAprobado)})</span>`;
     } else if (estadoCredito === 'pendiente') {
       badgeCredito = `<span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-100 text-amber-800 animate-pulse">Por Aprobar</span>`;
     }
@@ -101,8 +136,8 @@ window.renderizarTablaClientesWeb = function(lista) {
           ${c.pedidosCount}
         </td>
         <td class="p-3">
-          <div class="font-black text-emerald-600">$${window.formatMoneda(c.totalComprado)}</div>
-          ${c.saldoDeuda > 0 ? `<div class="text-[10px] font-bold text-red-600">Debe: $${window.formatMoneda(c.saldoDeuda)}</div>` : ''}
+          <div class="font-black text-emerald-600">$${formatMonedaSeguro(c.totalComprado)}</div>
+          ${c.saldoDeuda > 0 ? `<div class="text-[10px] font-bold text-red-600">Debe: $${formatMonedaSeguro(c.saldoDeuda)}</div>` : ''}
         </td>
         <td class="p-3">
           ${badgeCredito}
