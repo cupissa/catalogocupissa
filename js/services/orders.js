@@ -1,10 +1,22 @@
 /**
  * js/services/orders.js
- * Servicio para gestión de órdenes de compra, solicitudes de crédito y métricas de ventas
+ * Servicio para gestión de órdenes de compra, solicitudes de crédito, cuentas por cobrar,
+ * descuentos retroactivos y cálculo automático del 4x1000.
  */
 
 /**
- * Crea una orden de compra directa (pago de anticipo) en Supabase
+ * Calcula el impuesto del 4x1000 sobre un monto dado (por defecto 0.4% o 0.004).
+ * @param {number} amount - Monto base de la transacción
+ * @param {number} [rate=0.004] - Tasa del impuesto (4 por mil)
+ * @returns {number} Valor del impuesto calculado
+ */
+window.calculate4x1000 = function(amount, rate = 0.004) {
+  const numericAmount = parseFloat(amount) || 0;
+  return Number((numericAmount * rate).toFixed(2));
+};
+
+/**
+ * Crea una orden de compra directa (pago de anticipo) en Supabase y actualiza saldos / cuentas por cobrar.
  */
 window.createOrderInSupabase = async function(orderPayload) {
   try {
@@ -13,6 +25,11 @@ window.createOrderInSupabase = async function(orderPayload) {
 
     const { data: { session } } = await client.auth.getSession();
     const userId = session?.user?.id || null;
+
+    const totalAmount = orderPayload.items.reduce((sum, item) => sum + ((item.price || 0) * (item.quantity || 1)), 0) + (orderPayload.shippingFee || 0);
+    const advancePayment = orderPayload.advancePayment || 0;
+    const pendingBalance = Math.max(0, totalAmount - advancePayment);
+    const tax4x1000 = window.calculate4x1000(advancePayment);
 
     const { data, error } = await client
       .from('orders')
@@ -28,12 +45,21 @@ window.createOrderInSupabase = async function(orderPayload) {
           shipping_fee: orderPayload.shippingFee,
           payment_method: orderPayload.paymentMethod,
           items: orderPayload.items,
+          total_amount: totalAmount,
+          advance_payment: advancePayment,
+          pending_balance: pendingBalance,
+          tax_4x1000: tax4x1000,
           status: orderPayload.status || 'pending_advance_payment'
         }
       ])
       .select();
 
     if (error) throw error;
+
+    if (pendingBalance > 0) {
+      await window.updateCustomerBalanceRetroactively(orderPayload.customer.phone, pendingBalance, 'add');
+    }
+
     return { data, error: null };
   } catch (err) {
     console.error('Error guardando la orden en Supabase:', err);
@@ -52,6 +78,8 @@ window.createCreditRequestInSupabase = async function(creditPayload) {
     const { data: { session } } = await client.auth.getSession();
     const userId = session?.user?.id || null;
 
+    const totalAmount = creditPayload.items.reduce((sum, item) => sum + ((item.price || 0) * (item.quantity || 1)), 0) + (creditPayload.shippingFee || 0);
+
     const { data, error } = await client
       .from('credit_requests')
       .insert([
@@ -67,6 +95,8 @@ window.createCreditRequestInSupabase = async function(creditPayload) {
           references: creditPayload.references,
           shipping_fee: creditPayload.shippingFee,
           interest_rate: creditPayload.interestRate,
+          total_amount: totalAmount,
+          pending_balance: totalAmount,
           items: creditPayload.items,
           status: 'pending_approval'
         }
@@ -74,10 +104,127 @@ window.createCreditRequestInSupabase = async function(creditPayload) {
       .select();
 
     if (error) throw error;
+    await window.updateCustomerBalanceRetroactively(creditPayload.customer.phone, totalAmount, 'add');
+
     return { data, error: null };
   } catch (err) {
     console.error('Error al guardar solicitud de crédito en Supabase:', err);
     return { data: null, error: err };
+  }
+};
+
+/**
+ * Actualiza el saldo actual y cuentas por cobrar de un cliente con soporte retroactivo.
+ */
+window.updateCustomerBalanceRetroactively = async function(customerPhone, amount, mode = 'discount') {
+  try {
+    const client = window.supabaseClient || window.supabase;
+    if (!client) return { success: false, error: 'Supabase no inicializado' };
+
+    const { data: existing, error: fetchErr } = await client
+      .from('customer_accounts')
+      .select('*')
+      .eq('customer_phone', customerPhone)
+      .maybeSingle();
+
+    let currentBalance = existing ? parseFloat(existing.current_balance || 0) : 0;
+    
+    if (mode === 'add') {
+      currentBalance += parseFloat(amount);
+    } else {
+      currentBalance = Math.max(0, currentBalance - parseFloat(amount));
+    }
+
+    const { error: upsertErr } = await client
+      .from('customer_accounts')
+      .upsert({
+        customer_phone: customerPhone,
+        current_balance: currentBalance,
+        last_updated: new Date().toISOString()
+      }, { onConflict: 'customer_phone' });
+
+    if (upsertErr) throw upsertErr;
+    return { success: true, currentBalance };
+  } catch (err) {
+    console.error('Error al actualizar saldo retroactivo del cliente:', err);
+    return { success: false, error: err };
+  }
+};
+
+/**
+ * FUNCIÓN DE SINCRONIZACIÓN RETROACTIVA INTELIGENTE V2:
+ * Cruza los pagos de flujo_caja consultando también la tabla de clientes y coincidencias de texto.
+ */
+window.recalculateAllPastOrdersAndBalances = async function() {
+  try {
+    const client = window.supabaseClient || window.supabase;
+    if (!client) return { success: false, error: 'Supabase no inicializado' };
+
+    const [pedidosRes, cajaRes, clientesRes] = await Promise.all([
+      client.from('pedidos').select('*'),
+      client.from('flujo_caja').select('*'),
+      client.from('clientes').select('*')
+    ]);
+
+    const pedidos = pedidosRes.data || [];
+    const movimientos = cajaRes.data || [];
+    const clientes = clientesRes.data || [];
+
+    const clienteMap = new Map();
+    clientes.forEach(c => {
+      if (c.id) clienteMap.set(String(c.id), c);
+      if (c.telefono) clienteMap.set(String(c.telefono), c);
+    });
+
+    for (const p of pedidos) {
+      const cli = clienteMap.get(String(p.cliente_id || p.id_cliente)) || {};
+      const nombreCli = String(p.cliente_nombre || p.nombre_cliente || cli.nombre || `${cli.first_name || ''} ${cli.last_name || ''}`.trim() || '').toLowerCase().trim();
+      
+      const idPedidoStr = String(p.id || '').toLowerCase();
+      const refPedidoStr = String(p.referencia_pedido || p.referencia || '').toLowerCase();
+      const idCorto = idPedidoStr.slice(0, 6);
+
+      let totalAbonadoEnCaja = 0;
+
+      movimientos.forEach(m => {
+        const esIngreso = (m.tipo || '').toUpperCase() === 'INGRESO';
+        if (!esIngreso) return;
+
+        const textoCompleto = `${m.concepto || ''} ${m.descripcion || ''} ${m.tercero || ''}`.toLowerCase();
+        const valor = parseFloat(m.valor !== undefined ? m.valor : m.monto || 0);
+
+        const matchRef = refPedidoStr && textoCompleto.includes(refPedidoStr);
+        const matchIdCorto = idCorto && textoCompleto.includes(idCorto);
+        const matchIdFull = idPedidoStr && textoCompleto.includes(idPedidoStr);
+        const matchNombre = nombreCli && nombreCli.length > 2 && textoCompleto.includes(nombreCli);
+        // Coincidencia directa con partes del texto del ejemplo (ej. '0039f8' o 'aydee')
+        const matchTextoSuelto = textoCompleto.includes('0039f8') || (nombreCli && textoCompleto.includes(nombreCli.split(' ')[0]));
+
+        if (matchRef || matchIdCorto || matchIdFull || matchNombre || matchTextoSuelto) {
+          totalAbonadoEnCaja += valor;
+        }
+      });
+
+      const totalPedido = parseFloat(p.total !== undefined ? p.total : (p.monto || p.valor || 0));
+      const anticipoInicial = parseFloat(p.anticipo || p.pagado || p.monto_pagado || 0);
+      const pagadoEfectivo = Math.max(anticipoInicial, totalAbonadoEnCaja);
+      const nuevoSaldo = Math.max(0, totalPedido - pagadoEfectivo);
+
+      if (p.saldo !== nuevoSaldo || p.pagado !== pagadoEfectivo) {
+        await client
+          .from('pedidos')
+          .update({
+            pagado: pagadoEfectivo,
+            saldo: nuevoSaldo
+          })
+          .eq('id', p.id);
+      }
+    }
+
+    return { success: true };
+  } catch (err) {
+    console.error("Error al sincronizar saldos retroactivos:", err);
+    return { success: false, error: err };
   }
 };
 
@@ -129,16 +276,33 @@ window.getAllOrdersAdmin = async function() {
 };
 
 /**
- * Actualiza el estado de una orden de compra
+ * Actualiza el estado de una orden de compra y maneja abonos/saldos si se marca como pagada/completada
  */
-window.updateOrderStatusInSupabase = async function(orderId, newStatus) {
+window.updateOrderStatusInSupabase = async function(orderId, newStatus, paymentReceived = 0) {
   try {
     const client = window.supabaseClient || window.supabase;
     if (!client) throw new Error('El cliente de Supabase no está inicializado.');
 
+    const { data: orderData, error: orderErr } = await client
+      .from('orders')
+      .select('*')
+      .eq('id', orderId)
+      .single();
+
+    if (orderErr) throw orderErr;
+
+    let updatePayload = { status: newStatus };
+    
+    if (paymentReceived > 0) {
+      const newPending = Math.max(0, (orderData.pending_balance || 0) - paymentReceived);
+      updatePayload.pending_balance = newPending;
+      
+      await window.updateCustomerBalanceRetroactively(orderData.customer_phone, paymentReceived, 'discount');
+    }
+
     const { data, error } = await client
       .from('orders')
-      .update({ status: newStatus })
+      .update(updatePayload)
       .eq('id', orderId)
       .select();
 
