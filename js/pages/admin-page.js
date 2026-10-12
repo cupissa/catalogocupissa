@@ -1,9 +1,19 @@
 /**
  * js/pages/admin-page.js
- * Controlador Principal del Panel Administrativo (admin.html), Pestañas, Flujo de Caja, Deudas y Ajustes Web
+ * Controlador Principal del Panel Administrativo (admin.html), Pestañas, Flujo de Caja, Deudas, 4x1000 y Ajustes Web
  */
 
 document.addEventListener('DOMContentLoaded', async () => {
+  // Sincronización y recálculo automático retroactivo de saldos en segundo plano al cargar el panel
+  try {
+    if (typeof window.recalculateAllPastOrdersAndBalances === 'function') {
+      console.log("Ejecutando sincronización automática de saldos y cuentas por cobrar...");
+      await window.recalculateAllPastOrdersAndBalances();
+    }
+  } catch (syncErr) {
+    console.warn("Aviso en sincronización automática:", syncErr);
+  }
+
   window.switchTab('dashboard');
 
   window.initFormularioCajaManual();
@@ -173,10 +183,14 @@ window.renderizarTablaCajaHistorial = function(lista = []) {
     const fechaFormatted = m.fecha ? m.fecha.split('T')[0] : 'Hoy';
     const esBancos = (m.metodo_pago || '').toLowerCase() === 'nequi' || (m.metodo_pago || '').toLowerCase() === 'bancos';
 
+    const impuestoAutomatico = m.impuesto_4x1000 !== undefined && m.impuesto_4x1000 !== null 
+      ? m.impuesto_4x1000 
+      : (esBancos ? Number((val * 0.004).toFixed(2)) : 0);
+
     const campo4x1000 = esBancos
       ? `<div class="flex items-center gap-1 justify-end">
            <span class="text-slate-400">$</span>
-           <input type="number" step="0.01" id="input-4x1000-${m.id}" value="${m.impuesto_4x1000 || 0}" class="w-16 p-1 border rounded text-xs font-bold text-rose-600 bg-white">
+           <input type="number" step="0.01" id="input-4x1000-${m.id}" value="${impuestoAutomatico}" class="w-16 p-1 border rounded text-xs font-bold text-rose-600 bg-white">
            <button onclick="guardar4x1000('${m.id}')" class="p-1 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition" title="Guardar 4x1000">
              <i class="fa-solid fa-floppy-disk text-[10px]"></i>
            </button>
@@ -248,13 +262,19 @@ window.calcularBalancesCaja = function(movimientos = []) {
     const esIngreso = (m.tipo || '').toUpperCase() === 'INGRESO';
     const metodo = (m.metodo_pago || '').toLowerCase().trim();
 
+    const tax = m.impuesto_4x1000 !== undefined && m.impuesto_4x1000 !== null 
+      ? window.parseMonto(m.impuesto_4x1000) 
+      : (metodo !== 'efectivo' ? window.parseMonto(val * 0.004) : 0);
+
     if (metodo === 'efectivo') {
       efec += esIngreso ? val : -val;
     } else {
-      banc += esIngreso ? val : -val;
-      if (m.impuesto_4x1000) {
-        imp4x1000 += window.parseMonto(m.impuesto_4x1000);
+      if (esIngreso) {
+        banc += val;
+      } else {
+        banc -= (val + tax);
       }
+      imp4x1000 += tax;
     }
   });
 
@@ -292,6 +312,9 @@ window.initFormularioCajaManual = function() {
       return;
     }
 
+    const esBancos = metodo_pago.toLowerCase() !== 'efectivo';
+    const impuesto_4x1000 = esBancos ? Number((valor * 0.004).toFixed(2)) : 0;
+
     const res = await SupabaseSync.insertFlujoCaja({
       fecha,
       tipo,
@@ -300,11 +323,12 @@ window.initFormularioCajaManual = function() {
       metodo_pago,
       valor,
       monto: valor,
-      descripcion
+      descripcion,
+      impuesto_4x1000
     });
 
     if (res.success) {
-      if (typeof showToast === 'function') showToast("Movimiento de caja guardado en Supabase.");
+      if (typeof showToast === 'function') showToast("Movimiento de caja guardado en Supabase con 4x1000 automático.");
       form.reset();
       if (inputFecha) inputFecha.value = new Date().toISOString().split('T')[0];
       window.cargarContabilidad();
