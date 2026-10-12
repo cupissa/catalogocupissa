@@ -10,7 +10,7 @@ window.catalogState = {
 
 document.addEventListener('DOMContentLoaded', async () => {
   try {
-    // 1. Cargar productos desde Supabase
+    // 1. Cargar productos desde Supabase (productos_web vía StoreProducts)
     const productos = await StoreProducts.loadProducts();
 
     // 2. Leer parámetros URL ("mundo", "search", "favs", "product")
