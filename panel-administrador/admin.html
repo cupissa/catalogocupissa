@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CUPISSA - Sistema Operativo, CRM & Contabilidad Inteligente</title>
+    
+    <link rel="icon" type="image/png" href="assets/images/cupissa-favicon.png">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Librería Cropper.js para recorte de fotos -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/admin.css?v=2.0">
+</head>
+<body data-page="admin" class="bg-slate-100 text-slate-800 font-sans antialiased pb-20">
+
+    <div id="toast-container" class="fixed bottom-5 right-5 z-50 space-y-2 pointer-events-none"></div>
+
+    <header class="bg-indigo-900 text-white shadow-md sticky top-0 z-40 no-print">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex flex-col sm:flex-row justify-between items-center gap-3">
+            <div class="flex items-center justify-between w-full sm:w-auto">
+                <div class="flex items-center gap-2">
+                    <span class="text-xl">👑</span>
+                    <div>
+                        <h1 class="text-base font-extrabold tracking-wide">CUPISSA S.A.S.</h1>
+                        <p class="text-[10px] text-indigo-200">Panel Gerencial & CRM</p>
+                    </div>
+                </div>
+            </div>
+            <nav class="flex flex-wrap gap-1 text-xs justify-center sm:justify-end w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0">
+                <button onclick="switchTab('dashboard')" id="btn-tab-dashboard" class="px-2.5 py-1.5 rounded-lg bg-indigo-800 font-medium transition whitespace-nowrap">📊 Dashboard</button>
+                <button onclick="switchTab('pedidos')" id="btn-tab-pedidos" class="px-2.5 py-1.5 rounded-lg hover:bg-indigo-800 font-medium transition whitespace-nowrap">📦 Pedidos & CRM</button>
+                <button onclick="switchTab('inventario')" id="btn-tab-inventario" class="px-2.5 py-1.5 rounded-lg hover:bg-indigo-800 font-medium transition whitespace-nowrap">📋 Inventario</button>
+                <button onclick="switchTab('contabilidad')" id="btn-tab-contabilidad" class="px-2.5 py-1.5 rounded-lg hover:bg-indigo-800 font-medium transition whitespace-nowrap">💰 Flujo de Caja & Deudas</button>
+                <button onclick="switchTab('reportes')" id="btn-tab-reportes" class="px-2.5 py-1.5 rounded-lg hover:bg-indigo-800 font-medium transition whitespace-nowrap">📈 Reportes PDF</button>
+                <button onclick="switchTab('gestionar-web')" id="btn-tab-gestionar-web" class="px-2.5 py-1.5 rounded-lg bg-pink-600 hover:bg-pink-700 font-extrabold transition whitespace-nowrap text-white shadow-sm flex items-center gap-1.5">🌐 Gestionar Web</button>
+            </nav>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto p-2 sm:p-6 space-y-4 sm:space-y-6">
+
+        <!-- ================= DASHBOARD ================= -->
+        <div data-partial="views/tabs/dashboard.html"></div>
+
+        <!-- ================= PEDIDOS & CRM ================= -->
+        <div data-partial="views/tabs/pedidos.html"></div>
+
+        <!-- ================= INVENTARIO SUPABASE ================= -->
+        <div data-partial="views/tabs/inventario.html"></div>
+
+        <!-- ================= FLUJO DE CAJA & DEUDAS ================= -->
+        <div data-partial="views/tabs/contabilidad.html"></div>
+
+        <!-- ================= REPORTES PDF GERENCIALES ================= -->
+        <div data-partial="views/tabs/reportes.html"></div>
+
+        <!-- ================= MÓDULO: GESTIONAR WEB ================= -->
+        <div data-partial="views/tabs/gestionar-web.html"></div>
+
+    </main>
+
+    <div data-partial="views/modals/inventory-batch.html"></div>
+
+    <div data-partial="views/modals/client-details.html"></div>
+
+    <div data-partial="views/modals/web-product-editor.html"></div>
+
+    <div data-partial="views/modals/image-cropper.html"></div>
+
+    <script src="js/core/page-bootstrap.js"></script>
+</body>
+</html>
