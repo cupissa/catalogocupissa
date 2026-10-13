@@ -54,8 +54,14 @@
                     </div>
                     <div>
                         <label class="font-bold text-slate-700">% Anticipo Requerido</label>
-                        <input type="number" id="prod-web-porcentaje-anticipo" value="50" min="1" max="100" placeholder="50" class="p-2.5 border rounded-xl w-full mt-1 bg-white font-bold text-emerald-700">
+                        <input type="number" id="prod-web-porcentaje-anticipo" value="30" min="0" max="100" placeholder="30" class="p-2.5 border rounded-xl w-full mt-1 bg-white font-bold text-emerald-700">
                     </div>
+                </div>
+
+                <div class="rounded-xl border border-indigo-200 bg-indigo-50 p-3">
+                    <label class="font-bold text-indigo-900">Días de preparación / fabricación</label>
+                    <input type="number" id="prod-web-dias-fabricacion" value="0" min="0" max="365" class="mt-1 w-full rounded-xl border p-2.5 bg-white">
+                    <p class="mt-1 text-[11px] text-indigo-700">Se suman a la fecha de agenda para calcular la entrega estimada.</p>
                 </div>
 
                 <!-- OPCIONES AVANZADAS: PERSONALIZABLE, MAYORISTA, MODALIDADES -->
