@@ -6,6 +6,7 @@
 
 window.webCropperInstance = null;
 window.currentProductWebImgBase64 = null;
+window.currentProductWebOriginalBase64 = null;
 
 window.currentAdminTallas = [];
 window.currentAdminColores = [];
@@ -154,16 +155,11 @@ window.filtrarProductosWeb = function() {
     return;
   }
 
-  const filtrados = (window.productosCache || []).filter(p =>
-    (p.nombre || '').toLowerCase().includes(query) ||
-    (p.mundo || '').toLowerCase().includes(query) ||
-    (p.categoria || '').toLowerCase().includes(query) ||
-    (p.subcategoria || '').toLowerCase().includes(query) ||
-    (p.temporada || '').toLowerCase().includes(query) ||
-    (p.referencia || '').toLowerCase().includes(query)
-  );
-
-  window.renderizarTablaProductosWeb(filtrados);
+  const norm = value => String(value || '').normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase().trim();
+  const distance = (a,b) => { let prev=Array.from({length:b.length+1},(_,i)=>i); for(let i=1;i<=a.length;i++){const cur=[i];for(let j=1;j<=b.length;j++)cur[j]=Math.min(cur[j-1]+1,prev[j]+1,prev[j-1]+(a[i-1]===b[j-1]?0:1));prev=cur;}return prev[b.length]; };
+  const q=norm(query), scored=(window.productosCache||[]).map(p=>{const fields=[p.nombre,p.mundo,p.categoria,p.subcategoria,p.temporada,p.referencia,p.descripcion].map(norm).filter(Boolean);let score=99;for(const field of fields){if(field.includes(q)){score=Math.min(score,field===q?0:1);continue;}for(const token of field.split(/[^a-z0-9]+/).filter(Boolean)){if(token.startsWith(q)||q.startsWith(token))score=Math.min(score,2);else if(Math.min(token.length,q.length)>=4&&distance(token,q)<=(q.length>=7?2:1))score=Math.min(score,3);}}return {p,score};}).filter(x=>x.score<99).sort((a,b)=>a.score-b.score).map(x=>x.p);
+  const related = scored.length ? scored : (window.productosCache||[]).map(p=>{const fields=[p.nombre,p.mundo,p.categoria,p.subcategoria,p.temporada,p.referencia,p.descripcion].map(norm).filter(Boolean);const score=fields.reduce((best,field)=>Math.max(best,field.includes(q)?1:Math.max(0,...field.split(/[^a-z0-9]+/).filter(Boolean).map(token=>{const d=distance(token,q);return 1-d/Math.max(token.length,q.length,1);}))),0);return {p,score};}).sort((a,b)=>b.score-a.score).slice(0,8).map(x=>x.p);
+  window.renderizarTablaProductosWeb(related);
 };
 
 window.toggleVisibilidadProductoWeb = async function(id, estadoActualOculto) {
@@ -308,6 +304,7 @@ window.abrirModalProductoWeb = function(prod = null) {
 
   form.reset();
   window.currentProductWebImgBase64 = null;
+  window.currentProductWebOriginalBase64 = null;
   window.currentAdminTallas = [];
   window.currentAdminColores = [];
 
@@ -322,7 +319,8 @@ window.abrirModalProductoWeb = function(prod = null) {
     document.getElementById('prod-web-precio-detal').value = prod.precio_detal || prod.price || 0;
     document.getElementById('prod-web-precio-mayor').value = prod.precio_mayorista || 0;
     document.getElementById('prod-web-cant-mayor').value = prod.cant_minima_mayorista || 6;
-    document.getElementById('prod-web-porcentaje-anticipo').value = prod.porcentaje_anticipo || 50;
+    document.getElementById('prod-web-porcentaje-anticipo').value = prod.porcentaje_anticipo ?? 30;
+    const diasPrep = document.getElementById('prod-web-dias-fabricacion'); if (diasPrep) diasPrep.value = prod.dias_fabricacion ?? 0;
 
     document.getElementById('prod-web-precio-alquiler').value = prod.precio_alquiler || 0;
     document.getElementById('prod-web-valor-deposito').value = prod.valor_deposito || 0;
@@ -346,17 +344,20 @@ window.abrirModalProductoWeb = function(prod = null) {
     } catch (e) { window.currentAdminColores = []; }
 
     const imgPreview = document.getElementById('prod-web-img-preview');
-    const foto = prod.image_url || prod.imagen || 'assets/images/logo.png';
+    const foto = prod.imagen_recortada || prod.image_url || prod.imagen || 'assets/images/logo.png';
     if (imgPreview) imgPreview.src = foto;
     window.currentProductWebImgBase64 = foto;
+    window.currentProductWebOriginalBase64 = prod.imagen_original || prod.image_url || prod.imagen || foto;
 
   } else {
     document.getElementById('prod-web-id').value = '';
-    document.getElementById('prod-web-porcentaje-anticipo').value = 50;
+    document.getElementById('prod-web-porcentaje-anticipo').value = 30;
+  if (document.getElementById('prod-web-dias-fabricacion')) document.getElementById('prod-web-dias-fabricacion').value = 0;
     window.toggleSeccionAlquilerAdmin(false);
 
     const imgPreview = document.getElementById('prod-web-img-preview');
     if (imgPreview) imgPreview.src = 'assets/images/logo.png';
+    window.currentProductWebOriginalBase64 = null;
   }
 
   window.renderListaTallasAdmin();
@@ -425,6 +426,7 @@ window.procesarFotoProductoWeb = function(file) {
   const reader = new FileReader();
   reader.onload = function(e) {
     const src = e.target.result;
+    window.currentProductWebOriginalBase64 = src;
     const cropImg = document.getElementById('cropper-web-target');
     const cropModal = document.getElementById('modal-cropper-web');
 
@@ -442,6 +444,7 @@ window.procesarFotoProductoWeb = function(file) {
       });
     } else {
       window.currentProductWebImgBase64 = src;
+      window.currentProductWebOriginalBase64 = src;
       const imgPreview = document.getElementById('prod-web-img-preview');
       if (imgPreview) imgPreview.src = src;
     }
@@ -497,7 +500,9 @@ window.guardarProductoWeb = async function(e) {
     const precio_detal = safeParseMontoWeb(document.getElementById('prod-web-precio-detal')?.value);
     const precio_mayorista = safeParseMontoWeb(document.getElementById('prod-web-precio-mayor')?.value);
     const cant_minima_mayorista = parseInt(document.getElementById('prod-web-cant-mayor')?.value || 6, 10) || 6;
-    const porcentaje_anticipo = parseInt(document.getElementById('prod-web-porcentaje-anticipo')?.value || 50, 10) || 50;
+    const anticipoRaw = document.getElementById('prod-web-porcentaje-anticipo')?.value;
+    const porcentaje_anticipo = anticipoRaw === '' || anticipoRaw == null ? 30 : Math.min(100, Math.max(0, Number(anticipoRaw)));
+    if (!Number.isFinite(porcentaje_anticipo)) throw new Error('El porcentaje de anticipo debe estar entre 0 y 100.');
 
     const precio_alquiler = safeParseMontoWeb(document.getElementById('prod-web-precio-alquiler')?.value);
     const valor_deposito = safeParseMontoWeb(document.getElementById('prod-web-valor-deposito')?.value);
@@ -551,8 +556,26 @@ window.guardarProductoWeb = async function(e) {
       }
     }
 
+    let originalImageUrl = window.currentProductWebOriginalBase64 || finalImageUrl;
+    if (originalImageUrl && originalImageUrl.startsWith('data:')) {
+      try {
+        const originalRes = await fetch(originalImageUrl);
+        const originalBlob = await originalRes.blob();
+        const originalExt = (originalBlob.type.split('/')[1] || 'jpg').replace('jpeg','jpg');
+        const originalPath = `catalog/original_${Date.now()}_${Math.random().toString(36).slice(2,8)}.${originalExt}`;
+        const { error: originalUploadError } = await client.storage.from('productos').upload(originalPath, originalBlob, {contentType: originalBlob.type || 'image/jpeg', cacheControl:'3600', upsert:true});
+        if (originalUploadError) throw originalUploadError;
+        originalImageUrl = client.storage.from('productos').getPublicUrl(originalPath).data?.publicUrl || originalImageUrl;
+      } catch (originalErr) {
+        console.warn('No se pudo guardar la imagen original por separado:', originalErr.message);
+      }
+    }
+
     const payload = {
       nombre,
+      imagen_original: originalImageUrl || finalImageUrl,
+      imagen_recortada: finalImageUrl || originalImageUrl,
+      dias_fabricacion: Math.max(0, Number(document.getElementById('prod-web-dias-fabricacion')?.value || 0)),
       mundo,
       categoria,
       subcategoria,
