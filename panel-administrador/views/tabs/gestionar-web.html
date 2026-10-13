@@ -14,6 +14,8 @@
                         <button onclick="switchSubTabWeb('productos')" id="btn-subtab-web-productos" class="px-4 py-2 bg-slate-200 text-slate-700 font-extrabold rounded-xl text-xs transition">
                             📦 Productos & Tienda
                         </button>
+                        <button onclick="switchSubTabWeb('creditos')" id="btn-subtab-web-creditos" class="px-4 py-2 bg-slate-200 text-slate-700 font-extrabold rounded-xl text-xs transition">💳 Créditos Cupissa</button>
+                        <button onclick="switchSubTabWeb('pedidos')" id="btn-subtab-web-pedidos" class="px-4 py-2 bg-slate-200 text-slate-700 font-extrabold rounded-xl text-xs transition">🧾 Pedidos</button>
                     </div>
                 </div>
 
@@ -96,4 +98,41 @@
                     </div>
                 </div>
             </div>
-        </section>
+        
+                <!-- MÓDULO PILOTO: CRÉDITOS CUPISSA -->
+                <div id="subtab-web-creditos" class="hidden pt-4 space-y-4">
+                    <div class="rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs text-amber-900">
+                        <strong>Modo piloto:</strong> registros de prueba guardados en este navegador. La conexión a tablas definitivas y los cálculos financieros se configurarán en una fase posterior.
+                    </div>
+                    <form id="form-credito-piloto" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 rounded-xl border bg-slate-50 p-4">
+                        <input name="cliente" required placeholder="Nombre completo del cliente" class="p-2.5 border rounded-lg text-xs">
+                        <input name="telefono" placeholder="Teléfono" class="p-2.5 border rounded-lg text-xs">
+                        <input name="valorCuota" type="number" min="0" required placeholder="Valor de la cuota ($)" class="p-2.5 border rounded-lg text-xs">
+                        <input name="proximaCuota" type="date" required class="p-2.5 border rounded-lg text-xs">
+                        <input name="totalCredito" type="number" min="0" required placeholder="Total crédito ($)" class="p-2.5 border rounded-lg text-xs">
+                        <input name="totalPagado" type="number" min="0" value="0" required placeholder="Total pagado ($)" class="p-2.5 border rounded-lg text-xs">
+                        <button class="sm:col-span-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg p-2.5 text-xs font-black">+ Registrar crédito piloto</button>
+                    </form>
+                    <div class="overflow-x-auto border rounded-xl"><table class="w-full text-left sheets-table"><thead><tr><th>Cliente</th><th>Teléfono</th><th>Cuota</th><th>Próxima cuota</th><th>Total crédito</th><th>Pagado</th><th>Pendiente</th></tr></thead><tbody id="tabla-creditos-piloto"></tbody></table></div>
+                </div>
+
+                <!-- MÓDULO PILOTO: PEDIDOS -->
+                <div id="subtab-web-pedidos" class="hidden pt-4 space-y-4">
+                    <div class="rounded-xl border border-blue-200 bg-blue-50 p-4 text-xs text-blue-900">
+                        <strong>Modo piloto:</strong> estos pedidos no se conectan todavía al checkout ni al rastreo público. El ID generado es interno de prueba.
+                    </div>
+                    <form id="form-pedido-piloto" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 rounded-xl border bg-slate-50 p-4">
+                        <input name="nombre" required placeholder="Nombre y apellido" class="p-2.5 border rounded-lg text-xs">
+                        <input name="telefono" required placeholder="Teléfono" class="p-2.5 border rounded-lg text-xs">
+                        <input name="direccion" required placeholder="Dirección exacta" class="p-2.5 border rounded-lg text-xs">
+                        <input name="barrio" required placeholder="Barrio" class="p-2.5 border rounded-lg text-xs">
+                        <input name="ciudad" required placeholder="Ciudad" class="p-2.5 border rounded-lg text-xs">
+                        <input name="fechaEntrega" type="date" required class="p-2.5 border rounded-lg text-xs">
+                        <input name="total" type="number" min="0" required placeholder="Valor total ($)" class="p-2.5 border rounded-lg text-xs">
+                        <input name="anticipo" type="number" min="0" value="0" required placeholder="Anticipo pagado ($)" class="p-2.5 border rounded-lg text-xs">
+                        <textarea name="detalles" required placeholder="Detalles: talla, colores, personalización, imagen/referencia…" class="p-2.5 border rounded-lg text-xs sm:col-span-2"></textarea>
+                        <button class="bg-blue-600 hover:bg-blue-700 text-white rounded-lg p-2.5 text-xs font-black">+ Agendar pedido piloto</button>
+                    </form>
+                    <div class="overflow-x-auto border rounded-xl"><table class="w-full text-left sheets-table"><thead><tr><th>ID de pedido</th><th>Cliente y contacto</th><th>Dirección</th><th>Entrega</th><th>Total</th><th>Anticipo pagado</th><th>Detalles</th></tr></thead><tbody id="tabla-pedidos-piloto"></tbody></table></div>
+                </div>
+\n</section>
