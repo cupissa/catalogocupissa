@@ -8,23 +8,21 @@ window.searchOrder = async function(e) {
   notFound.classList.add('hidden');
 
   try {
-    const { data, error } = await supabaseClient
-      .from('orders')
-      .select('*')
-      .eq('order_code', code)
-      .single();
+    const { data: rows, error } = await supabaseClient.rpc('rastrea_pedido_web', { codigo: code });
+    const data = Array.isArray(rows) ? rows[0] : rows;
 
     if (error || !data) {
       notFound.classList.remove('hidden');
       return;
     }
 
-    document.getElementById('resOrderCode').textContent = data.order_code;
-    document.getElementById('resClientName').textContent = data.client_name || 'Cliente Cupissa';
+    document.getElementById('resOrderCode').textContent = data.order_code || data.id;
+    document.getElementById('resClientName').textContent = data.customer_name || data.client_name || 'Cliente Cupissa';
     document.getElementById('resOrderDate').textContent = new Date(data.created_at).toLocaleDateString('es-CO');
 
     const badge = document.getElementById('resStatusBadge');
-    const status = (data.status || 'recibido').toLowerCase();
+    const rawStatus = String(data.status || 'PEDIDO REALIZADO').toUpperCase();
+    const status = ({'PEDIDO REALIZADO':'recibido','EN PRODUCCIÓN':'preparacion','LISTO PARA ENVIAR':'preparacion','EN RUTA':'en camino','ENTREGADO':'entregado','CANCELADO':'cancelado'})[rawStatus] || String(data.status || 'recibido').toLowerCase();
 
     if (status === 'entregado') {
       badge.className = "px-3.5 py-1.5 rounded-full text-xs font-bold bg-green-100 text-green-700 flex items-center gap-2";
@@ -41,7 +39,7 @@ window.searchOrder = async function(e) {
     }
 
     const itemsList = document.getElementById('resItemsList');
-    const items = data.items || [];
+    const items = data.items || data.details?.items || [];
     if (items.length > 0) {
       itemsList.innerHTML = items.map(item => `
         <div class="flex justify-between py-1.5 border-b border-gray-50">
