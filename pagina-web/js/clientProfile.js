@@ -101,7 +101,7 @@ function ensureProfileContainerExists() {
 
               <div class="pt-2">
                 <button type="submit" id="btnSaveProfile" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-extrabold py-3 rounded-xl text-xs transition-all shadow-md flex items-center justify-center gap-2">
-                  <i class="fa-solid fa-floppy-disk"></i> Guardar Cambios en Supabase
+                  <i class="fa-solid fa-floppy-disk"></i> Guardar cambios
                 </button>
               </div>
             </form>
