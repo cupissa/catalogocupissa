@@ -119,6 +119,7 @@ window.filterByWorld = function(mundo) {
  * Búsqueda inteligente llamada desde la cabecera
  */
 window.filterProductsBySmartSearch = function() {
+  // El filtro principal conserva mundo/orden y usa ranking difuso en filtrarYOrdenarCatalogo.
   window.filtrarYOrdenarCatalogo();
 };
 
@@ -175,35 +176,21 @@ window.filtrarYOrdenarCatalogo = function() {
   const query = (inputBusqueda?.value || '').toLowerCase().trim();
 
   if (query) {
-    const normalize = value => String(value || '').normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase().trim();
-    const q = normalize(query);
-    const distance = (a, b) => {
-      if (Math.abs(a.length - b.length) > 2) return 99;
-      let prev = Array.from({length: b.length + 1}, (_, i) => i);
-      for (let i = 1; i <= a.length; i++) {
-        const cur = [i];
-        for (let j = 1; j <= b.length; j++) cur[j] = Math.min(cur[j-1] + 1, prev[j] + 1, prev[j-1] + (a[i-1] === b[j-1] ? 0 : 1));
-        prev = cur;
+    if (window.CupissaSearch) {
+      const ranked = window.CupissaSearch.rank(resultado, query,
+        p => [p.nombre,p.referencia,p.mundo,p.categoria,p.subcategoria,p.temporada,p.descripcion].filter(Boolean).join(' '), .25);
+      if (ranked.length) resultado = ranked;
+      else {
+        // Si no existe coincidencia cercana, mostrar los productos más relacionados en lugar de una pantalla vacía.
+        const q = window.CupissaSearch.normalize(query);
+        resultado = resultado.map((p,index)=>({p,index,score:window.CupissaSearch.score(q,[p.nombre,p.referencia,p.mundo,p.categoria,p.subcategoria,p.descripcion].filter(Boolean).join(' '))}))
+          .sort((a,b)=>b.score-a.score||a.index-b.index).slice(0,8).map(x=>x.p);
       }
-      return prev[b.length];
-    };
-    const fields = p => [p.nombre,p.mundo,p.categoria,p.subcategoria,p.temporada,p.referencia,p.descripcion]
-      .map(normalize).filter(Boolean);
-    const scored = resultado.map(p => {
-      const words = fields(p);
-      let score = words.reduce((best, field) => {
-        if (field.includes(q)) return Math.min(best, field === q ? 0 : 1);
-        const tokens = field.split(/[^a-z0-9]+/).filter(Boolean);
-        return Math.min(best, ...tokens.map(token => {
-          if (token.startsWith(q) || q.startsWith(token)) return 1;
-          if (Math.min(token.length, q.length) >= 4 && distance(token, q) <= (q.length >= 7 ? 2 : 1)) return 2;
-          return 99;
-        }));
-      }, 99);
-      return {p, score};
-    }).filter(item => item.score < 99)
-      .sort((a,b) => a.score-b.score).map(item => item.p);
-    resultado = scored;
+    } else {
+      const normalize = value => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+      const q = normalize(query);
+      resultado = resultado.filter(p => [p.nombre,p.mundo,p.categoria,p.subcategoria,p.temporada,p.referencia,p.descripcion].some(v=>normalize(v).includes(q)));
+    }
   }
 
   // 2. Filtro por mundo
