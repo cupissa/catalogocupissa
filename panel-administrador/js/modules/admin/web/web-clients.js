@@ -30,77 +30,32 @@ function formatMonedaSeguro(val) {
 window.cargarClientesWeb = async function() {
   const tbody = document.getElementById('tabla-clientes-web');
   if (!tbody) return;
-
-  tbody.innerHTML = `
-    <tr>
-      <td colspan="6" class="py-8 text-center text-slate-400">
-        <i class="fa-solid fa-spinner fa-spin text-lg mb-2"></i>
-        <p>Cargando perfiles registrados en la web desde Supabase ('profile')...</p>
-      </td>
-    </tr>
-  `;
-
+  tbody.innerHTML = '<tr><td colspan="6" class="py-8 text-center text-slate-400">Sincronizando perfiles, pedidos y créditos…</td></tr>';
   try {
-    const [perfiles, pedidos] = await Promise.all([
-      SupabaseSync.getProfilesWeb ? SupabaseSync.getProfilesWeb() : Promise.resolve([]),
-      SupabaseSync.getPedidos ? SupabaseSync.getPedidos() : Promise.resolve([])
+    const client = window.supabaseClient || window.supabase;
+    if (!client) throw new Error('Supabase no está inicializado.');
+    const [pr, or, cr] = await Promise.all([
+      client.from('profile').select('*'),
+      client.from('pedidos_web').select('id,user_id,cliente_id,customer_email,total_amount,advance_payment,pending_balance,status,created_at'),
+      client.from('creditos_cupissa_cuentas').select('user_id,cliente_id,saldo_pendiente,total_credito,total_pagado,cuota_inicial,estado')
     ]);
-
-    window.webClientsCache = (perfiles || []).map(cli => {
-      const pedsCliente = (pedidos || []).filter(p =>
-        p.cliente_id === cli.id ||
-        p.user_id === cli.id ||
-        (p.cliente_email && cli.email && p.cliente_email.toLowerCase() === cli.email.toLowerCase())
-      );
-
-      // Total comprado excluyendo pedidos cancelados
-      const totalComprado = pedsCliente.reduce((acc, p) => {
-        const est = (p.estado || p.status || '').toLowerCase();
-        if (est !== 'cancelado' && est !== 'cancelled') {
-          return acc + parseMontoSeguro(p.total !== undefined ? p.total : (p.monto || p.valor || 0));
-        }
-        return acc;
-      }, 0);
-
-      // Saldo de deuda actual (cuánto debe de sus compras a crédito)
-      const saldoDeuda = pedsCliente.reduce((acc, p) => {
-        const est = (p.estado || p.status || '').toLowerCase();
-        if (est !== 'cancelado' && est !== 'cancelled') {
-          const tot = parseMontoSeguro(p.total !== undefined ? p.total : (p.monto || p.valor || 0));
-          const pag = parseMontoSeguro(p.pagado !== undefined ? p.pagado : (p.anticipo !== undefined ? p.anticipo : p.monto_pagado || 0));
-          return acc + (p.saldo !== undefined ? parseMontoSeguro(p.saldo) : Math.max(0, tot - pag));
-        }
-        return acc;
-      }, 0);
-
-      // Cupo por defecto de $200.000 aprobado para usuarios nuevos o sin definir
-      const cupoCredito = (cli.cupo_credito !== undefined && cli.cupo_credito !== null && cli.cupo_credito !== '') 
-        ? parseMontoSeguro(cli.cupo_credito) 
-        : 200000;
-        
-      const estadoCredito = cli.estado_credito || 'aprobado';
-
-      return {
-        ...cli,
-        cupo_credito: cupoCredito,
-        estado_credito: estadoCredito,
-        pedidosCount: pedsCliente.length,
-        totalComprado,
-        saldoDeuda,
-        pedidos: pedsCliente
-      };
+    if (pr.error) throw pr.error;
+    // Compatibilidad con instalaciones anteriores donde los pedidos aún están en la tabla legacy.
+    let pedidos = or.error ? (await (window.SupabaseSync?.getPedidos?.() || Promise.resolve([]))) : (or.data || []);
+    const creditos = cr.error ? [] : (cr.data || []);
+    window.webClientsCache = (pr.data || []).map(cli => {
+      const peds = pedidos.filter(p => p.cliente_id === cli.id || p.user_id === cli.id || (p.customer_email && cli.email && p.customer_email.toLowerCase() === cli.email.toLowerCase()) || (p.cliente_email && cli.email && p.cliente_email.toLowerCase() === cli.email.toLowerCase()));
+      const valid = peds.filter(p => !['cancelado','cancelled','anulado'].includes(String(p.status || p.estado || '').toLowerCase()));
+      const totalComprado = valid.reduce((sum,p)=>sum+parseMontoSeguro(p.total_amount ?? p.total ?? p.monto ?? p.valor ?? 0),0);
+      const clientCredits = creditos.filter(c => (c.user_id === cli.id || c.cliente_id === cli.id) && String(c.estado||'').toLowerCase()==='activo');
+      const saldoDeuda = clientCredits.length ? clientCredits.reduce((sum,c)=>sum+Math.max(0,parseMontoSeguro(c.saldo_pendiente ?? (Number(c.total_credito||0)-Number(c.total_pagado||0)-Number(c.cuota_inicial||0))),0),0) : valid.reduce((sum,p)=>sum+parseMontoSeguro(p.pending_balance ?? p.saldo ?? Math.max(0,Number(p.total_amount ?? p.total ?? 0)-Number(p.advance_payment ?? p.pagado ?? 0))),0);
+      const cupoCredito = cli.cupo_credito == null || cli.cupo_credito === '' ? 0 : parseMontoSeguro(cli.cupo_credito);
+      return {...cli,cupo_credito:cupoCredito,estado_credito:cli.estado_credito||'sin_credito',pedidosCount:peds.length,totalComprado,saldoDeuda,pedidos:peds};
     });
-
     window.renderizarTablaClientesWeb(window.webClientsCache);
   } catch (err) {
-    console.error("Error al cargar perfiles web:", err);
-    tbody.innerHTML = `
-      <tr>
-        <td colspan="6" class="py-6 text-center text-rose-500 font-bold">
-          Error al consultar la tabla profile.
-        </td>
-      </tr>
-    `;
+    console.error('Error al cargar perfiles web:', err);
+    tbody.innerHTML = `<tr><td colspan="6" class="py-6 text-rose-500 font-bold">No se pudieron consultar los perfiles: ${String(err.message||err)}</td></tr>`;
   }
 };
 
@@ -125,7 +80,7 @@ window.renderizarTablaClientesWeb = function(lista) {
     const estadoCredito = c.estado_credito;
 
     let badgeCredito = `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600">Sin Crédito</span>`;
-    if (estadoCredito === 'aprobado') {
+    if (['aprobado','activo'].includes(String(estadoCredito).toLowerCase())) {
       badgeCredito = `<span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800">Aprobado ($${formatMonedaSeguro(cupoAprobado)})</span>`;
     } else if (estadoCredito === 'pendiente') {
       badgeCredito = `<span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-100 text-amber-800 animate-pulse">Por Aprobar</span>`;
@@ -161,6 +116,16 @@ window.renderizarTablaClientesWeb = function(lista) {
       </tr>
     `;
   }).join('');
+};
+
+window.filtrarClientesWeb = function(){
+  const query=document.getElementById('buscador-clientes-web')?.value||'';
+  const rows=window.webClientsCache||[];
+  if(!query.trim())return window.renderizarTablaClientesWeb(rows);
+  const text=c=>[c.first_name,c.last_name,c.nombre,c.email,c.telefono,c.cedula,c.direccion,c.ciudad].filter(Boolean).join(' ');
+  let filtered=window.CupissaSearch?window.CupissaSearch.rank(rows,query,text,.25):rows.filter(c=>text(c).toLowerCase().includes(query.toLowerCase()));
+  if(!filtered.length&&window.CupissaSearch){filtered=window.CupissaSearch.rank(rows,query,text,0).slice(0,8);}
+  window.renderizarTablaClientesWeb(filtered);
 };
 
 /**
@@ -287,3 +252,4 @@ window.guardarCreditoClienteWeb = async function(event) {
     alert("Error al guardar: " + (err.message || err));
   }
 };
+(function subscribeClientDirectoryRealtime(){const c=window.supabaseClient||window.supabase;if(!c||window.__cupissaClientsLive||!c.channel)return;window.__cupissaClientsLive=true;c.channel('cupissa-client-directory-live').on('postgres_changes',{event:'*',schema:'public',table:'profile'},()=>window.cargarClientesWeb?.()).on('postgres_changes',{event:'*',schema:'public',table:'pedidos_web'},()=>window.cargarClientesWeb?.()).on('postgres_changes',{event:'*',schema:'public',table:'creditos_cupissa_cuentas'},()=>window.cargarClientesWeb?.()).subscribe();})();
