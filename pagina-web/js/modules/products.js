@@ -58,8 +58,18 @@ window.StoreProducts = {
       pool = [...this.cache];
     }
 
-    const shuffled = [...pool].sort(() => 0.5 - Math.random());
-    return shuffled.slice(0, count);
+    // Si la temporada tiene menos de cinco productos, completar con productos
+    // aleatorios del catálogo general sin repetir; si no hay temporada, usar el catálogo.
+    const shuffled = [...pool].sort(() => Math.random() - 0.5);
+    const selected = shuffled.slice(0, count);
+    if (selected.length < count) {
+      const selectedIds = new Set(selected.map(p => String(p.id)));
+      const remainder = this.cache
+        .filter(p => !selectedIds.has(String(p.id)))
+        .sort(() => Math.random() - 0.5);
+      selected.push(...remainder.slice(0, count - selected.length));
+    }
+    return selected;
   },
 
   /**
