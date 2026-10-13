@@ -1,0 +1,41 @@
+/* ==========================================================================
+   ESTILOS GENERALES Y MAQUETACIÓN GLOBAL
+   ========================================================================== */
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* Ocultar barra de desplazamiento manteniendo funcionalidad de scroll */
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Grilla / Cuadrícula Dinámica para la Sección de Mundos */
+.worlds-grid,
+#contenedor-mundos-home {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1.5rem;
+}
+
+/* Animaciones de transición suave para la carga de vistas y pestañas */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.25s ease-out forwards;
+}
