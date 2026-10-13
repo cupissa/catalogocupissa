@@ -341,15 +341,12 @@ async function loadClientOrdersHistory() {
     if (client) {
       const { data: { session } } = await client.auth.getSession();
       if (session && session.user) {
-        // Intentar consultar ordenes vinculadas en Supabase si existe la tabla 'orders'
-        const { data: dbOrders } = await client
-          .from('orders')
-          .select('*')
-          .eq('user_id', session.user.id);
-        
-        if (dbOrders && dbOrders.length > 0) {
-          userOrders = dbOrders;
-        }
+        // Pedidos creados por la tienda web (tabla real usada por el checkout).
+        const { data: dbOrders, error: ordersError } = await client
+          .from('pedidos_web').select('*').eq('user_id', session.user.id)
+          .order('created_at', { ascending: false });
+        if (ordersError) throw ordersError;
+        userOrders = dbOrders || [];
       }
     }
   } catch (e) {
@@ -378,14 +375,15 @@ async function loadClientOrdersHistory() {
     <div class="p-4 bg-gray-50 dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 text-xs">
       <div class="space-y-1">
         <div class="flex items-center gap-2">
-          <span class="font-black text-gray-900 dark:text-white">Orden #${order.id || order.orderId || '000'}</span>
+          <span class="font-black text-gray-900 dark:text-white">Orden #${order.order_code || order.referencia_pedido || order.id || order.orderId || '000'}</span>
           <span class="px-2 py-0.5 rounded text-[10px] font-bold ${getOrderStatusBadgeClass(order.status)}">${order.status || 'En Proceso'}</span>
         </div>
-        <p class="text-gray-500 dark:text-gray-400">Fecha: ${order.date || new Date().toLocaleDateString()}</p>
+        <p class="text-gray-500 dark:text-gray-400">Fecha: ${order.created_at ? new Date(order.created_at).toLocaleDateString('es-CO') : (order.date || '—')}</p>
+        ${order.details?.imagen ? `<a class="text-brand-600 underline" href="${order.details.imagen}" target="_blank" rel="noopener">Ver imagen adjunta</a>` : ''}
         <p class="text-brand-600 font-bold">Total: $${Number(order.total || order.total_amount || 0).toLocaleString()} COP</p>
       </div>
       <div>
-        <a href="rastreo.html?order=${order.id || ''}" class="px-3 py-2 bg-brand-50 dark:bg-brand-950/40 text-brand-700 dark:text-brand-300 font-bold rounded-xl hover:bg-brand-100 transition-colors inline-flex items-center gap-1.5">
+        <a href="rastreo.html?order=${encodeURIComponent(order.order_code || order.referencia_pedido || order.id || '')}" class="px-3 py-2 bg-brand-50 dark:bg-brand-950/40 text-brand-700 dark:text-brand-300 font-bold rounded-xl hover:bg-brand-100 transition-colors inline-flex items-center gap-1.5">
           <i class="fa-solid fa-truck-fast"></i> Rastrear
         </a>
       </div>
@@ -410,7 +408,7 @@ function getOrderStatusBadgeClass(status) {
  */
 async function loadClientCreditInfoFromSupabase() {
   const client = window.supabaseClient || window.supabase;
-  let creditLimit = 200000; // Cupo base por defecto para clientes nuevos
+  let creditLimit = 0; // El cupo siempre se lee de Supabase; cero si no existe registro
   let creditUsed = 0;
 
   try {
@@ -424,7 +422,7 @@ async function loadClientCreditInfoFromSupabase() {
           .maybeSingle();
 
         if (profile) {
-          creditLimit = profile.cupo_credito || 200000;
+          creditLimit = Number(profile.cupo_credito ?? 0);
           creditUsed = profile.credito_utilizado || 0;
         }
       }
@@ -443,3 +441,21 @@ async function loadClientCreditInfoFromSupabase() {
   if (usedEl) usedEl.textContent = `$${Number(creditUsed).toLocaleString()} COP`;
   if (availableEl) availableEl.textContent = `$${Number(creditAvailable).toLocaleString()} COP`;
 }
+// Mantiene el perfil actualizado cuando el administrador modifica cupo o estado del pedido.
+(function subscribeClientProfileRealtime(){
+  const client = window.supabaseClient || window.supabase;
+  if (!client || window.__cupissaProfileRealtime) return;
+  window.__cupissaProfileRealtime = true;
+  client.auth.onAuthStateChange((_event, session) => {
+    if (!session?.user) return;
+    if (window.__cupissaProfileChannel) client.removeChannel(window.__cupissaProfileChannel);
+    window.__cupissaProfileChannel = client.channel('cupissa-profile-' + session.user.id)
+      .on('postgres_changes', {event:'*', schema:'public', table:'profile', filter:'id=eq.'+session.user.id}, () => {
+        loadClientCreditInfoFromSupabase();
+        if (!document.getElementById('sectionProfileOrders')?.classList.contains('hidden')) loadClientOrdersHistory();
+      })
+      .on('postgres_changes', {event:'*', schema:'public', table:'pedidos_web', filter:'user_id=eq.'+session.user.id}, () => {
+        if (!document.getElementById('sectionProfileOrders')?.classList.contains('hidden')) loadClientOrdersHistory();
+      }).subscribe();
+  });
+})();
