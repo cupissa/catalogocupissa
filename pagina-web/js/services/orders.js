@@ -21,48 +21,32 @@ window.calculate4x1000 = function(amount, rate = 0.004) {
 window.createOrderInSupabase = async function(orderPayload) {
   try {
     const client = window.supabaseClient || window.supabase;
-    if (!client) throw new Error('El cliente de Supabase no está inicializado.');
-
-    const { data: { session } } = await client.auth.getSession();
-    const userId = session?.user?.id || null;
-
-    const totalAmount = orderPayload.items.reduce((sum, item) => sum + ((item.price || 0) * (item.quantity || 1)), 0) + (orderPayload.shippingFee || 0);
-    const advancePayment = orderPayload.advancePayment || 0;
-    const pendingBalance = Math.max(0, totalAmount - advancePayment);
-    const tax4x1000 = window.calculate4x1000(advancePayment);
-
-    const { data, error } = await client
-      .from('orders')
-      .insert([
-        {
-          user_id: userId,
-          customer_name: orderPayload.customer.fullName,
-          customer_phone: orderPayload.customer.phone,
-          customer_address: orderPayload.customer.address,
-          city: orderPayload.customer.city,
-          neighborhood: orderPayload.customer.neighborhood,
-          delivery_date: orderPayload.customer.deliveryDate,
-          shipping_fee: orderPayload.shippingFee,
-          payment_method: orderPayload.paymentMethod,
-          items: orderPayload.items,
-          total_amount: totalAmount,
-          advance_payment: advancePayment,
-          pending_balance: pendingBalance,
-          tax_4x1000: tax4x1000,
-          status: orderPayload.status || 'pending_advance_payment'
-        }
-      ])
-      .select();
-
+    if (!client) throw new Error('No se ha podido conectar. Intenta nuevamente.');
+    const customer = orderPayload.customer || {};
+    const items = Array.isArray(orderPayload.items) ? orderPayload.items : [];
+    const total = items.reduce((sum, item) => sum + (Number(item.price ?? item.precio ?? 0) * Number(item.quantity ?? item.cantidad ?? 1)), 0) + Number(orderPayload.shippingFee || 0);
+    const anticipo = Number(orderPayload.advancePayment || 0);
+    const orderCode = 'CUP-' + new Date().toISOString().slice(2,10).replace(/-/g,'') + '-' + Math.random().toString(36).slice(2,7).toUpperCase();
+    const row = {
+      order_code: orderCode,
+      customer_name: customer.fullName || customer.nombre || '',
+      customer_phone: customer.phone || customer.telefono || '',
+      customer_address: customer.address || customer.direccion || '',
+      neighborhood: customer.neighborhood || customer.barrio || '',
+      city: customer.city || customer.ciudad || '',
+      delivery_date: customer.deliveryDate || customer.fechaEntrega || null,
+      items, details: orderPayload.details || {},
+      shipping_fee: Number(orderPayload.shippingFee || 0),
+      payment_method: orderPayload.paymentMethod || '',
+      total_amount: total, advance_payment: anticipo,
+      pending_balance: Math.max(0, total-anticipo),
+      status: orderPayload.status || 'PEDIDO REALIZADO'
+    };
+    const { data, error } = await client.from('pedidos_web').insert(row).select().single();
     if (error) throw error;
-
-    if (pendingBalance > 0) {
-      await window.updateCustomerBalanceRetroactively(orderPayload.customer.phone, pendingBalance, 'add');
-    }
-
-    return { data, error: null };
+    return { data, error: null, orderCode };
   } catch (err) {
-    console.error('Error guardando la orden en Supabase:', err);
+    console.error('Error al guardar el pedido:', err);
     return { data: null, error: err };
   }
 };
