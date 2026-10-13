@@ -18,14 +18,14 @@
       slot.outerHTML = await response.text();
     }));
     const commonCustomer = [
-        '../shared/js/config/constants.js', '../shared/js/config/supabase.js', '../shared/js/services/settings.js',
+        '../shared/js/config/constants.js', '../shared/js/config/supabase.js', '../shared/js/utils/smart-search.js', '../shared/js/services/settings.js',
         '../shared/js/utils/supabase-sync.js', 'js/utils/theme.js', '../shared/js/utils/ui.js', 'js/utils/captcha-helper.js',
         'js/modules/auth.js', 'js/clientProfile.js', 'js/modules/credit-requests.js', 'js/modules/cart.js', 'js/modules/favorites.js',
         'js/modules/products.js', 'js/modules/product-detail-modal.js', 'js/modules/tracking.js'
     ];
     const customer = {
       home: [
-        '../shared/js/config/constants.js', '../shared/js/config/supabase.js', '../shared/js/services/settings.js',
+        '../shared/js/config/constants.js', '../shared/js/config/supabase.js', '../shared/js/utils/smart-search.js', '../shared/js/services/settings.js',
         '../shared/js/utils/supabase-sync.js', 'js/utils/theme.js', '../shared/js/utils/ui.js', 'js/utils/captcha-helper.js',
         'js/modules/auth.js', 'js/clientProfile.js', 'js/modules/credit-requests.js', 'js/modules/cart.js', 'js/modules/favorites.js',
         'js/modules/products.js', 'js/modules/product-detail-modal.js', 'js/modules/tracking.js', 'js/pages/index-page.js'
@@ -35,7 +35,7 @@
     };
     const admin = {
       admin: [
-        '../shared/js/config/constants.js', '../shared/js/config/supabase.js', 'js/services/storage.js',
+        '../shared/js/config/constants.js', '../shared/js/config/supabase.js', '../shared/js/utils/smart-search.js', 'js/services/storage.js',
         '../shared/js/services/settings.js', '../shared/js/utils/supabase-sync.js', '../shared/js/utils/ui.js',
         'js/modules/admin/admin-dashboard.js', 'js/modules/admin/admin-products.js', 'js/modules/admin/admin-orders.js',
         'js/modules/admin/web/web-products.js', 'js/modules/admin/web/web-clients.js', 'js/pages/admin-page.js'
