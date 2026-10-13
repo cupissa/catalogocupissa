@@ -1,0 +1,99 @@
+<section id="tab-gestionar-web" class="hidden space-y-4 sm:space-y-6 animate-fade-in">
+            <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b pb-4">
+                    <div>
+                        <h2 class="text-base sm:text-lg font-black text-pink-700 flex items-center gap-2">
+                            <i class="fa-solid fa-globe"></i> Administración de la Tienda Online
+                        </h2>
+                        <p class="text-xs text-slate-500">Gestión de clientes web, catálogo inteligente, fotos, precios y créditos</p>
+                    </div>
+                    <div class="flex gap-2 w-full sm:w-auto">
+                        <button onclick="switchSubTabWeb('clientes')" id="btn-subtab-web-clientes" class="px-4 py-2 bg-brand-600 text-white font-extrabold rounded-xl text-xs shadow transition">
+                            👤 Directorio Clientes
+                        </button>
+                        <button onclick="switchSubTabWeb('productos')" id="btn-subtab-web-productos" class="px-4 py-2 bg-slate-200 text-slate-700 font-extrabold rounded-xl text-xs transition">
+                            📦 Productos & Tienda
+                        </button>
+                    </div>
+                </div>
+
+                <!-- SUB-PESTAÑA 1: DIRECTORIO DE CLIENTES REGISTRADOS -->
+                <div id="subtab-web-clientes" class="pt-4 space-y-4">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                        <div class="relative w-full sm:w-80">
+                            <input type="text" id="buscador-clientes-web" oninput="filtrarClientesWeb()" placeholder="🔍 Buscar por nombre, teléfono, email, C.C..." class="p-2.5 pl-9 border rounded-xl w-full text-xs bg-slate-50 font-medium">
+                            <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-slate-400 text-xs"></i>
+                        </div>
+                        <button onclick="cargarClientesWeb()" class="px-3 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl font-bold text-xs transition flex items-center gap-1.5">
+                            <i class="fa-solid fa-rotate-right"></i> Actualizar Lista
+                        </button>
+                    </div>
+
+                    <div class="overflow-x-auto border rounded-xl">
+                        <table class="w-full text-left border-collapse sheets-table">
+                            <thead>
+                                <tr>
+                                    <th>Cliente / Email</th>
+                                    <th>Contacto & Ubicación</th>
+                                    <th class="text-center">Pedidos</th>
+                                    <th>Compras / Deuda</th>
+                                    <th>Estado Crédito</th>
+                                    <th class="text-right">Acción</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabla-clientes-web" class="text-xs"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- SUB-PESTAÑA 2: CATÁLOGO DE PRODUCTOS ONLINE -->
+                <div id="subtab-web-productos" class="hidden pt-4 space-y-4">
+                    
+                    <!-- BARRA / BLOQUE DE CONFIGURACIÓN DE TEMPORADA ACTUAL -->
+                    <div class="bg-gradient-to-r from-pink-50 via-purple-50 to-indigo-50 p-4 rounded-2xl border border-pink-200 shadow-sm space-y-2">
+                        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                            <div class="flex items-center gap-2">
+                                <span class="text-xl">🎉</span>
+                                <div>
+                                    <h3 class="font-black text-xs sm:text-sm text-slate-800 uppercase tracking-wide">Temporada Actual Destacada</h3>
+                                    <p class="text-[11px] text-slate-500">Define la temporada activa (ej. NAVIDAD). Los productos con esta temporada aparecerán de forma rotativa (5 aleatorios) en la sección de Productos Destacados de la página principal.</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2 w-full sm:w-auto shrink-0">
+                                <input type="text" id="input-temporada-actual" placeholder="Ej: NAVIDAD, MADRES, AMOR Y AMISTAD..." class="p-2.5 border rounded-xl text-xs w-full sm:w-64 bg-white font-bold text-pink-700 uppercase tracking-wide focus:outline-none focus:ring-2 focus:ring-pink-500">
+                                <button type="button" id="btn-guardar-temporada" onclick="guardarConfiguracionTemporada()" class="bg-pink-600 hover:bg-pink-700 text-white px-4 py-2.5 rounded-xl font-extrabold text-xs shadow-md transition-all whitespace-nowrap flex items-center gap-1.5">
+                                    <i class="fa-solid fa-floppy-disk"></i> Guardar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                        <div class="relative w-full sm:w-80">
+                            <input type="text" id="buscador-productos-web" oninput="filtrarProductosWeb()" placeholder="🔍 Buscar en la tienda pública..." class="p-2.5 pl-9 border rounded-xl w-full text-xs bg-slate-50 font-medium">
+                            <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-slate-400 text-xs"></i>
+                        </div>
+                        <button onclick="abrirModalProductoWeb()" class="bg-pink-600 hover:bg-pink-700 text-white px-4 py-2.5 rounded-xl font-extrabold text-xs shadow-md transition-all flex items-center gap-2">
+                            <i class="fa-solid fa-plus"></i>
+                            <span>Nuevo Producto Web</span>
+                        </button>
+                    </div>
+
+                    <div class="overflow-x-auto border rounded-xl">
+                        <table class="w-full text-left border-collapse sheets-table">
+                            <thead>
+                                <tr>
+                                    <th>Producto & Categoría</th>
+                                    <th>Precios (Detal / Mayor)</th>
+                                    <th>Modalidades</th>
+                                    <th class="text-center">Personalizable</th>
+                                    <th class="text-center">Visibilidad</th>
+                                    <th class="text-right">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabla-productos-web" class="text-xs"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
