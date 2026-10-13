@@ -5,7 +5,10 @@
 
 window.catalogState = {
   currentSelectedWorld: 'all',
-  filteredProducts: []
+  filteredProducts: [],
+  visibleCount: 0,
+  pageSize: 24,
+  observer: null
 };
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -172,14 +175,35 @@ window.filtrarYOrdenarCatalogo = function() {
   const query = (inputBusqueda?.value || '').toLowerCase().trim();
 
   if (query) {
-    resultado = resultado.filter(p =>
-      (p.nombre || '').toLowerCase().includes(query) ||
-      (p.mundo || '').toLowerCase().includes(query) ||
-      (p.categoria || '').toLowerCase().includes(query) ||
-      (p.subcategoria || '').toLowerCase().includes(query) ||
-      (p.temporada || '').toLowerCase().includes(query) ||
-      (p.referencia || '').toLowerCase().includes(query)
-    );
+    const normalize = value => String(value || '').normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase().trim();
+    const q = normalize(query);
+    const distance = (a, b) => {
+      if (Math.abs(a.length - b.length) > 2) return 99;
+      let prev = Array.from({length: b.length + 1}, (_, i) => i);
+      for (let i = 1; i <= a.length; i++) {
+        const cur = [i];
+        for (let j = 1; j <= b.length; j++) cur[j] = Math.min(cur[j-1] + 1, prev[j] + 1, prev[j-1] + (a[i-1] === b[j-1] ? 0 : 1));
+        prev = cur;
+      }
+      return prev[b.length];
+    };
+    const fields = p => [p.nombre,p.mundo,p.categoria,p.subcategoria,p.temporada,p.referencia,p.descripcion]
+      .map(normalize).filter(Boolean);
+    const scored = resultado.map(p => {
+      const words = fields(p);
+      let score = words.reduce((best, field) => {
+        if (field.includes(q)) return Math.min(best, field === q ? 0 : 1);
+        const tokens = field.split(/[^a-z0-9]+/).filter(Boolean);
+        return Math.min(best, ...tokens.map(token => {
+          if (token.startsWith(q) || q.startsWith(token)) return 1;
+          if (Math.min(token.length, q.length) >= 4 && distance(token, q) <= (q.length >= 7 ? 2 : 1)) return 2;
+          return 99;
+        }));
+      }, 99);
+      return {p, score};
+    }).filter(item => item.score < 99)
+      .sort((a,b) => a.score-b.score).map(item => item.p);
+    resultado = scored;
   }
 
   // 2. Filtro por mundo
@@ -212,7 +236,57 @@ window.filtrarYOrdenarCatalogo = function() {
     }
   }
 
-  // Renderizar en los contenedores correspondientes
-  StoreProducts.renderGrid('productGrid', resultado);
-  StoreProducts.renderGrid('contenedor-productos-catalogo', resultado);
+  // Renderizado progresivo: solo 24 productos inicialmente y más al acercarse al final.
+  window.catalogState.visibleCount = 0;
+  const grid = document.getElementById('productGrid') || document.getElementById('contenedor-productos-catalogo');
+  if (!grid) return;
+  if (window.catalogState.observer) window.catalogState.observer.disconnect();
+  grid.innerHTML = '';
+  const sentinel = document.getElementById('catalogInfiniteSentinel');
+  if (sentinel) sentinel.remove();
+  window.cargarSiguienteLoteCatalogo(true);
+};
+
+window.cargarSiguienteLoteCatalogo = function(reset = false) {
+  const state = window.catalogState;
+  const grid = document.getElementById('productGrid') || document.getElementById('contenedor-productos-catalogo');
+  if (!grid) return;
+  if (reset) { state.visibleCount = 0; grid.innerHTML = ''; }
+  const start = state.visibleCount;
+  const end = Math.min(start + state.pageSize, state.filteredProducts.length);
+  const batch = state.filteredProducts.slice(start, end);
+  if (batch.length) {
+    const scratch = document.createElement('div');
+    scratch.className = grid.className;
+    StoreProducts.renderGridForContainer?.(scratch, batch);
+    // renderGrid espera un ID; usar un contenedor temporal registrado en DOM para mantener compatibilidad.
+    const tempId = 'catalog-batch-' + Date.now();
+    const temp = document.createElement('div');
+    temp.id = tempId;
+    temp.className = grid.className;
+    grid.appendChild(temp);
+    StoreProducts.renderGrid(tempId, batch);
+    while (temp.firstElementChild) grid.appendChild(temp.firstElementChild);
+    temp.remove();
+    state.visibleCount = end;
+  }
+  let sentinel = document.getElementById('catalogInfiniteSentinel');
+  if (!sentinel) {
+    sentinel = document.createElement('div');
+    sentinel.id = 'catalogInfiniteSentinel';
+    sentinel.className = 'col-span-full py-5 text-center text-xs text-gray-400';
+    grid.after(sentinel);
+  }
+  if (state.visibleCount < state.filteredProducts.length) {
+    sentinel.textContent = 'Desliza para cargar más productos…';
+    if (state.observer) state.observer.disconnect();
+    state.observer = new IntersectionObserver(entries => {
+      if (entries.some(entry => entry.isIntersecting)) window.cargarSiguienteLoteCatalogo(false);
+    }, {rootMargin: '500px'});
+    state.observer.observe(sentinel);
+  } else {
+    sentinel.textContent = state.filteredProducts.length ? 'Has llegado al final del catálogo.' : 'No se encontraron productos similares.';
+    if (!state.filteredProducts.length) StoreProducts.renderGrid('productGrid', []);
+    if (state.observer) state.observer.disconnect();
+  }
 };
