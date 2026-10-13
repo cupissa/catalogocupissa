@@ -66,7 +66,8 @@ window.showProductDetail = function(product) {
   const parseNum = (val) => typeof window.parseMonto === 'function' ? window.parseMonto(val) : (parseFloat(val) || 0);
   const fmtMoney = (val) => typeof window.formatMoneda === 'function' ? window.formatMoneda(val) : new Intl.NumberFormat('es-CO').format(val || 0);
 
-  const foto = product.image_url || product.imagen || 'assets/images/logo.png';
+  const foto = product.imagen_recortada || product.image_url || product.imagen || 'assets/images/logo.png';
+  const fotoCompleta = product.imagen_original || product.image_url || product.imagen || foto;
   const esPersonalizable = Boolean(product.es_personalizable);
   const permiteCredito = Boolean(product.permitir_credito) && permiteVenta;
   const esMayorista = Boolean(product.es_mayorista);
@@ -84,6 +85,7 @@ window.showProductDetail = function(product) {
         <!-- Imagen -->
         <div class="relative bg-gray-50 dark:bg-gray-700/50 rounded-2xl p-3 border border-gray-100 dark:border-gray-700 aspect-square flex items-center justify-center overflow-hidden group">
           <img src="${foto}" alt="${product.nombre}" class="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300">
+          <button type="button" id="btn-ver-imagen-completa" class="absolute bottom-2 left-2 rounded-lg bg-black/75 px-3 py-2 text-[10px] font-bold text-white">Ver imagen completa</button>
           <div class="absolute top-2 left-2 flex flex-col gap-1">
             <span class="px-2.5 py-1 rounded-full text-[10px] font-black uppercase bg-brand-600 text-white shadow">${product.mundo || 'General'}</span>
             ${product.temporada ? `<span class="px-2.5 py-1 rounded-full text-[10px] font-black uppercase bg-pink-600 text-white shadow">${product.temporada}</span>` : ''}
@@ -237,6 +239,14 @@ window.showProductDetail = function(product) {
     </div>
   `;
 
+  const btnFullImage = modal.querySelector('#btn-ver-imagen-completa');
+  btnFullImage?.addEventListener('click', () => {
+    const overlay = document.createElement('div');
+    overlay.className = 'fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-4';
+    overlay.innerHTML = `<button type="button" aria-label="Cerrar imagen" class="absolute right-5 top-5 rounded-full bg-white px-4 py-2 font-bold text-black">Cerrar ✕</button><img alt="Imagen completa del producto" src="${String(fotoCompleta).replace(/"/g, '&quot;')}" class="max-h-[92vh] max-w-[96vw] object-contain">`;
+    overlay.addEventListener('click', ev => { if (ev.target === overlay || ev.target.tagName === 'BUTTON') overlay.remove(); });
+    document.body.appendChild(overlay);
+  });
   modal.classList.remove('hidden');
   window.updateProductDetailCalculations();
 };
@@ -348,7 +358,7 @@ window.updateProductDetailCalculations = function() {
   const totalPedido = (unitTotal * qty) + (mode === 'alquiler' ? (depositUnitPrice * qty) : 0);
 
   // Calcular Porcentaje de Anticipo
-  const pctAnticipo = isCredit ? 50 : (parseNum(p.porcentaje_anticipo) > 0 ? parseNum(p.porcentaje_anticipo) : 50);
+  const pctAnticipo = isCredit ? 50 : (parseNum(p.porcentaje_anticipo) > 0 ? parseNum(p.porcentaje_anticipo) : 30);
   const totalAnticipo = (totalPedido * (pctAnticipo / 100));
 
   // Actualizar Etiquetas en el DOM
@@ -430,7 +440,7 @@ window.confirmAddToCartFromDetail = function() {
   let unitPrice = baseUnitPrice + sizeInc + colorInc;
   if (isCredit) unitPrice = unitPrice * 1.20;
 
-  const pctAnticipo = isCredit ? 50 : (parseNum(p.porcentaje_anticipo) > 0 ? parseNum(p.porcentaje_anticipo) : 50);
+  const pctAnticipo = isCredit ? 50 : (parseNum(p.porcentaje_anticipo) > 0 ? parseNum(p.porcentaje_anticipo) : 30);
   const depositVal = mode === 'alquiler' ? parseNum(p.valor_deposito || 0) : 0;
 
   const cartItem = {
@@ -448,7 +458,11 @@ window.confirmAddToCartFromDetail = function() {
     cuotasCredito: isCredit ? window.selectedProductOptions.creditMonths : null,
     frecuenciaCredito: isCredit ? (document.getElementById('modal-select-frecuencia')?.value || 'mensual') : null,
     depositoGarantia: depositVal,
-    porcentajeAnticipo: pctAnticipo
+    porcentajeAnticipo: pctAnticipo,
+    porcentaje_anticipo: Number(p.porcentaje_anticipo ?? 30),
+    dias_fabricacion: Number(p.dias_fabricacion || 0),
+    imagen_original: p.imagen_original || p.image_url || p.imagen || '',
+    imagen_recortada: p.imagen_recortada || p.image_url || p.imagen || ''
   };
 
   if (typeof window.addToCart === 'function') {
