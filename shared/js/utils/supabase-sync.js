@@ -82,6 +82,23 @@ window.SupabaseSync = {
     }
   },
 
+  /** Pedidos realizados desde la tienda web; separados de los pedidos internos. */
+  async getPedidosWeb() {
+    const client = window.supabaseClient;
+    if (!client) throw new Error('No se ha podido conectar. Intenta nuevamente.');
+    const { data, error } = await client.from('pedidos_web').select('*').order('created_at', { ascending: false });
+    if (error) throw error;
+    return data || [];
+  },
+
+  async insertPedidoWeb(payload) {
+    const client = window.supabaseClient;
+    if (!client) throw new Error('No se ha podido conectar. Intenta nuevamente.');
+    const { data, error } = await client.from('pedidos_web').insert(payload).select().single();
+    if (error) throw error;
+    return data;
+  },
+
   /**
    * Obtiene los movimientos de caja (Tabla 'flujo_caja')
    */
@@ -91,7 +108,7 @@ window.SupabaseSync = {
       const { data, error } = await window.supabaseClient
         .from('flujo_caja')
         .select('*')
-        .order('fecha', { ascending: false });
+        .order('fecha', { ascending: false, nullsFirst: false });
 
       if (error) throw error;
       return data || [];
@@ -109,12 +126,10 @@ window.SupabaseSync = {
       if (!window.supabaseClient) throw new Error('Cliente Supabase no disponible');
       
       const valorNum = window.parseMonto(movimiento.valor !== undefined ? movimiento.valor : movimiento.monto || 0);
-      const metodo = (movimiento.metodo_pago || 'Efectivo').toLowerCase();
-      
-      // Cálculo automático del 4x1000 si es transacción bancaria o si viene especificado
-      const impuestoCalculado = movimiento.impuesto_4x1000 !== undefined 
-        ? window.parseMonto(movimiento.impuesto_4x1000) 
-        : (metodo !== 'efectivo' ? Number((valorNum * 0.004).toFixed(2)) : 0);
+      const metodo = String(movimiento.metodo_pago || 'Efectivo').trim().toLowerCase();
+      // Regla solicitada: únicamente EGRESOS pagados por Nequi causan 4x1000 automático.
+      const aplica4x1000 = String(movimiento.tipo || 'INGRESO').toUpperCase() === 'EGRESO' && metodo === 'nequi';
+      const impuestoCalculado = aplica4x1000 ? Number((valorNum * 0.004).toFixed(2)) : 0;
 
       const payload = {
         fecha: movimiento.fecha || new Date().toISOString().split('T')[0],
