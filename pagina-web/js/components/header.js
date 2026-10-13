@@ -50,6 +50,7 @@ export async function syncHeaderAuthState() {
     authSlot.innerHTML = `
       <div class="user-profile-menu">
         <span class="user-greeting">Hola, <strong>${displayName}</strong></span>
+        <a href="profile.html" class="btn-login">Mi perfil</a>
         <button id="logout-btn" class="btn-logout">Cerrar Sesión</button>
       </div>
     `;
