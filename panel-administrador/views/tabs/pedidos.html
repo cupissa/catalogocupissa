@@ -1,0 +1,159 @@
+<section id="tab-pedidos" class="hidden space-y-4 sm:space-y-6 animate-fade-in">
+            <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-4 border-b pb-3">
+                    <div>
+                        <h2 class="text-base sm:text-lg font-bold text-indigo-700">➕ Crear Pedido Real / CRM</h2>
+                        <p class="text-xs text-slate-400">Selecciona un cliente existente para evitar duplicidad</p>
+                    </div>
+                    <div class="w-full sm:w-72">
+                        <select id="select-cliente-existente" onchange="autocompletarClienteExistente()" class="p-2 border rounded-xl w-full text-xs bg-indigo-50 font-semibold text-indigo-800 border-indigo-200">
+                            <option value="">👤 Seleccionar cliente registrado...</option>
+                        </select>
+                    </div>
+                </div>
+
+                <form id="form-pedido-admin" class="space-y-4">
+                    <input type="hidden" id="cli-id-seleccionado">
+                    <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                        <div>
+                            <label class="text-[11px] font-semibold text-slate-500">Nombre del Cliente *</label>
+                            <input type="text" id="cli-nombre" placeholder="Nombre completo" required class="p-2.5 border rounded-xl w-full text-xs mt-1 bg-slate-50">
+                        </div>
+                        <div>
+                            <label class="text-[11px] font-semibold text-slate-500">Teléfono / WhatsApp *</label>
+                            <input type="text" id="cli-telefono" placeholder="3101234567" required oninput="buscarClientePorTelefono()" class="p-2.5 border rounded-xl w-full text-xs mt-1 bg-slate-50">
+                        </div>
+                        <div>
+                            <label class="text-[11px] font-semibold text-slate-500">Dirección</label>
+                            <input type="text" id="cli-direccion" placeholder="Calle 50 # 20-10" class="p-2.5 border rounded-xl w-full text-xs mt-1 bg-slate-50">
+                        </div>
+                        <div>
+                            <label class="text-[11px] font-semibold text-slate-500">Correo / C.C. (Opcional)</label>
+                            <input type="text" id="cli-email-cc" placeholder="correo@mail.com / C.C." class="p-2.5 border rounded-xl w-full text-xs mt-1 bg-slate-50">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                        <div>
+                            <label class="text-[11px] font-semibold text-slate-500">Tipo Operación</label>
+                            <select id="ped-tipo" class="p-2.5 border rounded-xl w-full text-xs mt-1 font-semibold text-indigo-600 bg-indigo-50">
+                                <option value="Venta Contado">Venta Contado</option>
+                                <option value="Crédito / Fiado">Crédito / Fiado</option>
+                                <option value="Personalizado (Sin Stock)">Personalizado (Bajo Pedido)</option>
+                                <option value="Alquiler">Alquiler de Vestuario</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-[11px] font-semibold text-slate-500">Fecha Agendamiento</label>
+                            <input type="date" id="ped-fecha-agendamiento" class="p-2.5 border rounded-xl w-full text-xs mt-1 bg-slate-50" required>
+                        </div>
+                        <div>
+                            <label class="text-[11px] font-semibold text-slate-500">Fecha Entrega</label>
+                            <input type="date" id="ped-fecha-entrega" class="p-2.5 border rounded-xl w-full text-xs mt-1 bg-slate-50" required>
+                        </div>
+                    </div>
+
+                    <div class="border p-3 sm:p-4 rounded-xl bg-slate-50 space-y-3">
+                        <h3 class="font-bold text-xs text-slate-600 uppercase">Productos (Catálogo Supabase o Personalizados)</h3>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                            <div class="sm:col-span-2 relative">
+                                <input type="text" id="buscador-prod-pedido" placeholder="🔍 Buscar producto en catálogo..." oninput="filtrarInvPedido()" class="p-2.5 border rounded-xl w-full bg-white text-xs">
+                                <div id="sugerencias-inv-box" class="absolute z-30 w-full bg-white border rounded-xl shadow-xl mt-1 max-h-48 overflow-y-auto hidden"></div>
+                            </div>
+                            <select id="select-tipo-precio" onchange="actualizarPrecioItem()" class="p-2.5 border rounded-xl bg-white text-xs font-semibold">
+                                <option value="detal">Precio Detal</option>
+                                <option value="mayorista">Precio Mayorista</option>
+                            </select>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-4 gap-2 items-center">
+                            <input type="text" id="item-nombre" placeholder="Nombre del producto / ítem" class="p-2.5 border rounded-xl bg-white text-xs sm:col-span-2">
+                            <input type="text" id="item-precio" placeholder="Precio Unitario ($)" class="p-2.5 border rounded-xl bg-amber-50 font-bold text-indigo-700 text-xs">
+                            <div class="flex items-center gap-2">
+                                <input type="number" id="item-cantidad" value="1" min="1" step="any" class="p-2.5 border rounded-xl w-16 text-xs text-center bg-white">
+                                <button type="button" onclick="agregarItemPedidoAdmin()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2.5 rounded-xl text-xs font-bold w-full shadow transition">+ Agregar</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h4 class="font-bold text-xs mb-2 text-slate-700">Ítems en este pedido:</h4>
+                        <div class="border rounded-xl overflow-hidden">
+                            <table class="w-full text-left border-collapse sheets-table">
+                                <thead>
+                                    <tr><th>Ítem</th><th>Cant</th><th>Precio U.</th><th>Subtotal</th><th>Acción</th></tr>
+                                </thead>
+                                <tbody id="tabla-carrito-admin">
+                                    <tr><td colspan="5" class="p-4 text-center text-slate-400 text-xs">No hay ítems agregados.</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 border-t pt-3">
+                        <div>
+                            <label class="text-[11px] font-semibold text-slate-500">Costo Producción ($)</label>
+                            <input type="text" id="ped-costo-manual" value="0" class="p-2.5 border rounded-xl w-full text-xs mt-1 bg-slate-50">
+                        </div>
+                        <div>
+                            <label class="text-[11px] font-semibold text-slate-500">Domicilio / Envío ($)</label>
+                            <input type="text" id="ped-domicilio" value="0" oninput="calcularTotalAdmin()" class="p-2.5 border rounded-xl w-full text-xs mt-1 bg-slate-50">
+                        </div>
+                        <div>
+                            <label class="text-[11px] font-semibold text-slate-500">Anticipo / Abono ($)</label>
+                            <input type="text" id="ped-anticipo" value="0" oninput="calcularTotalAdmin()" class="p-2.5 border rounded-xl w-full text-xs mt-1 font-bold text-emerald-600 bg-slate-50">
+                        </div>
+                        <div>
+                            <label class="text-[11px] font-semibold text-slate-500">Método de Pago</label>
+                            <select id="ped-metodo" class="p-2.5 border rounded-xl w-full text-xs mt-1 bg-slate-50">
+                                <option value="Efectivo">Efectivo</option>
+                                <option value="Nequi">Nequi</option>
+                                <option value="Bre-B">Bre-B</option>
+                                <option value="Bancolombia">Bancolombia</option>
+                                <option value="Addi">Addi</option>
+                                <option value="Wompi">Wompi</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-[11px] font-semibold text-slate-500">Descontar Stock Auto</label>
+                            <select id="ped-descontar-stock" class="p-2.5 border rounded-xl w-full text-xs mt-1 font-bold text-slate-700 bg-slate-50">
+                                <option value="si">Sí (Automático)</option>
+                                <option value="no">No (Manual)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col sm:flex-row justify-between items-center bg-indigo-50 p-4 rounded-xl gap-3">
+                        <div>
+                            <p class="text-xs text-indigo-700 font-semibold">TOTAL PEDIDO: <span id="lbl-total-admin" class="text-lg font-black">$0</span></p>
+                            <p class="text-xs text-amber-700 font-semibold">SALDO PENDIENTE: <span id="lbl-saldo-admin" class="text-sm font-bold">$0</span></p>
+                        </div>
+                        <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-xl font-bold shadow transition w-full sm:w-auto text-xs">💾 Guardar Pedido Definitivo</button>
+                    </div>
+                </form>
+            </div>
+            
+            <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                    <h2 class="text-base sm:text-lg font-bold text-slate-800">Listado General & Historial CRM</h2>
+                    <div class="flex flex-wrap gap-2 w-full sm:w-auto">
+                        <select id="filtro-estado-pedidos" onchange="cargarPedidosAdmin()" class="p-2.5 border rounded-xl text-xs bg-slate-50 font-semibold">
+                            <option value="todos">Todos los Estados</option>
+                            <option value="Pendiente">Pendientes</option>
+                            <option value="Fabricando">Fabricando</option>
+                            <option value="Entregado">Entregados</option>
+                            <option value="Finalizado">Finalizados</option>
+                            <option value="Cancelado">Cancelados</option>
+                        </select>
+                        <input type="text" id="buscador-pedidos-gral" placeholder="🔍 Buscar cliente o ref..." oninput="cargarPedidosAdmin()" class="p-2.5 border rounded-xl text-xs w-full sm:w-64 bg-slate-50">
+                    </div>
+                </div>
+                <div class="overflow-x-auto border rounded-xl">
+                    <table class="w-full text-left border-collapse sheets-table">
+                        <thead>
+                            <tr><th>Ref / Fechas</th><th>Cliente & Contacto</th><th>Operación / Estado</th><th>Financiero</th><th>Acciones 360°</th></tr>
+                        </thead>
+                        <tbody id="tabla-pedidos-gral" class="text-xs"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
