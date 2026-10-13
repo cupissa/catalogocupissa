@@ -1,0 +1,18 @@
+/* Insignias de estado de crédito */
+.badge-credit-approved {
+  background-color: #d1fae5;
+  color: #065f46;
+  font-weight: 800;
+}
+
+.badge-credit-pending {
+  background-color: #fef3c7;
+  color: #92400e;
+  font-weight: 800;
+}
+
+.badge-credit-rejected {
+  background-color: #fee2e2;
+  color: #991b1b;
+  font-weight: 800;
+}
