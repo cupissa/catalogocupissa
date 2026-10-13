@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="es" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cupissa - Inicio</title>
+  
+  <link rel="icon" type="image/png" href="assets/images/cupissa-favicon.png">
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#fdf2f8',
+              100: '#fce7f3',
+              500: '#ec4899',
+              600: '#db2777',
+              700: '#be185d',
+              950: '#500724'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Hojas de Estilos de la Aplicación -->
+  <link rel="stylesheet" href="css/main.css?v=1.4">
+  <link rel="stylesheet" href="css/components.css?v=1.4">
+  <link rel="stylesheet" href="css/theme.css?v=1.4">
+</head>
+<body data-page="home" class="bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100 min-h-screen flex flex-col transition-colors duration-200 overflow-x-hidden">
+
+  <!-- Contenedor global de Toasts / Notificaciones -->
+  <div id="toast-container" class="fixed bottom-5 right-5 z-50 space-y-2 pointer-events-none"></div>
+
+  <!-- HEADER / CABECERA DE LA TIENDA -->
+  <div data-partial="views/home/header.html"></div>
+
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-16">
+
+    <div data-partial="views/home/hero.html"></div>
+    <div data-partial="views/home/worlds.html"></div>
+    <div data-partial="views/home/featured-products.html"></div>
+    <div data-partial="views/home/credit-banner.html"></div>
+    </main>
+
+  <!-- FOOTER UNIFICADO -->
+  <div data-partial="views/home/footer.html"></div>
+
+  <div data-partial="views/modals/favorites.html"></div>
+
+  <div data-partial="views/modals/cart.html"></div>
+
+  <div data-partial="views/modals/authentication.html"></div>
+
+  <div data-partial="views/modals/product-detail.html"></div>
+
+  <script src="js/core/page-bootstrap.js"></script>
+</body>
+</html>
