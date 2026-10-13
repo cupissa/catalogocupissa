@@ -1,0 +1,137 @@
+<section id="tab-contabilidad" class="hidden space-y-4 sm:space-y-6 animate-fade-in">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200">
+                    <h2 class="text-base sm:text-lg font-bold mb-3 text-indigo-700">💸 Flujo de Caja (Nequi / Efectivo)</h2>
+                    <form id="form-caja-manual" class="space-y-3 text-xs">
+                        <div>
+                            <label class="font-semibold text-slate-500">Fecha del Movimiento *</label>
+                            <input type="date" id="caja-fecha" required class="p-2.5 border rounded-xl w-full font-bold mt-1 bg-slate-50">
+                        </div>
+                        <div>
+                            <label class="font-semibold text-slate-500">Tipo Movimiento</label>
+                            <select id="caja-tipo" onchange="toggleRelacionPedido();" class="p-2.5 border rounded-xl w-full font-bold mt-1 bg-slate-50">
+                                <option value="INGRESO">INGRESO Manual / Pago de Pedido</option>
+                                <option value="EGRESO">EGRESO / Gasto o Pago de Deuda</option>
+                            </select>
+                        </div>
+                        
+                        <div id="seccion-relacionar-pedido" class="p-3 bg-indigo-50 border border-indigo-200 rounded-xl space-y-2">
+                            <label class="font-bold text-indigo-900">🔗 Relacionar con Pedido Entregado (Opcional)</label>
+                            <select id="caja-pedido-relacionado" onchange="autocompletarMontoPedido()" class="p-2 border rounded-xl w-full bg-white font-semibold">
+                                <option value="">-- Seleccionar pedido para abonar/pagar --</option>
+                            </select>
+                            <p class="text-[10px] text-indigo-600">Al seleccionar un pedido, se marcará automáticamente como abonado o pagado en el sistema.</p>
+                        </div>
+
+                        <div id="seccion-relacionar-deuda" class="p-3 bg-amber-50 border border-amber-200 rounded-xl space-y-2 hidden">
+                            <label class="font-bold text-amber-900">🔗 Relacionar con Deuda Activa (Opcional)</label>
+                            <select id="caja-deuda-relacionada" onchange="autocompletarMontoDeuda()" class="p-2 border rounded-xl w-full bg-white font-semibold">
+                                <option value="">-- Seleccionar deuda a pagar --</option>
+                            </select>
+                            <p class="text-[10px] text-amber-700">Selecciona la deuda activa registrada para registrar el egreso correctamente.</p>
+                        </div>
+
+                        <div>
+                            <label class="font-semibold text-slate-500">Concepto *</label>
+                            <input type="text" id="caja-concepto" placeholder="Ej: Abono saldo pendiente, Compra insumos" required class="p-2.5 border rounded-xl w-full bg-slate-50 mt-1">
+                        </div>
+                        <div>
+                            <label class="font-semibold text-slate-500">Tercero / Proveedor / Cliente</label>
+                            <input type="text" id="caja-tercero" placeholder="Nombre del tercero" class="p-2.5 border rounded-xl w-full bg-slate-50 mt-1">
+                        </div>
+                        <div>
+                            <label class="font-semibold text-slate-500">Método de Pago</label>
+                            <select id="caja-metodo" class="p-2.5 border rounded-xl w-full mt-1 bg-slate-50">
+                                <option value="Efectivo">Efectivo</option>
+                                <option value="Nequi">Nequi</option>
+                                <option value="Bre-B">Bre-B</option>
+                                <option value="Bancolombia">Bancolombia</option>
+                                <option value="Addi">Addi</option>
+                                <option value="Wompi">Wompi</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="font-semibold text-slate-500">Valor ($) *</label>
+                            <input type="text" id="caja-valor" placeholder="0.00" required class="p-2.5 border rounded-xl w-full font-bold text-indigo-700 bg-slate-50 mt-1">
+                        </div>
+                        <div>
+                            <label class="font-semibold text-slate-500">Descripción opcional</label>
+                            <textarea id="caja-desc" placeholder="Detalles adicionales..." class="p-2.5 border rounded-xl w-full bg-slate-50 mt-1"></textarea>
+                        </div>
+                        <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white p-3 rounded-xl font-bold w-full transition shadow">Registrar Movimiento de Caja</button>
+                    </form>
+                </div>
+
+                <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200">
+                    <h2 class="text-base sm:text-lg font-bold mb-3 text-amber-700">📌 Registrar Deuda / Obligación Activa</h2>
+                    <form id="form-deuda-mensual" class="space-y-3 text-xs">
+                        <input type="text" id="deuda-concepto" placeholder="Concepto Deuda (Ej: Arriendo, Proveedor X)" required class="p-2.5 border rounded-xl w-full bg-slate-50">
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="font-semibold text-slate-500">Monto a Pagar ($)</label>
+                                <input type="text" id="deuda-monto" placeholder="0.00" required class="p-2.5 border rounded-xl w-full font-bold text-amber-700 bg-slate-50 mt-1">
+                            </div>
+                            <div>
+                                <label class="font-semibold text-slate-500">Día de Pago (Cada mes)</label>
+                                <input type="number" id="deuda-dia" min="1" max="31" placeholder="Ej: 15" required class="p-2.5 border rounded-xl w-full font-bold bg-slate-50 mt-1">
+                            </div>
+                        </div>
+                        <button type="submit" class="bg-amber-600 hover:bg-amber-700 text-white p-3 rounded-xl font-bold w-full transition shadow mt-3">Guardar Deuda Activa</button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
+                    <h2 class="text-base sm:text-lg font-bold text-slate-800">📊 Balances de Caja & Descarga</h2>
+                    <div class="space-y-3 text-xs">
+                        <div class="flex justify-between border-b pb-2"><span>Saldo Efectivo Actual:</span> <span id="bal-efectivo" class="font-bold text-emerald-600 text-sm">$0</span></div>
+                        <div class="flex justify-between border-b pb-2"><span>Saldo Nequi / Bancos:</span> <span id="bal-bancos" class="font-bold text-blue-600 text-sm">$0</span></div>
+                        <div class="flex justify-between border-b pb-2"><span>Impuesto 4x1000 Acumulado:</span> <span id="bal-4x1000" class="font-bold text-red-600">$0</span></div>
+                    </div>
+                    <div class="pt-2">
+                        <button onclick="descargarMovimientosMes()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl font-bold w-full text-xs shadow transition">📥 Descargar Movimientos de Caja (CSV)</button>
+                    </div>
+                </div>
+
+                <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200 space-y-3">
+                    <h2 class="text-base sm:text-lg font-bold text-slate-800">📋 Deudas Mensuales Activas</h2>
+                    <div class="overflow-x-auto border rounded-xl max-h-60 overflow-y-auto">
+                        <table class="w-full text-left border-collapse sheets-table text-xs">
+                            <thead>
+                                <tr><th>Concepto</th><th>Monto</th><th>Día Pago</th><th>Acción</th></tr>
+                            </thead>
+                            <tbody id="tabla-deudas-mensuales"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200 space-y-3">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                    <div>
+                        <h2 class="text-base sm:text-lg font-bold text-slate-800">📜 Historial Exclusivo de Flujo de Caja</h2>
+                        <p class="text-[11px] text-slate-400">Puedes editar directamente el valor del 4x1000 en cada celda y presionar 💾 para guardar los ajustes del banco.</p>
+                    </div>
+                    <div class="flex gap-2 w-full sm:w-auto">
+                        <select id="filtro-metodo-caja" onchange="cargarContabilidad()" class="p-2.5 border rounded-xl text-xs bg-slate-50 font-semibold">
+                            <option value="todos">Todos los Métodos</option>
+                            <option value="Nequi">Nequi</option>
+                            <option value="Efectivo">Efectivo</option>
+                            <option value="Bancolombia">Bancolombia</option>
+                            <option value="Addi">Addi</option>
+                            <option value="Wompi">Wompi</option>
+                        </select>
+                        <input type="text" id="buscador-caja" placeholder="🔍 Buscar movimiento..." oninput="cargarContabilidad()" class="p-2.5 border rounded-xl text-xs w-full sm:w-64 bg-slate-50">
+                    </div>
+                </div>
+                <div class="overflow-x-auto border rounded-xl">
+                    <table class="w-full text-left border-collapse sheets-table text-xs">
+                        <thead>
+                            <tr><th>Fecha Mov.</th><th>Tipo</th><th>Concepto / Tercero</th><th>Método</th><th>Valor</th><th>Editar 4x1000</th></tr>
+                        </thead>
+                        <tbody id="tabla-caja-historial"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
