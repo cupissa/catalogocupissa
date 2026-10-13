@@ -1,0 +1,16 @@
+<!-- MODAL SUMAR LOTES -->
+    <div id="modal-sumar-lote" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-2xl max-w-sm w-full p-6 space-y-4 shadow-2xl text-xs">
+            <h3 class="text-base font-black text-indigo-700">📦 Sumar Lote de Stock</h3>
+            <p id="lbl-lote-prod-nombre" class="text-slate-500 font-bold"></p>
+            <input type="hidden" id="lote-prod-id">
+            <div>
+                <label class="font-semibold text-slate-600">Cantidad a Sumar (+)</label>
+                <input type="number" id="lote-cantidad" value="10" min="1" class="p-2.5 border rounded-xl w-full font-bold text-indigo-700 mt-1 bg-slate-50">
+            </div>
+            <div class="flex justify-end gap-2 pt-2">
+                <button type="button" onclick="cerrarModalLote()" class="px-4 py-2 bg-slate-200 rounded-xl font-bold">Cancelar</button>
+                <button type="button" onclick="confirmarSumarLote()" class="px-4 py-2 bg-emerald-600 text-white font-bold rounded-xl shadow">Sumar al Stock</button>
+            </div>
+        </div>
+    </div>
