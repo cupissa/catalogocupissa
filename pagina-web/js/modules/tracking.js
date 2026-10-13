@@ -8,13 +8,19 @@ window.searchOrder = async function(e) {
   notFound.classList.add('hidden');
 
   try {
-    const { data: rows, error } = await supabaseClient.rpc('rastrea_pedido_web', { codigo: code });
-    const data = Array.isArray(rows) ? rows[0] : rows;
-
-    if (error || !data) {
-      notFound.classList.remove('hidden');
-      return;
+    let data = null;
+    const rpc = await supabaseClient.rpc('rastrea_pedido_web', { codigo: code });
+    if (!rpc.error) data = Array.isArray(rpc.data) ? rpc.data[0] : rpc.data;
+    // Compatibilidad con instalaciones donde la función RPC aún no existe: buscar código/UUID directamente.
+    if (!data) {
+      const { data: byCode, error: codeError } = await supabaseClient.from('pedidos_web').select('*').eq('order_code', code).maybeSingle();
+      if (!codeError && byCode) data = byCode;
+      if (!data && /^[0-9a-f-]{36}$/i.test(code)) {
+        const { data: byId, error: idError } = await supabaseClient.from('pedidos_web').select('*').eq('id', code).maybeSingle();
+        if (!idError && byId) data = byId;
+      }
     }
+    if (!data) { notFound.classList.remove('hidden'); return; }
 
     document.getElementById('resOrderCode').textContent = data.order_code || data.id;
     document.getElementById('resClientName').textContent = data.customer_name || data.client_name || 'Cliente Cupissa';
@@ -85,3 +91,9 @@ function updateStepper(status) {
     }
   });
 }
+// Si el cliente llega desde su perfil, completar y consultar automáticamente el código del pedido.
+document.addEventListener('DOMContentLoaded', () => {
+  const code = new URLSearchParams(window.location.search).get('order');
+  const input = document.getElementById('orderCodeInput');
+  if (code && input) { input.value = code; window.searchOrder({ preventDefault() {} }); }
+});
