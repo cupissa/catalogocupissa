@@ -264,14 +264,12 @@ window.updateUserAuthUI = async function() {
       };
       localStorage.setItem("cupissa_client_user", JSON.stringify(localClient));
 
-      // 👈 MODIFICADO: Al hacer clic ahora se ejecuta toggleClientProfileModal(true) en lugar de confirmLogout
+      // El perfil se abre en una página independiente, no en una ventana flotante.
       authContainer.innerHTML = `
-        <div class="relative group inline-block">
-          <button type="button" onclick="toggleClientProfileModal(true)" class="flex items-center space-x-1.5 text-xs font-bold text-brand-700 dark:text-brand-300 bg-brand-50 dark:bg-brand-950/50 hover:bg-brand-100 py-2 px-3 rounded-xl border border-brand-200 dark:border-brand-800 transition-all shadow-sm" title="Ver mi cuenta y perfil">
-            <i class="fa-solid fa-user-gear"></i>
-            <span>Hola, <strong>${displayName}</strong></span>
-          </button>
-        </div>
+        <a href="profile.html" class="flex items-center space-x-1.5 text-xs font-bold text-brand-700 dark:text-brand-300 bg-brand-50 dark:bg-brand-950/50 hover:bg-brand-100 py-2 px-3 rounded-xl border border-brand-200 dark:border-brand-800 transition-all shadow-sm" title="Ver mi cuenta y perfil">
+          <i class="fa-solid fa-user-gear"></i>
+          <span>Mi perfil</span>
+        </a>
       `;
     } else {
       authContainer.innerHTML = `
