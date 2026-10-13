@@ -1,0 +1,29 @@
+/* ================= ZONA DRAG & DROP Y FOTOS WEB ================= */
+.drop-zone-area {
+  border: 2px dashed #cbd5e1;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  text-align: center;
+  background-color: #f8fafc;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+}
+
+.drop-zone-area:hover,
+.drop-zone-area.dragover {
+  border-color: #ec4899;
+  background-color: #fdf2f8;
+}
+
+/* Recortador de imágenes Cropper.js */
+.cropper-container-wrapper {
+  max-height: 60vh;
+  overflow: hidden;
+  background-color: #0f172a;
+  border-radius: 1rem;
+}
+
+.cropper-container-wrapper img {
+  max-width: 100%;
+  display: block;
+}
