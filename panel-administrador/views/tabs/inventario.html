@@ -2,7 +2,7 @@
             <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200">
                 <div class="flex justify-between items-center mb-4">
                     <h2 class="text-base sm:text-lg font-bold text-indigo-700">📦 Registrar / Editar Producto en Supabase</h2>
-                    <span class="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-1 rounded-full">Sincronizado Supabase</span>
+                    <span class="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-1 rounded-full">Sincronizado</span>
                 </div>
                 <form id="form-producto-admin" class="grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs">
                     <input type="hidden" id="prod-id-edit">
@@ -43,7 +43,7 @@
 
                     <!-- SUBIDA DE IMAGEN COMPATIBLE -->
                     <div class="sm:col-span-2 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
-                        <label class="font-semibold text-slate-500 block mb-1">Imagen del Producto (Foto Supabase)</label>
+                        <label class="font-semibold text-slate-500 block mb-1">Imagen del Producto (Foto del producto)</label>
                         <div class="flex items-center gap-2">
                             <input type="file" id="prod-foto-file" accept="image/*" class="w-full text-[11px] text-slate-500 bg-white rounded-xl border p-1.5 file:mr-2 file:py-1 file:px-2 file:rounded-lg file:border-0 file:text-[10px] file:font-bold file:bg-indigo-50 file:text-indigo-700">
                             <img id="prod-foto-preview" src="assets/images/logo.png" class="w-10 h-10 object-contain rounded-lg border bg-white shrink-0">
@@ -60,7 +60,7 @@
             <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
                 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                     <div>
-                        <h2 class="text-base sm:text-lg font-bold text-slate-800">Catálogo Supabase (<span id="count-productos-inv">0</span>)</h2>
+                        <h2 class="text-base sm:text-lg font-bold text-slate-800">Catálogo de productos (<span id="count-productos-inv">0</span>)</h2>
                         <p class="text-xs text-slate-400">Suma stock directo (+ / -) y edita en tiempo real</p>
                     </div>
                     <div class="flex flex-wrap gap-2 w-full sm:w-auto">
