@@ -8,10 +8,12 @@
           Haz realidad tu evento o adquiere tus productos en cuotas flexibles sin complicaciones. Aprobación ágil para tus proyectos.
         </p>
         <div class="pt-2">
-          <a href="https://wa.me/573147671380?text=Hola,%20deseo%20solicitar%20informaci%C3%B3n%20sobre%20el%20Cr%C3%A9dito%20Cupissa" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 bg-white text-brand-700 hover:bg-gray-100 font-black px-6 py-3 rounded-2xl text-xs transition-all shadow-md hover:scale-105">
+          <button type="button" onclick="window.openCreditRequestModal()" class="inline-flex items-center gap-2 bg-white text-brand-700 hover:bg-gray-100 font-black px-6 py-3 rounded-2xl text-xs transition-all shadow-md hover:scale-105">
             <i class="fa-solid fa-credit-card"></i>
             Solicitar Crédito
-          </a>
+          </button>
         </div>
       </div>
     </section>
+
+<div id="creditRequestModal" class="fixed inset-0 z-[80] hidden items-center justify-center bg-black/60 p-4 overflow-y-auto"><div class="w-full max-w-2xl rounded-3xl bg-white p-6 text-gray-900 shadow-2xl"><div class="mb-4 flex items-center justify-between"><h3 class="text-xl font-black">Solicitar cupo Crédito Cupissa</h3><button type="button" onclick="window.closeCreditRequestModal()" aria-label="Cerrar">✕</button></div><form id="creditRequestForm" class="grid grid-cols-1 gap-3 sm:grid-cols-2"><input name="nombre" required placeholder="Nombre" class="rounded-xl border p-3 text-sm"><input name="apellido" required placeholder="Apellido" class="rounded-xl border p-3 text-sm"><input name="cedula" required placeholder="Cédula" class="rounded-xl border p-3 text-sm"><input name="telefono" required type="tel" placeholder="Teléfono" class="rounded-xl border p-3 text-sm"><input name="correo" required type="email" placeholder="Correo electrónico" class="rounded-xl border p-3 text-sm sm:col-span-2"><h4 class="font-bold sm:col-span-2">Referencia 1</h4><input name="ref1_nombre" required placeholder="Nombre y apellido" class="rounded-xl border p-3 text-sm"><input name="ref1_telefono" required type="tel" placeholder="Teléfono" class="rounded-xl border p-3 text-sm"><h4 class="font-bold sm:col-span-2">Referencia 2</h4><input name="ref2_nombre" required placeholder="Nombre y apellido" class="rounded-xl border p-3 text-sm"><input name="ref2_telefono" required type="tel" placeholder="Teléfono" class="rounded-xl border p-3 text-sm"><button class="rounded-xl bg-pink-600 p-3 font-black text-white sm:col-span-2" type="submit">Solicitar cupo</button><p id="creditRequestMessage" class="hidden text-sm font-bold sm:col-span-2" role="status"></p></form></div></div>
