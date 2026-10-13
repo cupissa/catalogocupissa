@@ -1,0 +1,14 @@
+<!-- MODAL FAVORITOS -->
+  <div id="favoritesModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex justify-end hidden">
+    <div class="bg-white dark:bg-gray-800 h-full w-full max-w-md p-6 shadow-2xl border-l border-gray-100 dark:border-gray-700 flex flex-col justify-between relative z-50">
+      <div class="flex justify-between items-center mb-6 pb-4 border-b border-gray-100 dark:border-gray-700">
+        <h3 class="font-black text-base text-gray-900 dark:text-white flex items-center gap-2">
+          <i class="fa-solid fa-heart text-brand-600"></i> Mis Favoritos
+        </h3>
+        <button type="button" onclick="window.toggleFavoritesModal(false)" class="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+      <div id="favoritesItemsList" class="space-y-3 overflow-y-auto flex-1 pr-1"></div>
+    </div>
+  </div>
