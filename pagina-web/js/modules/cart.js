@@ -43,6 +43,7 @@ window.addToCart = function(productOrItem, quantity = 1, mode = 'buy', options =
       personalizacion: options.personalizacion || options.customText || '',
       esCredito: Boolean(options.esCredito),
       cuotasCredito: options.cuotasCredito || null,
+      frecuenciaCredito: options.frecuenciaCredito || null,
       depositoGarantia: parseNum(options.depositoGarantia || p.valor_deposito || 0),
       porcentajeAnticipo: parseNum(p.porcentaje_anticipo) > 0 ? parseNum(p.porcentaje_anticipo) : 50
     };
