@@ -1,0 +1,17 @@
+<!-- MODAL RECORTADOR DE FOTOS CROPPER.JS -->
+    <div id="modal-cropper-web" class="fixed inset-0 bg-black/80 backdrop-blur-md hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-3xl max-w-lg w-full p-6 space-y-4 shadow-2xl text-xs">
+            <h3 class="text-base font-black text-slate-900 flex items-center gap-2">
+                <i class="fa-solid fa-crop-simple text-pink-600"></i> Ajustar y Recortar Foto del Producto
+            </h3>
+            
+            <div class="cropper-container-wrapper">
+                <img id="cropper-web-target" src="">
+            </div>
+
+            <div class="flex justify-end gap-2 pt-2">
+                <button type="button" onclick="document.getElementById('modal-cropper-web').classList.add('hidden')" class="px-4 py-2 bg-slate-200 rounded-xl font-bold">Cancelar</button>
+                <button type="button" onclick="confirmarRecorteFotoWeb()" class="px-5 py-2 bg-pink-600 hover:bg-pink-700 text-white font-extrabold rounded-xl shadow">Recortar & Aplicar</button>
+            </div>
+        </div>
+    </div>
