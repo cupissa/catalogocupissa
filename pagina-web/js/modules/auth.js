@@ -169,8 +169,9 @@ window.handleClientRegister = async function(event) {
       first_name: firstName,
       last_name: lastName,
       email: email,
-      cupo_credito: 0,
-      estado_credito: 'sin_solicitud',
+      cupo_credito: 200000,
+      estado_credito: 'aprobado',
+      credito_utilizado: 0,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     };
@@ -207,11 +208,13 @@ window.loginWithGoogle = async function() {
     const client = window.supabaseClient || window.supabase;
     if (!client) return;
     const { error } = await client.auth.signInWithOAuth({
-      provider: 'google'
+      provider: 'google',
+      options: { redirectTo: window.location.origin + window.location.pathname }
     });
     if (error) throw error;
   } catch (err) {
     console.error('Error con inicio de Google:', err);
+    window.showToast?.('No se pudo iniciar con Google. Verifica que Google esté habilitado en Supabase Auth y que esta URL esté en Redirect URLs.', 'error');
   }
 };
 
@@ -227,8 +230,19 @@ window.updateUserAuthUI = async function() {
     if (!client) return;
 
     const { data: { session } } = await client.auth.getSession();
+    let verifiedUser = null;
+    if (session?.user) {
+      const verification = await client.auth.getUser(); // valida el usuario contra Auth, no solo el token local
+      if (verification.error || !verification.data?.user) {
+        await client.auth.signOut({ scope: 'local' });
+        localStorage.removeItem('cupissa_client_user');
+      } else verifiedUser = verification.data.user;
+    } else {
+      localStorage.removeItem('cupissa_client_user');
+    }
 
-    if (session && session.user) {
+    if (verifiedUser) {
+      session.user = verifiedUser;
       let displayName = session.user.user_metadata?.first_name 
         || session.user.user_metadata?.full_name;
 
