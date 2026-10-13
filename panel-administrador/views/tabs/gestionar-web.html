@@ -102,8 +102,10 @@
                 <!-- MÓDULO PILOTO: CRÉDITOS CUPISSA -->
                 <div id="subtab-web-creditos" class="hidden pt-4 space-y-4">
                     <div class="rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs text-amber-900">
-                        <strong>Modo piloto:</strong> registros de prueba guardados en este navegador. La conexión a tablas definitivas y los cálculos financieros se configurarán en una fase posterior.
+                        Las solicitudes enviadas desde la tienda aparecen aquí. Al aprobar, define el cupo exacto que quedará reflejado en el perfil del cliente.
                     </div>
+                    <h3 class="font-black text-sm">Solicitudes pendientes de aprobación</h3>
+                    <div class="overflow-x-auto border rounded-xl"><table class="w-full text-left sheets-table"><thead><tr><th>Cliente / correo</th><th>Cédula / teléfono</th><th>Referencias</th><th>Solicitud</th><th>Decisión</th></tr></thead><tbody id="tabla-solicitudes-cupo"><tr><td colspan="5" class="p-4 text-center">Cargando solicitudes…</td></tr></tbody></table></div>
                     <form id="form-credito-piloto" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 rounded-xl border bg-slate-50 p-4">
                         <input name="cliente" required placeholder="Nombre completo del cliente" class="p-2.5 border rounded-lg text-xs">
                         <input name="telefono" placeholder="Teléfono" class="p-2.5 border rounded-lg text-xs">
