@@ -178,7 +178,13 @@ window.showProductDetail = function(product) {
                 <option value="6">6 Meses</option>
               </select>
             </div>
-            <div class="bg-white dark:bg-gray-800 p-2.5 rounded-xl border border-amber-200 dark:border-amber-800/40 flex flex-col justify-center text-center">
+            <div>
+              <label class="font-bold text-gray-700 dark:text-gray-300 block mb-1">Frecuencia de pago</label>
+              <select id="modal-select-frecuencia" onchange="window.updateProductDetailCalculations()" class="w-full bg-white dark:bg-gray-800 border rounded-xl p-2 font-bold text-amber-800 dark:text-amber-300">
+                <option value="diario">Diario</option><option value="semanal">Semanal</option><option value="quincenal">Quincenal</option><option value="mensual" selected>Mensual</option>
+              </select>
+            </div>
+            <div class="bg-white dark:bg-gray-800 p-2.5 rounded-xl border border-amber-200 dark:border-amber-800/40 flex flex-col justify-center text-center sm:col-span-2">
               <span class="text-[10px] text-gray-400 font-bold uppercase">Cuota Estimada</span>
               <span id="lbl-modal-cuota-mensual" class="text-sm font-black text-amber-700 dark:text-amber-400">$0 COP / mes</span>
             </div>
@@ -342,7 +348,7 @@ window.updateProductDetailCalculations = function() {
   const totalPedido = (unitTotal * qty) + (mode === 'alquiler' ? (depositUnitPrice * qty) : 0);
 
   // Calcular Porcentaje de Anticipo
-  const pctAnticipo = parseNum(p.porcentaje_anticipo) > 0 ? parseNum(p.porcentaje_anticipo) : 50;
+  const pctAnticipo = isCredit ? 50 : (parseNum(p.porcentaje_anticipo) > 0 ? parseNum(p.porcentaje_anticipo) : 50);
   const totalAnticipo = (totalPedido * (pctAnticipo / 100));
 
   // Actualizar Etiquetas en el DOM
@@ -369,8 +375,11 @@ window.updateProductDetailCalculations = function() {
   // Calcular cuota mensual del simulador de crédito
   if (isCredit && creditMonths > 0) {
     const saldoCredito = totalPedido - totalAnticipo;
-    const cuotaMensual = saldoCredito / creditMonths;
-    if (lblCuota) lblCuota.textContent = `$${fmtMoney(cuotaMensual)} COP / mes`;
+    const frecuencia = document.getElementById('modal-select-frecuencia')?.value || 'mensual';
+    const pagosPorMes = { diario: 30, semanal: 4, quincenal: 2, mensual: 1 }[frecuencia] || 1;
+    const cuota = saldoCredito / (creditMonths * pagosPorMes);
+    const etiquetas = { diario: 'día', semanal: 'semana', quincenal: 'quincena', mensual: 'mes' };
+    if (lblCuota) lblCuota.textContent = `$${fmtMoney(cuota)} COP / ${etiquetas[frecuencia]}`;
   }
 };
 
@@ -421,7 +430,7 @@ window.confirmAddToCartFromDetail = function() {
   let unitPrice = baseUnitPrice + sizeInc + colorInc;
   if (isCredit) unitPrice = unitPrice * 1.20;
 
-  const pctAnticipo = parseNum(p.porcentaje_anticipo) > 0 ? parseNum(p.porcentaje_anticipo) : 50;
+  const pctAnticipo = isCredit ? 50 : (parseNum(p.porcentaje_anticipo) > 0 ? parseNum(p.porcentaje_anticipo) : 50);
   const depositVal = mode === 'alquiler' ? parseNum(p.valor_deposito || 0) : 0;
 
   const cartItem = {
@@ -437,6 +446,7 @@ window.confirmAddToCartFromDetail = function() {
     personalizacion: window.selectedProductOptions.customText.trim(),
     esCredito: isCredit,
     cuotasCredito: isCredit ? window.selectedProductOptions.creditMonths : null,
+    frecuenciaCredito: isCredit ? (document.getElementById('modal-select-frecuencia')?.value || 'mensual') : null,
     depositoGarantia: depositVal,
     porcentajeAnticipo: pctAnticipo
   };
