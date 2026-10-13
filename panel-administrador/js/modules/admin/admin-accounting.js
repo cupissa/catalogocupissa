@@ -16,3 +16,12 @@
  function escapeHtml(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
  window.initFormularioCajaManual=function(){const form=$('form-caja-manual');if(!form||form.dataset.ready)return;form.dataset.ready='1';const date=$('caja-fecha');if(date&&!date.value)date.value=new Date().toISOString().slice(0,10);form.addEventListener('submit',async e=>{e.preventDefault();try{const tipo=String($('caja-tipo')?.value||'INGRESO').toUpperCase(),metodo=$('caja-metodo')?.value||'Efectivo',valor=parse($('caja-valor')?.value);if(valor<=0)throw new Error('Ingresa un valor mayor que cero.');const impuesto=(tipo==='EGRESO'&&metodo.toLowerCase()==='nequi')?Number((valor*.004).toFixed(2)):0;const row={fecha:$('caja-fecha')?.value||new Date().toISOString().slice(0,10),tipo,concepto:$('caja-concepto')?.value||'',tercero:$('caja-tercero')?.value||'',metodo_pago:metodo,valor,monto:valor,descripcion:$('caja-desc')?.value||'',impuesto_4x1000:impuesto};const {error}=await db().from('flujo_caja').insert(row);if(error)throw error;form.reset();if(date)date.value=new Date().toISOString().slice(0,10);window.showToast?.('Movimiento guardado.');await window.cargarContabilidad();}catch(err){console.error(err);window.showToast?.('No se pudo guardar el movimiento: '+err.message,'error');}});};
 })();
+
+// Actualización en vivo de caja: evita recargar la página para ver cambios de otros usuarios.
+(function subscribeCashRealtime(){
+ const c=window.supabaseClient||window.supabase;
+ if(!c||window.__cupissaCashRealtime)return;window.__cupissaCashRealtime=true;
+ c.channel('cupissa-flujo-caja-live').on('postgres_changes',{event:'*',schema:'public',table:'flujo_caja'},()=>{
+   if(!document.getElementById('tab-contabilidad')?.classList.contains('hidden')) window.cargarContabilidad?.();
+ }).subscribe();
+})();
