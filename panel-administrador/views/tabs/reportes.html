@@ -1,0 +1,60 @@
+<section id="tab-reportes" class="hidden space-y-4 sm:space-y-6 animate-fade-in">
+            <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 no-print">
+                <div>
+                    <h2 class="text-base sm:text-lg font-bold">Reportes PDF Gerenciales & Deudas</h2>
+                    <p class="text-xs text-slate-400">Selecciona el reporte oficial requerido para impresión</p>
+                </div>
+                <div class="flex flex-wrap gap-2 w-full sm:w-auto">
+                    <button onclick="cambiarTipoReportePDF('consolidado')" id="btn-rep-cons" class="px-3 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold shadow">📋 Consolidado General</button>
+                    <button onclick="cambiarTipoReportePDF('detallado')" id="btn-rep-det" class="px-3 py-2 bg-slate-200 text-slate-700 rounded-xl text-xs font-bold">📄 Detalle de Pedidos & Stock</button>
+                    <button onclick="cambiarTipoReportePDF('deudas')" id="btn-rep-deudas" class="px-3 py-2 bg-slate-200 text-slate-700 rounded-xl text-xs font-bold">📌 Reporte de Deudas</button>
+                    <button onclick="window.print()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-xs font-bold shadow flex items-center gap-1">🖨 Imprimir PDF</button>
+                </div>
+            </div>
+
+            <div id="printable-area" class="bg-white p-6 sm:p-8 rounded-2xl shadow-sm border space-y-6 text-slate-800">
+                <div class="text-center border-b pb-4">
+                    <h2 class="text-xl sm:text-2xl font-black text-indigo-700">CUPISSA S.A.S. - INFORME OFICIAL GERENCIAL</h2>
+                    <p class="text-xs text-slate-400 mt-1" id="fecha-reporte-pdf"></p>
+                </div>
+                <div id="vista-pdf-consolidado" class="space-y-6">
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs border-b pb-4">
+                        <div><strong>Ventas del Mes:</strong> <br><span id="rep-ventas" class="text-sm font-bold text-indigo-600">$0</span></div>
+                        <div><strong>Cuentas por Cobrar:</strong> <br><span id="rep-cobrar" class="text-sm font-bold text-amber-600">$0</span></div>
+                        <div><strong>Caja Efectivo:</strong> <br><span id="rep-efectivo" class="text-sm font-bold text-emerald-600">$0</span></div>
+                        <div><strong>Caja Bancos:</strong> <br><span id="rep-bancos" class="text-sm font-bold text-blue-600">$0</span></div>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-xs text-slate-700 mb-2 uppercase">Estado de Inventario (Supabase)</h3>
+                        <div class="border rounded-xl overflow-hidden">
+                            <table class="w-full text-left border-collapse sheets-table text-xs">
+                                <thead><tr><th>Ref</th><th>Producto</th><th>Origen</th><th>Stock</th><th>Precio Detal</th></tr></thead>
+                                <tbody id="tabla-reporte-inv"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div id="vista-pdf-detallado" class="space-y-6 hidden">
+                    <div>
+                        <h3 class="font-bold text-xs text-indigo-900 mb-2 uppercase">📦 Detalle de Pedidos, Stock Inicial, Ventas y Estado</h3>
+                        <div class="border rounded-xl overflow-hidden">
+                            <table class="w-full text-left border-collapse sheets-table text-[11px]">
+                                <thead><tr><th>Ref / Fecha</th><th>Cliente & Teléfono</th><th>Modalidad</th><th>Detalle Productos</th><th>Pagos / Deuda</th></tr></thead>
+                                <tbody id="tabla-reporte-pedidos-detallado"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div id="vista-pdf-deudas" class="space-y-6 hidden">
+                    <div>
+                        <h3 class="font-bold text-xs text-amber-900 mb-2 uppercase">📌 Reporte Oficial de Deudas y Obligaciones Mensuales</h3>
+                        <div class="border rounded-xl overflow-hidden">
+                            <table class="w-full text-left border-collapse sheets-table text-[11px]">
+                                <thead><tr><th>Concepto</th><th>Monto</th><th>Día de Pago</th></tr></thead>
+                                <tbody id="tabla-reporte-deudas-pdf"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
