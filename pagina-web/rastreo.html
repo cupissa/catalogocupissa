@@ -34,7 +34,7 @@
   <link rel="stylesheet" href="css/components.css?v=1.4">
   <link rel="stylesheet" href="css/theme.css?v=1.4">
 </head>
-<body class="bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100 antialiased min-h-screen flex flex-col justify-between transition-colors duration-200">
+<body data-page="tracking" class="bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100 antialiased min-h-screen flex flex-col justify-between transition-colors duration-200">
 
   <!-- Contenedor global de Toasts / Notificaciones -->
   <div id="toast-container" class="fixed bottom-5 right-5 z-50 space-y-2 pointer-events-none"></div>
@@ -382,6 +382,7 @@
 
   <!-- Scripts Modulares -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>window.supabaseSDK = window.supabase;</script>
 
   <!-- Configuración y conexión -->
   <script src="../shared/js/config/constants.js?v=2.0"></script>
