@@ -29,8 +29,8 @@
       admin: [
         '../shared/js/config/constants.js', '../shared/js/config/supabase.js', 'js/services/storage.js',
         '../shared/js/services/settings.js', '../shared/js/utils/supabase-sync.js', '../shared/js/utils/ui.js',
-        'js/modules/admin/admin-dashboard.js', 'js/modules/admin/admin-products.js', 'js/modules/admin/admin-orders.js',
-        'js/modules/admin/web/web-products.js', 'js/modules/admin/web/web-clients.js', 'js/pages/admin-page.js'
+        'js/modules/admin/admin-dashboard.js', 'js/modules/admin/admin-accounting.js', 'js/modules/admin/admin-products.js', 'js/modules/admin/admin-orders.js',
+        'js/modules/admin/web/web-products.js', 'js/modules/admin/web/web-clients.js', 'js/modules/admin/web/web-pilot-modules.js', 'js/pages/admin-page.js'
       ]
     };
     const scripts = customer[page] || admin[page];
