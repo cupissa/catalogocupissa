@@ -12,7 +12,7 @@
    const v=Object.fromEntries(new FormData(form).entries());
    const payload={user_id:session.user.id,email:v.correo,first_name:v.nombre,last_name:v.apellido,cedula:v.cedula,telefono:v.telefono,referencia1_nombre:v.ref1_nombre,referencia1_telefono:v.ref1_telefono,referencia2_nombre:v.ref2_nombre,referencia2_telefono:v.ref2_telefono,estado:'pendiente'};
    const {error}=await db.from('solicitudes_credito_cupissa').insert(payload);if(error)throw error;
-   await db.from('profile').update({first_name:v.nombre,last_name:v.apellido,email:v.correo,cedula:v.cedula,telefono:v.telefono,estado_credito:'pendiente',updated_at:new Date().toISOString()}).eq('id',session.user.id);
+   const profUpdate=await db.from('profile').update({first_name:v.nombre,last_name:v.apellido,email:v.correo,cedula:v.cedula,telefono:v.telefono,estado_credito:'pendiente',updated_at:new Date().toISOString()}).eq('id',session.user.id);if(profUpdate.error)console.warn('Perfil alternativo no disponible:',profUpdate.error.message);if(window.SupabaseSync?.syncClienteWeb)await window.SupabaseSync.syncClienteWeb({user_id:session.user.id,nombre:`${v.nombre||''} ${v.apellido||''}`.trim(),telefono:v.telefono,email:v.correo,cedula:v.cedula});
    form.reset();message.textContent='Tu cupo ha sido solicitado. Queda pendiente la aprobación de la cantidad por parte de Créditos Cupissa.';message.classList.remove('hidden','text-red-600');message.classList.add('text-emerald-700');
   }catch(err){message.textContent=err.message||'No fue posible enviar la solicitud.';message.classList.remove('hidden','text-emerald-700');message.classList.add('text-red-600');}
   finally{if(button)button.disabled=false;}
