@@ -18,12 +18,11 @@ window.StoreProducts = {
         const { data, error } = await client
           .from('productos_web')
           .select('*')
-          .or('oculto_web.eq.false,oculto_web.is.null')
-          .order('nombre', { ascending: true });
+          .or('oculto_web.eq.false,oculto_web.is.null');
 
         if (!error && data) {
-          this.cache = data;
-          console.log("Productos web cargados correctamente con todos los campos:", data);
+          this.cache = this.shuffle(data);
+          console.log("Productos web cargados correctamente con todos los campos:", data.length);
           return this.cache;
         } else {
           console.error("Error en la consulta de Supabase para productos_web:", error);
@@ -39,6 +38,15 @@ window.StoreProducts = {
       this.cache = [];
       return [];
     }
+  },
+
+  shuffle(items) {
+    const out = [...(items || [])];
+    for (let i = out.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [out[i], out[j]] = [out[j], out[i]];
+    }
+    return out;
   },
 
   /**
@@ -57,7 +65,7 @@ window.StoreProducts = {
     // Si se ha configurado una temporada, destacar exclusivamente productos de esa temporada.
     // No mezclar productos ajenos cuando la temporada no tiene suficientes coincidencias.
     if (seasonClean && pool.length === 0) return [];
-    const shuffled = [...(seasonClean ? pool : this.cache)].sort(() => Math.random() - 0.5);
+    const shuffled = this.shuffle(seasonClean ? pool : this.cache);
     return shuffled.slice(0, Math.max(0, Number(count) || 0));
   },
 
