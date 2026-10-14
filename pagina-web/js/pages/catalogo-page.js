@@ -11,7 +11,7 @@ window.catalogState = {
   observer: null
 };
 
-document.addEventListener('DOMContentLoaded', async () => {
+const initializeCatalogPage = async () => {
   try {
     // 1. Cargar productos desde Supabase (productos_web vía StoreProducts)
     const productos = await StoreProducts.loadProducts();
@@ -95,7 +95,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       `;
     }
   }
-});
+};
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initializeCatalogPage, { once: true });
+else initializeCatalogPage();
 
 /**
  * Función global para filtrar por mundo desde las pestañas
