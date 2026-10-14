@@ -46,6 +46,13 @@ window.CheckoutStep2 = {
 
       // 4. Preparar la estructura de datos del pedido para Supabase
       const orderData = {
+        customer_name: nombreInput,
+        customer_phone: telefonoInput,
+        customer_address: direccionInput,
+        delivery_date: fechaEntrega,
+        neighborhood: window.checkoutState?.customer?.neighborhood || '',
+        city: window.checkoutState?.customer?.city || '',
+        user_id: activeUser ? activeUser.user.id : null,
         cliente_id: activeUser ? activeUser.user.id : null,
         user_id: activeUser ? activeUser.user.id : null,
         tipo_operacion: 'Venta Web',
