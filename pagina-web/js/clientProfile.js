@@ -1,7 +1,7 @@
 /**
  * ==========================================================================
  * MÓDULO DE PERFIL DEL CLIENTE - SUPABASE INTEGRATION
- * Gestiona datos editables de la tabla 'profile', historial y cupo de crédito.
+ * Gestiona datos del cliente, historial y cupo utilizando el perfil y la tabla clientes como respaldo.
  * ==========================================================================
  */
 
@@ -129,7 +129,7 @@ function ensureProfileContainerExists() {
               <div class="flex items-center justify-between">
                 <div>
                   <span class="text-[10px] font-black uppercase text-brand-600 dark:text-brand-400 tracking-wider">Cupo Aprobado Cupissa</span>
-                  <h4 id="creditTotalLimit" class="text-2xl font-black text-gray-900 dark:text-white">$200,000 COP</h4>
+                  <h4 id="creditTotalLimit" class="text-2xl font-black text-gray-900 dark:text-white">$0 COP</h4>
                 </div>
                 <div class="w-12 h-12 rounded-2xl bg-brand-600 text-white flex items-center justify-center text-xl shadow-md">
                   <i class="fa-solid fa-wallet"></i>
@@ -143,7 +143,7 @@ function ensureProfileContainerExists() {
                 </div>
                 <div>
                   <span class="text-[10px] font-bold text-emerald-600 block">Cupo Disponible</span>
-                  <span id="creditAvailableAmount" class="text-sm font-black text-emerald-600">$200,000 COP</span>
+                  <span id="creditAvailableAmount" class="text-sm font-black text-emerald-600">$0 COP</span>
                 </div>
               </div>
             </div>
@@ -238,15 +238,20 @@ async function populateClientProfileFromSupabase() {
     const userEmail = session.user.email;
 
     // Consultar tabla 'profile'
-    const { data: profile, error } = await client
+    const { data: profileData, error } = await client
       .from('profile')
       .select('*')
       .eq('id', userId)
       .maybeSingle();
-
-    if (error) {
-      console.error("Error al consultar perfil en Supabase:", error);
+    let profile = profileData || null;
+    if (!profile) {
+      const { data: crm, error: crmError } = await client.from('clientes').select('*').eq('user_id', userId).maybeSingle();
+      if (!crmError && crm) {
+        const parts = String(crm.nombre || '').trim().split(/\s+/);
+        profile = { ...crm, first_name: parts.shift() || '', last_name: parts.join(' '), email: crm.email || userEmail };
+      }
     }
+    if (error) console.warn('El perfil extendido no está disponible; se utilizará el registro del cliente si existe.');
 
     const firstName = profile?.first_name || session.user.user_metadata?.first_name || '';
     const lastName = profile?.last_name || session.user.user_metadata?.last_name || '';
@@ -298,11 +303,20 @@ async function handleSaveClientProfile(event) {
       updated_at: new Date().toISOString()
     };
 
-    const { error } = await client
+    const { error: profileError } = await client
       .from('profile')
       .upsert([payload]);
-
-    if (error) throw error;
+    const crmResult = window.SupabaseSync?.syncClienteWeb ? await window.SupabaseSync.syncClienteWeb({
+      user_id: userId,
+      nombre: `${payload.first_name} ${payload.last_name}`.trim(),
+      telefono: payload.telefono,
+      email: session.user.email,
+      cedula: payload.cedula,
+      direccion: payload.direccion,
+      ciudad: payload.ciudad,
+      barrio: payload.barrio,
+    }) : { success: false };
+    if (profileError && !crmResult.success) throw profileError;
 
     if (typeof showToast === 'function') {
       showToast("Perfil actualizado en Supabase con éxito", "success");
@@ -336,6 +350,7 @@ async function loadClientOrdersHistory() {
 
   const client = window.supabaseClient || window.supabase;
   let userOrders = [];
+  let ordersUnavailable = false;
 
   try {
     if (client) {
@@ -350,15 +365,13 @@ async function loadClientOrdersHistory() {
       }
     }
   } catch (e) {
-    console.warn("No se pudo consultar órdenes en Supabase, usando respaldo local.");
+    ordersUnavailable = true;
+    console.warn("No se pudo consultar el historial de pedidos en Supabase.", e.message || e);
   }
 
-  // Respaldo local si Supabase orders está vacío
-  if (userOrders.length === 0) {
-    const currentUser = JSON.parse(localStorage.getItem("cupissa_client_user") || "{}");
-    const userEmail = currentUser.email || "";
-    const allOrders = JSON.parse(localStorage.getItem("cupissa_orders") || "[]");
-    userOrders = allOrders.filter(o => o.email === userEmail || o.clientEmail === userEmail);
+  if (ordersUnavailable) {
+    container.innerHTML = '<p class="p-4 text-center text-sm text-red-600">No se pudo cargar tu historial desde el servidor. Recarga la página para intentarlo nuevamente.</p>';
+    return;
   }
 
   if (userOrders.length === 0) {
@@ -420,10 +433,12 @@ async function loadClientCreditInfoFromSupabase() {
           .select('cupo_credito, credito_utilizado')
           .eq('id', session.user.id)
           .maybeSingle();
-
         if (profile) {
           creditLimit = Number(profile.cupo_credito ?? 0);
-          creditUsed = profile.credito_utilizado || 0;
+          creditUsed = Number(profile.credito_utilizado || 0);
+        } else {
+          const { data: crm } = await client.from('clientes').select('cupo_credito,cupo_disponible,deuda_actual').eq('user_id', session.user.id).maybeSingle();
+          if (crm) { creditLimit = Number(crm.cupo_credito || 0); creditUsed = Math.max(0, creditLimit - Number(crm.cupo_disponible ?? creditLimit)); }
         }
       }
     }
@@ -453,6 +468,12 @@ async function loadClientCreditInfoFromSupabase() {
       .on('postgres_changes', {event:'*', schema:'public', table:'profile', filter:'id=eq.'+session.user.id}, () => {
         loadClientCreditInfoFromSupabase();
         if (!document.getElementById('sectionProfileOrders')?.classList.contains('hidden')) loadClientOrdersHistory();
+      })
+      .on('postgres_changes', {event:'*', schema:'public', table:'clientes', filter:'user_id=eq.'+session.user.id}, () => {
+        populateClientProfileFromSupabase(); loadClientCreditInfoFromSupabase();
+      })
+      .on('postgres_changes', {event:'*', schema:'public', table:'creditos_cupissa_cuentas', filter:'user_id=eq.'+session.user.id}, () => {
+        loadClientCreditInfoFromSupabase();
       })
       .on('postgres_changes', {event:'*', schema:'public', table:'pedidos_web', filter:'user_id=eq.'+session.user.id}, () => {
         if (!document.getElementById('sectionProfileOrders')?.classList.contains('hidden')) loadClientOrdersHistory();
