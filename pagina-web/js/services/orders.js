@@ -58,38 +58,29 @@ window.createCreditRequestInSupabase = async function(creditPayload) {
   try {
     const client = window.supabaseClient || window.supabase;
     if (!client) throw new Error('El cliente de Supabase no está inicializado.');
-
     const { data: { session } } = await client.auth.getSession();
-    const userId = session?.user?.id || null;
-
-    const totalAmount = creditPayload.items.reduce((sum, item) => sum + ((item.price || 0) * (item.quantity || 1)), 0) + (creditPayload.shippingFee || 0);
-
-    const { data, error } = await client
-      .from('credit_requests')
-      .insert([
-        {
-          user_id: userId,
-          customer_name: creditPayload.customer.fullName,
-          customer_phone: creditPayload.customer.phone,
-          customer_address: creditPayload.customer.address,
-          city: creditPayload.customer.city,
-          neighborhood: creditPayload.customer.neighborhood,
-          delivery_date: creditPayload.customer.deliveryDate,
-          document_id: creditPayload.document_id,
-          references: creditPayload.references,
-          shipping_fee: creditPayload.shippingFee,
-          interest_rate: creditPayload.interestRate,
-          total_amount: totalAmount,
-          pending_balance: totalAmount,
-          items: creditPayload.items,
-          status: 'pending_approval'
-        }
-      ])
-      .select();
-
+    const customer = creditPayload.customer || {};
+    const refs = Array.isArray(creditPayload.references) ? creditPayload.references : [];
+    const totalAmount = (creditPayload.items || []).reduce((sum, item) => sum + Number(item.price ?? item.precio ?? 0) * Number(item.quantity ?? item.cantidad ?? 1), 0) + Number(creditPayload.shippingFee || 0);
+    const { data, error } = await client.from('solicitudes_credito_cupissa').insert({
+      user_id: session?.user?.id || null,
+      email: customer.email || session?.user?.email || null,
+      first_name: customer.firstName || customer.first_name || customer.nombre || '',
+      last_name: customer.lastName || customer.last_name || customer.apellido || '',
+      cedula: customer.cedula || creditPayload.cedula || null,
+      telefono: customer.phone || customer.telefono || '',
+      direccion: customer.address || customer.direccion || null,
+      ciudad: customer.city || customer.ciudad || null,
+      barrio: customer.neighborhood || customer.barrio || null,
+      referencia1_nombre: refs[0]?.nombre || refs[0]?.name || null,
+      referencia1_telefono: refs[0]?.telefono || refs[0]?.phone || null,
+      referencia2_nombre: refs[1]?.nombre || refs[1]?.name || null,
+      referencia2_telefono: refs[1]?.telefono || refs[1]?.phone || null,
+      monto_solicitado: totalAmount,
+      cupo_solicitado: totalAmount,
+      estado: 'pendiente'
+    }).select().single();
     if (error) throw error;
-    await window.updateCustomerBalanceRetroactively(creditPayload.customer.phone, totalAmount, 'add');
-
     return { data, error: null };
   } catch (err) {
     console.error('Error al guardar solicitud de crédito en Supabase:', err);
@@ -101,38 +92,10 @@ window.createCreditRequestInSupabase = async function(creditPayload) {
  * Actualiza el saldo actual y cuentas por cobrar de un cliente con soporte retroactivo.
  */
 window.updateCustomerBalanceRetroactively = async function(customerPhone, amount, mode = 'discount') {
-  try {
-    const client = window.supabaseClient || window.supabase;
-    if (!client) return { success: false, error: 'Supabase no inicializado' };
-
-    const { data: existing, error: fetchErr } = await client
-      .from('customer_accounts')
-      .select('*')
-      .eq('customer_phone', customerPhone)
-      .maybeSingle();
-
-    let currentBalance = existing ? parseFloat(existing.current_balance || 0) : 0;
-    
-    if (mode === 'add') {
-      currentBalance += parseFloat(amount);
-    } else {
-      currentBalance = Math.max(0, currentBalance - parseFloat(amount));
-    }
-
-    const { error: upsertErr } = await client
-      .from('customer_accounts')
-      .upsert({
-        customer_phone: customerPhone,
-        current_balance: currentBalance,
-        last_updated: new Date().toISOString()
-      }, { onConflict: 'customer_phone' });
-
-    if (upsertErr) throw upsertErr;
-    return { success: true, currentBalance };
-  } catch (err) {
-    console.error('Error al actualizar saldo retroactivo del cliente:', err);
-    return { success: false, error: err };
+  if (window.SupabaseSync?.updateCustomerBalanceRetroactively) {
+    return window.SupabaseSync.updateCustomerBalanceRetroactively(customerPhone, amount, mode);
   }
+  return { success: false, error: 'El módulo de sincronización CRM no está disponible.' };
 };
 
 /**
@@ -225,7 +188,7 @@ window.getOrdersForCurrentMonth = async function() {
     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999).toISOString();
 
     const { data, error } = await client
-      .from('orders')
+      .from('pedidos')
       .select('*')
       .gte('created_at', startOfMonth)
       .lte('created_at', endOfMonth);
@@ -247,7 +210,7 @@ window.getAllOrdersAdmin = async function() {
     if (!client) throw new Error('El cliente de Supabase no está inicializado.');
 
     const { data, error } = await client
-      .from('orders')
+      .from('pedidos')
       .select('*')
       .order('created_at', { ascending: false });
 
@@ -268,24 +231,23 @@ window.updateOrderStatusInSupabase = async function(orderId, newStatus, paymentR
     if (!client) throw new Error('El cliente de Supabase no está inicializado.');
 
     const { data: orderData, error: orderErr } = await client
-      .from('orders')
+      .from('pedidos')
       .select('*')
       .eq('id', orderId)
       .single();
 
     if (orderErr) throw orderErr;
 
-    let updatePayload = { status: newStatus };
+    let updatePayload = { status: newStatus, updated_at: new Date().toISOString() };
     
     if (paymentReceived > 0) {
-      const newPending = Math.max(0, (orderData.pending_balance || 0) - paymentReceived);
+      const newPending = Math.max(0, Number(orderData.pending_balance || 0) - paymentReceived);
       updatePayload.pending_balance = newPending;
-      
-      await window.updateCustomerBalanceRetroactively(orderData.customer_phone, paymentReceived, 'discount');
+      updatePayload.advance_payment = Number(orderData.advance_payment || 0) + paymentReceived;
     }
 
     const { data, error } = await client
-      .from('orders')
+      .from('pedidos')
       .update(updatePayload)
       .eq('id', orderId)
       .select();
