@@ -212,13 +212,17 @@ window.filtrarYOrdenarCatalogo = function() {
   }
 
   // 3. Ordenamiento
-  const orden = document.getElementById('select-ordenar-catalogo')?.value || 'nombre';
+  const orden = document.getElementById('select-ordenar-catalogo')?.value || 'aleatorio';
   if (orden === 'precio-menor') {
     resultado.sort((a, b) => parseMontoSeguro(a.precio_detal || a.price) - parseMontoSeguro(b.precio_detal || b.price));
   } else if (orden === 'precio-mayor') {
     resultado.sort((a, b) => parseMontoSeguro(b.precio_detal || b.price) - parseMontoSeguro(a.precio_detal || a.price));
   } else if (orden === 'nombre') {
     resultado.sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
+  } else if (orden === 'aleatorio') {
+    // El orden aleatorio se asigna al cargar el catálogo; no cambia al escribir en el buscador.
+    const rank = new Map((StoreProducts.cache || []).map((p, i) => [String(p.id), i]));
+    resultado.sort((a, b) => (rank.get(String(a.id)) ?? 0) - (rank.get(String(b.id)) ?? 0));
   }
 
   window.catalogState.filteredProducts = resultado;
