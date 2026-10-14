@@ -45,15 +45,15 @@ window.cargarDashboardAdmin = async function() {
       const client = window.supabaseClient || window.supabase;
       if (client) {
         const [resPed, resMov, resDeu, resCC] = await Promise.all([
-          client.from('orders').select('*'),
+          client.from('pedidos').select('*'),
           client.from('flujo_caja').select('*'),
-          client.from('deudas').select('*'),
-          client.from('customer_accounts').select('*')
+          client.from('deudas_mensuales').select('*'),
+          client.from('creditos_cupissa_cuentas').select('*')
         ]);
         pedidos = resPed.data || [];
         movimientos = resMov.data || [];
         deudas = resDeu.data || [];
-        cuentasCobrar = resCC.data || [];
+        cuentasCobrar = (resCC.data || []).filter(r => String(r.estado || '').toLowerCase() === 'activo').map(r => ({ ...r, current_balance: Math.max(0, Number(r.saldo_pendiente ?? (Number(r.total_credito || 0) - Number(r.total_pagado || 0) - Number(r.cuota_inicial || 0)))) })).filter(r => r.current_balance > 0);
       }
     }
 
@@ -92,21 +92,16 @@ window.actualizarMetricasDashboard = function(pedidos = [], movimientos = [], cu
   }, 0);
 
   // 2. Cuentas por cobrar consolidadas (Soporte retroactivo automático)
-  let porCobrar = 0;
-  if (cuentasCobrar && cuentasCobrar.length > 0) {
-    porCobrar = cuentasCobrar.reduce((acc, c) => acc + parseMontoSeguro(c.current_balance || 0), 0);
-  } else {
-    porCobrar = (pedidos || []).reduce((acc, p) => {
-      const est = (p.estado || p.status || '').toLowerCase();
-      if (est !== 'cancelado' && est !== 'cancelled') {
-        const tot = parseMontoSeguro(p.total !== undefined ? p.total : (p.monto || p.valor || 0));
-        const pag = parseMontoSeguro(p.pagado !== undefined ? p.pagado : (p.anticipo !== undefined ? p.anticipo : p.monto_pagado || 0));
-        const saldo = p.saldo !== undefined ? parseMontoSeguro(p.saldo) : Math.max(0, tot - pag);
-        return acc + saldo;
-      }
-      return acc;
-    }, 0);
-  }
+  const saldoCreditosWeb = (cuentasCobrar || []).reduce((acc, c) => acc + parseMontoSeguro(c.current_balance ?? c.saldo_pendiente ?? 0), 0);
+  const saldoPedidosInternos = (pedidos || []).reduce((acc, p) => {
+    const est = String(p.estado || p.status || '').toLowerCase();
+    if (est === 'cancelado' || est === 'cancelled') return acc;
+    const total = parseMontoSeguro(p.total !== undefined ? p.total : (p.monto || p.valor || 0));
+    const pagado = parseMontoSeguro(p.pagado !== undefined ? p.pagado : (p.anticipo !== undefined ? p.anticipo : p.monto_pagado || 0));
+    const saldo = p.saldo !== undefined ? parseMontoSeguro(p.saldo) : Math.max(0, total - pagado);
+    return acc + Math.max(0, saldo);
+  }, 0);
+  const porCobrar = saldoCreditosWeb + saldoPedidosInternos;
 
   // 3. Saldo Efectivo y Nequi / Bancos con cálculo automático del 4x1000 en egresos bancarios
   let saldoEfectivo = 0;
