@@ -424,6 +424,11 @@ window.confirmAddToCartFromDetail = function() {
     depositoGarantia: depositVal,
     porcentajeAnticipo: pctAnticipo,
     porcentaje_anticipo: Number(p.porcentaje_anticipo ?? 30),
+    permitir_credito: Boolean(p.permitir_credito),
+    max_cuotas_diario: Number(p.max_cuotas_diario ?? 30),
+    max_cuotas_semanal: Number(p.max_cuotas_semanal ?? 12),
+    max_cuotas_quincenal: Number(p.max_cuotas_quincenal ?? 12),
+    max_cuotas_mensual: Number(p.max_cuotas_mensual ?? 24),
     dias_fabricacion: Number(p.dias_fabricacion || 0),
     imagen_original: p.imagen_original || p.image_url || p.imagen || '',
     imagen_recortada: p.imagen_recortada || p.image_url || p.imagen || ''
