@@ -176,20 +176,28 @@ window.filtrarYOrdenarCatalogo = function() {
   const query = (inputBusqueda?.value || '').toLowerCase().trim();
 
   if (query) {
-    if (window.CupissaSearch) {
-      const ranked = window.CupissaSearch.rank(resultado, query,
-        p => [p.nombre,p.referencia,p.mundo,p.categoria,p.subcategoria,p.temporada,p.descripcion].filter(Boolean).join(' '), .25);
-      if (ranked.length) resultado = ranked;
-      else {
-        // Si no existe coincidencia cercana, mostrar los productos más relacionados en lugar de una pantalla vacía.
-        const q = window.CupissaSearch.normalize(query);
-        resultado = resultado.map((p,index)=>({p,index,score:window.CupissaSearch.score(q,[p.nombre,p.referencia,p.mundo,p.categoria,p.subcategoria,p.descripcion].filter(Boolean).join(' '))}))
-          .sort((a,b)=>b.score-a.score||a.index-b.index).slice(0,8).map(x=>x.p);
+    const fields = p => [p.nombre,p.referencia,p.mundo,p.categoria,p.subcategoria,p.temporada,p.descripcion].filter(Boolean).join(' ');
+    const normalize = value => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+    const q = normalize(query);
+    const exact = resultado.filter(p => normalize(fields(p)).includes(q));
+    if (exact.length) {
+      // Los nombres y campos que contienen la consulta aparecen antes de coincidencias aproximadas.
+      const remainder = resultado.filter(p => !exact.includes(p));
+      let similar = [];
+      if (window.CupissaSearch) {
+        similar = window.CupissaSearch.rank(remainder, query, fields, 0.12) || [];
       }
+      if (!similar.length && window.CupissaSearch) {
+        similar = remainder.map((p,index)=>({p,index,score:window.CupissaSearch.score(q,normalize(fields(p)))}))
+          .sort((a,b)=>b.score-a.score||a.index-b.index).filter(x=>x.score>0).slice(0,8).map(x=>x.p);
+      }
+      resultado = [...exact, ...similar.filter(p=>!exact.includes(p))];
+    } else if (window.CupissaSearch) {
+      const ranked = window.CupissaSearch.rank(resultado, query, fields, 0.12) || [];
+      resultado = ranked.length ? ranked : resultado.map((p,index)=>({p,index,score:window.CupissaSearch.score(q,normalize(fields(p)))}))
+        .sort((a,b)=>b.score-a.score||a.index-b.index).slice(0,8).map(x=>x.p);
     } else {
-      const normalize = value => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
-      const q = normalize(query);
-      resultado = resultado.filter(p => [p.nombre,p.mundo,p.categoria,p.subcategoria,p.temporada,p.referencia,p.descripcion].some(v=>normalize(v).includes(q)));
+      resultado = resultado.filter(p => normalize(fields(p)).includes(q));
     }
   }
 
