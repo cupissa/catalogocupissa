@@ -1,84 +1,77 @@
-/**
- * Servicio para la gestión de configuraciones globales de la aplicación
- * (ej. Temporada actual, banners, ajustes de tienda y parámetros fiscales como el 4x1000).
- */
+/* Configuración central de la tienda almacenada en public.configuracion_tienda. */
+const SETTINGS_TABLE = 'configuracion_tienda';
 
-const SETTINGS_TABLE = 'settings';
-
-/**
- * Obtiene el valor de una configuración específica por su clave.
- * @param {string} key - Clave de la configuración (ej: 'current_season', 'tax_4x1000_rate')
- * @returns {Promise<string|null>} Valor guardado o null
- */
-window.getSetting = async function(key) {
-  try {
-    const client = window.supabaseClient || window.supabase;
-    if (!client) {
-      return localStorage.getItem(`setting_${key}`) || null;
-    }
-
-    const { data, error } = await client
-      .from(SETTINGS_TABLE)
-      .select('value')
-      .eq('key', key)
-      .maybeSingle();
-
-    if (error) {
-      console.warn(`[settings.js] Error consultando '${key}' en Supabase:`, error.message);
-      return localStorage.getItem(`setting_${key}`) || null;
-    }
-
-    if (data && data.value !== undefined) {
-      localStorage.setItem(`setting_${key}`, data.value);
-      return data.value;
-    }
-
-    return localStorage.getItem(`setting_${key}`) || null;
-  } catch (err) {
-    console.error(`[settings.js] Error inesperado al obtener '${key}':`, err);
-    return localStorage.getItem(`setting_${key}`) || null;
+function normalizeSetting(value) {
+  if (value == null) return null;
+  if (typeof value === 'string') return value;
+  if (typeof value === 'object') {
+    if (Object.prototype.hasOwnProperty.call(value, 'value')) return String(value.value ?? '');
+    if (Object.prototype.hasOwnProperty.call(value, 'valor')) return String(value.valor ?? '');
+    return JSON.stringify(value);
   }
+  return String(value);
+}
+
+window.getSetting = async function(key) {
+  const client = window.supabaseClient || window.supabase;
+  try {
+    if (!client) return localStorage.getItem(`setting_${key}`) || null;
+    const { data, error } = await client.from(SETTINGS_TABLE).select('valor').eq('clave', key).maybeSingle();
+    if (error) throw error;
+    if (data && data.valor !== undefined) {
+      const value = normalizeSetting(data.valor);
+      if (value !== null) localStorage.setItem(`setting_${key}`, value);
+      return value;
+    }
+  } catch (err) {
+    console.warn(`[Cupissa] No se pudo leer la configuración ${key}:`, err.message || err);
+  }
+  return localStorage.getItem(`setting_${key}`) || null;
 };
 
-/**
- * Guarda o actualiza una configuración global en la base de datos y respaldo local.
- * @param {string} key - Clave de la configuración
- * @param {string} value - Valor a guardar
- * @returns {Promise<{success: boolean, error?: string}>}
- */
 window.saveSetting = async function(key, value) {
+  const client = window.supabaseClient || window.supabase;
+  const cleanValue = String(value ?? '').trim();
+  localStorage.setItem(`setting_${key}`, cleanValue);
+  if (!client) return { success: false, error: 'Supabase no está inicializado.' };
   try {
-    const client = window.supabaseClient || window.supabase;
-    const cleanValue = (value || '').trim();
-    localStorage.setItem(`setting_${key}`, cleanValue);
-
-    if (!client) {
-      return { success: true };
-    }
-
-    const { error } = await client
-      .from(SETTINGS_TABLE)
-      .upsert(
-        { key, value: cleanValue, updated_at: new Date().toISOString() },
-        { onConflict: 'key' }
-      );
-
-    if (error) {
-      console.error(`[settings.js] Error al guardar '${key}' en Supabase:`, error.message);
-      return { success: false, error: error.message };
-    }
-
+    const { data: existing, error: lookupError } = await client
+      .from(SETTINGS_TABLE).select('clave').eq('clave', key).limit(1).maybeSingle();
+    if (lookupError) throw lookupError;
+    const payload = { valor: cleanValue, updated_at: new Date().toISOString() };
+    const result = existing
+      ? await client.from(SETTINGS_TABLE).update(payload).eq('clave', key)
+      : await client.from(SETTINGS_TABLE).insert({ clave: key, ...payload });
+    if (result.error) throw result.error;
     return { success: true };
   } catch (err) {
-    console.error(`[settings.js] Error inesperado al guardar '${key}':`, err);
-    return { success: false, error: err.message };
+    console.error(`[Cupissa] No se pudo guardar la configuración ${key}:`, err.message || err);
+    return { success: false, error: err.message || String(err) };
   }
 };
 
-/**
- * Obtiene específicamente la tasa del 4x1000 configurada (por defecto 0.004).
- */
 window.getTax4x1000Rate = async function() {
-  const rateStr = await window.getSetting('tax_4x1000_rate');
-  return rateStr ? parseFloat(rateStr) : 0.004;
+  const value = await window.getSetting('tax_4x1000_rate');
+  const rate = Number(value);
+  return Number.isFinite(rate) && rate >= 0 ? rate : 0.004;
+};
+
+window.cargarConfiguracionTemporada = async function() {
+  const input = document.getElementById('input-temporada-actual');
+  if (!input) return;
+  const season = await window.getSetting('current_season');
+  input.value = season || '';
+};
+
+window.guardarConfiguracionTemporada = async function() {
+  const input = document.getElementById('input-temporada-actual');
+  if (!input) return;
+  const season = input.value.trim().toUpperCase();
+  const result = await window.saveSetting('current_season', season);
+  if (!result.success) {
+    window.showToast?.('No se pudo guardar la temporada: ' + result.error, 'error');
+    return;
+  }
+  input.value = season;
+  window.showToast?.(season ? 'Temporada destacada actualizada.' : 'Se quitó la temporada destacada.');
 };
