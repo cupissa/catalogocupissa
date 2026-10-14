@@ -17,6 +17,31 @@
       if (!response.ok) throw new Error(`HTTP ${response.status} al cargar ${path}`);
       slot.outerHTML = await response.text();
     }));
+    // Buscador global: abre el catálogo automáticamente mientras se escribe, sin pulsar Enter.
+    const globalSearch = document.getElementById('searchInput');
+    if (globalSearch) {
+      let searchTimer;
+      globalSearch.addEventListener('input', () => {
+        const query = globalSearch.value.trim();
+        if (document.body.dataset.page === 'catalog') return; // El catálogo filtra en vivo localmente.
+        clearTimeout(searchTimer);
+        if (!query) return;
+        searchTimer = setTimeout(() => {
+          const target = new URL('catalogo.html', window.location.href);
+          target.searchParams.set('search', query);
+          window.location.href = target.href;
+        }, 450);
+      });
+      globalSearch.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          const target = new URL('catalogo.html', window.location.href);
+          if (globalSearch.value.trim()) target.searchParams.set('search', globalSearch.value.trim());
+          window.location.href = target.href;
+        }
+      });
+    }
+
     const commonCustomer = [
         '../shared/js/config/constants.js', '../shared/js/config/supabase.js', '../shared/js/utils/smart-search.js', '../shared/js/services/settings.js',
         '../shared/js/utils/supabase-sync.js', 'js/utils/theme.js', '../shared/js/utils/ui.js', 'js/utils/captcha-helper.js',
