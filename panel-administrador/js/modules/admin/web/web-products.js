@@ -340,7 +340,7 @@ window.abrirModalProductoWeb = function(prod = null) {
     window.toggleSeccionAlquilerAdmin(esAlquiler);
 
     document.getElementById('prod-web-check-credito').checked = prod.permitir_credito || false;
-    const pctCuota = document.getElementById('prod-web-porcentaje-cuota-inicial'); if (pctCuota) pctCuota.value = prod.porcentaje_anticipo ?? 30;
+    const pctCuota = document.getElementById('prod-web-porcentaje-cuota-inicial'); if (pctCuota) pctCuota.value = prod.porcentaje_cuota_inicial ?? prod.porcentaje_anticipo ?? 30;
     for (const [id, field, fallback] of [
       ['prod-web-max-cuotas-diario','max_cuotas_diario',30], ['prod-web-max-cuotas-semanal','max_cuotas_semanal',12],
       ['prod-web-max-cuotas-quincenal','max_cuotas_quincenal',12], ['prod-web-max-cuotas-mensual','max_cuotas_mensual',24]
@@ -520,8 +520,9 @@ window.guardarProductoWeb = async function(e) {
     const anticipoRaw = permitir_credito
       ? document.getElementById('prod-web-porcentaje-cuota-inicial')?.value
       : document.getElementById('prod-web-porcentaje-anticipo')?.value;
-    const porcentaje_anticipo = anticipoRaw === '' || anticipoRaw == null ? 30 : Math.min(100, Math.max(0, Number(anticipoRaw)));
-    if (!Number.isFinite(porcentaje_anticipo)) throw new Error('El porcentaje de cuota inicial debe estar entre 0 y 100.');
+    const porcentaje_anticipo = (() => { const raw = document.getElementById('prod-web-porcentaje-anticipo')?.value; const n = raw === '' || raw == null ? 30 : Number(raw); return Math.min(100, Math.max(0, n)); })();
+    const porcentaje_cuota_inicial = (() => { const raw = document.getElementById('prod-web-porcentaje-cuota-inicial')?.value; const n = raw === '' || raw == null ? 30 : Number(raw); return Math.min(100, Math.max(0, n)); })();
+    if (!Number.isFinite(porcentaje_anticipo) || !Number.isFinite(porcentaje_cuota_inicial)) throw new Error('Los porcentajes de anticipo y cuota inicial deben estar entre 0 y 100.');
     const cuotaConfig = {
       max_cuotas_diario: Math.max(1, Math.min(365, parseInt(document.getElementById('prod-web-max-cuotas-diario')?.value || '30', 10) || 30)),
       max_cuotas_semanal: Math.max(1, Math.min(104, parseInt(document.getElementById('prod-web-max-cuotas-semanal')?.value || '12', 10) || 12)),
@@ -609,6 +610,7 @@ window.guardarProductoWeb = async function(e) {
       precio_mayorista,
       cant_minima_mayorista,
       porcentaje_anticipo,
+      porcentaje_cuota_inicial,
       precio_alquiler,
       valor_deposito,
       tallas: window.currentAdminTallas,
