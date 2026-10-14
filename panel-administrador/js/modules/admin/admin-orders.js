@@ -220,7 +220,7 @@ window.registrarAbonoPedidoModal = function(pedidoId, totalActual, pagadoActual,
     }
 
     const nuevoPagado = pagadoActual + valorAbono;
-    const tax4x1000 = metodoInput.toLowerCase() !== 'efectivo' ? Number((valorAbono * 0.004).toFixed(2)) : 0;
+    // Los abonos son ingresos; el 4x1000 solo se aplica a egresos Nequi.
 
     try {
       const client = window.supabaseClient;
@@ -236,17 +236,20 @@ window.registrarAbonoPedidoModal = function(pedidoId, totalActual, pagadoActual,
 
       // 2. Registrar el ingreso en flujo_caja
       if (typeof SupabaseSync !== 'undefined' && typeof SupabaseSync.insertFlujoCaja === 'function') {
-        await SupabaseSync.insertFlujoCaja({
+        const movimiento = await SupabaseSync.insertFlujoCaja({
           fecha: fechaInput || fechaHoy,
           tipo: 'INGRESO',
           concepto: `ABONO A PEDIDO REF-${String(pedidoId).slice(0, 6).toUpperCase()}`,
           tercero: clienteNombre || clienteTelefono,
           metodo_pago: metodoInput,
           valor: valorAbono,
-          monto: valorAbono,
-          impuesto_4x1000: tax4x1000,
-          descripcion: `Abono registrado desde panel de pedidos`
+          descripcion: 'Abono registrado desde panel de pedidos'
         });
+        if (!movimiento?.success) {
+          // Evita dejar el abono aplicado solo en pedidos si no se registró en caja.
+          await client.from('pedidos').update({ pagado: pagadoActual }).eq('id', pedidoId);
+          throw new Error(movimiento?.error || 'No se pudo registrar el abono en flujo de caja.');
+        }
       }
 
       // 3. Descontar en el saldo del cliente
