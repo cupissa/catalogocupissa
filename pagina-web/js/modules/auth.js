@@ -169,8 +169,8 @@ window.handleClientRegister = async function(event) {
       first_name: firstName,
       last_name: lastName,
       email: email,
-      cupo_credito: 200000,
-      estado_credito: 'aprobado',
+      cupo_credito: 0,
+      estado_credito: 'sin_credito',
       credito_utilizado: 0,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
@@ -180,8 +180,20 @@ window.handleClientRegister = async function(event) {
       .from('profile')
       .upsert([profilePayload]);
 
-    if (profError) {
-      console.error('Error al guardar el perfil en la tabla profile:', profError);
+    if (profError) console.warn('Perfil alternativo no disponible:', profError.message);
+
+    if (window.SupabaseSync?.syncClienteWeb) {
+      await window.SupabaseSync.syncClienteWeb({
+        user_id: user.id,
+        nombre: `${firstName} ${lastName}`.trim(),
+        telefono: '',
+        email,
+        cupo_credito: 0,
+        cupo_disponible: 0,
+        deuda_actual: 0,
+        pedidos_count: 0,
+        total_compras: 0
+      });
     }
 
     if (typeof showToast === 'function') {
