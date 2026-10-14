@@ -108,3 +108,12 @@
 .cart-drawer.active {
   right: 0;
 }
+
+/* Controles coherentes en páginas internas y modo claro/oscuro */
+input:not([type="radio"]):not([type="checkbox"]), select, textarea {
+  color: inherit; border-color: #d1d5db; background-color: #fff;
+}
+.dark input:not([type="radio"]):not([type="checkbox"]), .dark select, .dark textarea {
+  color: #f3f4f6; border-color: #4b5563; background-color: #1f2937;
+}
+input::placeholder, textarea::placeholder { color: #9ca3af; }
