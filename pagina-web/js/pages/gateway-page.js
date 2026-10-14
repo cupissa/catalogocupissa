@@ -8,6 +8,6 @@
  document.getElementById('gatewayCode').textContent=mode?(mode==='total'?'Pago total de deuda':'Pago de cuota mínima'):code;
  document.getElementById('gatewayAmount').textContent=money(value||p.get('valor'));
  const status=document.getElementById('gatewayStatus');
- if(mode){const label=document.getElementById('gatewayAmountLabel');if(label)label.textContent='Valor de la deuda seleccionado';status.textContent='Pago seleccionado: '+(mode==='total'?'deuda total':'cuota mínima')+'. La pantalla de pago está lista, pero Wompi necesita las credenciales públicas y la firma de integridad generada desde el servidor para abrir el checkout real.';}
- else status.textContent=orderId?'Pedido registrado con estado pendiente. Wompi requiere credenciales y validación segura antes de cobrar.':'Vista previa de la pasarela. Para pagar una compra, inicia el proceso desde el carrito.';
+ if(mode){const label=document.getElementById('gatewayAmountLabel');if(label)label.textContent='Valor seleccionado';status.textContent='Tu pago está preparado y quedará pendiente de confirmación.';}
+ else status.textContent=orderId?'Pedido registrado. El pago quedará pendiente de confirmación.':'Para pagar una compra, inicia el proceso desde el carrito.';
 })();
