@@ -158,42 +158,6 @@ window.showProductDetail = function(product) {
         </div>
       </div>
 
-      <!-- SIMULADOR DE CRÉDITO CUPISSA -->
-      ${permiteCredito ? `
-        <div id="modal-seccion-credito" class="p-4 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 border border-amber-200 dark:border-amber-800/50 rounded-2xl space-y-3">
-          <div class="flex items-center justify-between">
-            <label class="flex items-center gap-2 font-black text-amber-900 dark:text-amber-300 cursor-pointer">
-              <input type="checkbox" id="modal-check-credito" onchange="window.updateProductDetailCalculations()" class="w-4 h-4 text-amber-600 rounded">
-              <span>💳 Financiar con Crédito Cupissa (+20% del valor)</span>
-            </label>
-          </div>
-
-          <div id="modal-box-simulador-credito" class="hidden grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-amber-200 dark:border-amber-800/40">
-            <div>
-              <label class="font-bold text-gray-700 dark:text-gray-300 block mb-1">Número de Cuotas Mensuales</label>
-              <select id="modal-select-cuotas" onchange="window.updateProductDetailCalculations()" class="w-full bg-white dark:bg-gray-800 border rounded-xl p-2 font-bold text-amber-800 dark:text-amber-300">
-                <option value="1">1 Mes</option>
-                <option value="2">2 Meses</option>
-                <option value="3" selected>3 Meses</option>
-                <option value="4">4 Meses</option>
-                <option value="5">5 Meses</option>
-                <option value="6">6 Meses</option>
-              </select>
-            </div>
-            <div>
-              <label class="font-bold text-gray-700 dark:text-gray-300 block mb-1">Frecuencia de pago</label>
-              <select id="modal-select-frecuencia" onchange="window.updateProductDetailCalculations()" class="w-full bg-white dark:bg-gray-800 border rounded-xl p-2 font-bold text-amber-800 dark:text-amber-300">
-                <option value="diario">Diario</option><option value="semanal">Semanal</option><option value="quincenal">Quincenal</option><option value="mensual" selected>Mensual</option>
-              </select>
-            </div>
-            <div class="bg-white dark:bg-gray-800 p-2.5 rounded-xl border border-amber-200 dark:border-amber-800/40 flex flex-col justify-center text-center sm:col-span-2">
-              <span class="text-[10px] text-gray-400 font-bold uppercase">Cuota Estimada</span>
-              <span id="lbl-modal-cuota-mensual" class="text-sm font-black text-amber-700 dark:text-amber-400">$0 COP / mes</span>
-            </div>
-          </div>
-        </div>
-      ` : ''}
-
       <!-- CANTIDAD Y RESUMEN FINANCIERO -->
       <div class="bg-gray-50 dark:bg-gray-700/40 p-4 rounded-2xl border border-gray-100 dark:border-gray-700 space-y-3">
         <div class="flex items-center justify-between flex-wrap gap-3">
@@ -304,8 +268,8 @@ window.updateProductDetailCalculations = function() {
   window.selectedProductOptions.color = colorObj;
 
   // Leer Crédito
-  const checkCredito = document.getElementById('modal-check-credito');
-  const isCredit = Boolean(checkCredito && checkCredito.checked && mode === 'venta');
+  // El simulador de crédito fue retirado de los detalles del producto.
+  const isCredit = false;
   window.selectedProductOptions.isCredit = isCredit;
 
   const boxSimulador = document.getElementById('modal-box-simulador-credito');
