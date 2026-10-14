@@ -31,7 +31,13 @@
         'js/modules/products.js', 'js/modules/product-detail-modal.js', 'js/modules/tracking.js', 'js/pages/index-page.js'
       ],
       catalog: [...commonCustomer, 'js/pages/catalogo-page.js'],
-      tracking: [...commonCustomer, 'js/pages/rastreo-page.js']
+      tracking: [...commonCustomer, 'js/pages/rastreo-page.js'],
+      profile: [...commonCustomer, 'js/pages/profile-page.js'],
+      credit: [...commonCustomer, 'js/pages/credit-page.js'],
+      payments: [...commonCustomer, 'js/pages/portal-pagos.js'],
+      paydetail: [...commonCustomer, 'js/pages/pay-installment.js'],
+      checkout: [...commonCustomer, 'js/checkout-page.js'],
+      gateway: [...commonCustomer, 'js/pages/gateway-page.js']
     };
     const admin = {
       admin: [
