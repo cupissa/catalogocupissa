@@ -46,6 +46,27 @@
       }
     });
   }
+  async function findOrder(client, code) {
+    const key = String(code || '').trim();
+    if (!key) return null;
+    try {
+      const { data, error } = await client.rpc('cupissa_rastrear_pedido', { p_codigo: key });
+      if (!error && data) return data;
+    } catch (_) { /* RPC opcional hasta ejecutar la migración */ }
+    // Código público: la búsqueda no depende de que el ID sea un UUID.
+    for (const column of ['order_code', 'referencia_pedido', 'codigo_pedido']) {
+      try {
+        const { data, error } = await client.from('pedidos_web').select('*').ilike(column, key).limit(1).maybeSingle();
+        if (!error && data) return data;
+      } catch (_) { /* columna opcional en instalaciones antiguas */ }
+    }
+    // También admite pegar el UUID interno del pedido.
+    if (/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(key)) {
+      const { data, error } = await client.from('pedidos_web').select('*').eq('id', key).maybeSingle();
+      if (!error && data) return data;
+    }
+    return null;
+  }
   async function searchOrder(event) {
     event?.preventDefault?.();
     const input = $('orderCodeInput'), container = $('orderResultContainer'), notFound = $('orderNotFound');
@@ -76,11 +97,12 @@
     } catch (err) { console.error('Rastreo de pedido:', err); notFound.classList.remove('hidden'); }
   }
   function subscribeLive(client, code) {
-    if (channel || !code) return;
+    if (channel) { try { client.removeChannel(channel); } catch (_) {} channel = null; }
+    if (!code) return;
     channel = client.channel('cupissa-tracking-live')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'pedidos_web' }, payload => {
         const row = payload.new || payload.old || {};
-        if (String(row.order_code || '').toUpperCase() === String(code).toUpperCase() || String(row.id || '') === String(code)) searchOrder({ preventDefault() {} });
+        if (String(row.order_code || '').toUpperCase() === String(code).toUpperCase() || String(row.id || '') === String(code) || String(row.referencia_pedido || '').toUpperCase() === String(code).toUpperCase()) searchOrder({ preventDefault() {} });
       }).subscribe();
   }
   window.searchOrder = searchOrder;
