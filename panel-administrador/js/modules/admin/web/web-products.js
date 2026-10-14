@@ -188,15 +188,21 @@ window.eliminarProductoWeb = async function(id) {
     const { error } = await client.from('productos_web').delete().eq('id', id);
     if (error) throw error;
 
-    // Intentar eliminar también de la tabla interna de productos si existe
-    await client.from('productos').delete().eq('id', id);
 
-    safeShowToastWeb("Producto eliminado de la web.");
+    safeShowToastWeb("Producto eliminado de la tienda web.");
     window.cargarProductosWeb();
   } catch (err) {
     console.error("Error al eliminar producto web:", err);
     safeShowToastWeb("Error al eliminar producto.", "error");
   }
+};
+
+window.toggleSeccionCreditoAdmin = function(enabled) {
+  const box = document.getElementById('seccion-credito-admin-box');
+  if (box) box.classList.toggle('hidden', !enabled);
+  const pct = document.getElementById('prod-web-porcentaje-cuota-inicial');
+  const general = document.getElementById('prod-web-porcentaje-anticipo');
+  if (enabled && pct && general && (pct.value === '' || pct.dataset.touched !== '1')) pct.value = general.value || '30';
 };
 
 window.toggleSeccionAlquilerAdmin = function(isRent) {
@@ -334,6 +340,12 @@ window.abrirModalProductoWeb = function(prod = null) {
     window.toggleSeccionAlquilerAdmin(esAlquiler);
 
     document.getElementById('prod-web-check-credito').checked = prod.permitir_credito || false;
+    const pctCuota = document.getElementById('prod-web-porcentaje-cuota-inicial'); if (pctCuota) pctCuota.value = prod.porcentaje_anticipo ?? 30;
+    for (const [id, field, fallback] of [
+      ['prod-web-max-cuotas-diario','max_cuotas_diario',30], ['prod-web-max-cuotas-semanal','max_cuotas_semanal',12],
+      ['prod-web-max-cuotas-quincenal','max_cuotas_quincenal',12], ['prod-web-max-cuotas-mensual','max_cuotas_mensual',24]
+    ]) { const el = document.getElementById(id); if (el) el.value = prod[field] ?? fallback; }
+    window.toggleSeccionCreditoAdmin(Boolean(prod.permitir_credito));
 
     try {
       window.currentAdminTallas = typeof prod.tallas === 'string' ? JSON.parse(prod.tallas) : (prod.tallas || []);
@@ -352,7 +364,11 @@ window.abrirModalProductoWeb = function(prod = null) {
   } else {
     document.getElementById('prod-web-id').value = '';
     document.getElementById('prod-web-porcentaje-anticipo').value = 30;
-  if (document.getElementById('prod-web-dias-fabricacion')) document.getElementById('prod-web-dias-fabricacion').value = 0;
+    const pctCuota = document.getElementById('prod-web-porcentaje-cuota-inicial'); if (pctCuota) pctCuota.value = 30;
+    for (const [id, value] of [['prod-web-max-cuotas-diario',30],['prod-web-max-cuotas-semanal',12],['prod-web-max-cuotas-quincenal',12],['prod-web-max-cuotas-mensual',24]]) { const el = document.getElementById(id); if (el) el.value = value; }
+    const creditCheckbox = document.getElementById('prod-web-check-credito'); if (creditCheckbox) creditCheckbox.checked = false;
+    window.toggleSeccionCreditoAdmin(false);
+    if (document.getElementById('prod-web-dias-fabricacion')) document.getElementById('prod-web-dias-fabricacion').value = 0;
     window.toggleSeccionAlquilerAdmin(false);
 
     const imgPreview = document.getElementById('prod-web-img-preview');
@@ -478,7 +494,7 @@ window.confirmarRecorteFotoWeb = function() {
 window.guardarProductoWeb = async function(e) {
   if (e) e.preventDefault();
 
-  const btnSubmit = e?.target?.querySelector('button[type="submit"]');
+  const btnSubmit = document.getElementById('form-producto-web')?.querySelector('button[type="submit"]');
   if (btnSubmit) {
     btnSubmit.disabled = true;
     btnSubmit.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-1"></i> Subiendo imagen y guardando...`;
@@ -500,9 +516,18 @@ window.guardarProductoWeb = async function(e) {
     const precio_detal = safeParseMontoWeb(document.getElementById('prod-web-precio-detal')?.value);
     const precio_mayorista = safeParseMontoWeb(document.getElementById('prod-web-precio-mayor')?.value);
     const cant_minima_mayorista = parseInt(document.getElementById('prod-web-cant-mayor')?.value || 6, 10) || 6;
-    const anticipoRaw = document.getElementById('prod-web-porcentaje-anticipo')?.value;
+    const permitir_credito = document.getElementById('prod-web-check-credito')?.checked || false;
+    const anticipoRaw = permitir_credito
+      ? document.getElementById('prod-web-porcentaje-cuota-inicial')?.value
+      : document.getElementById('prod-web-porcentaje-anticipo')?.value;
     const porcentaje_anticipo = anticipoRaw === '' || anticipoRaw == null ? 30 : Math.min(100, Math.max(0, Number(anticipoRaw)));
-    if (!Number.isFinite(porcentaje_anticipo)) throw new Error('El porcentaje de anticipo debe estar entre 0 y 100.');
+    if (!Number.isFinite(porcentaje_anticipo)) throw new Error('El porcentaje de cuota inicial debe estar entre 0 y 100.');
+    const cuotaConfig = {
+      max_cuotas_diario: Math.max(1, Math.min(365, parseInt(document.getElementById('prod-web-max-cuotas-diario')?.value || '30', 10) || 30)),
+      max_cuotas_semanal: Math.max(1, Math.min(104, parseInt(document.getElementById('prod-web-max-cuotas-semanal')?.value || '12', 10) || 12)),
+      max_cuotas_quincenal: Math.max(1, Math.min(60, parseInt(document.getElementById('prod-web-max-cuotas-quincenal')?.value || '12', 10) || 12)),
+      max_cuotas_mensual: Math.max(1, Math.min(60, parseInt(document.getElementById('prod-web-max-cuotas-mensual')?.value || '24', 10) || 24))
+    };
 
     const precio_alquiler = safeParseMontoWeb(document.getElementById('prod-web-precio-alquiler')?.value);
     const valor_deposito = safeParseMontoWeb(document.getElementById('prod-web-valor-deposito')?.value);
@@ -511,7 +536,6 @@ window.guardarProductoWeb = async function(e) {
     const es_mayorista = document.getElementById('prod-web-check-mayorista')?.checked || false;
     const permitir_venta = document.getElementById('prod-web-check-venta')?.checked || false;
     const permitir_alquiler = document.getElementById('prod-web-check-alquiler')?.checked || false;
-    const permitir_credito = document.getElementById('prod-web-check-credito')?.checked || false;
 
     if (!nombre || !mundo) {
       throw new Error("El nombre y el mundo del producto son obligatorios.");
@@ -594,6 +618,7 @@ window.guardarProductoWeb = async function(e) {
       permitir_venta,
       permitir_alquiler,
       permitir_credito,
+      ...cuotaConfig,
       is_active: true,
       oculto_web: false
     };
@@ -603,47 +628,18 @@ window.guardarProductoWeb = async function(e) {
       payload.imagen = finalImageUrl;
     }
 
-    // Payload de sincronización para la tabla general 'productos' (Inventario Interno)
-    const inventarioPayload = {
-      nombre,
-      mundo,
-      origen: 'Colombia',
-      origen_compra: 'Colombia',
-      precio_detal,
-      price: precio_detal,
-      precio_mayorista,
-      stock: 10, // Stock inicial por defecto
-      is_active: true
-    };
-    if (finalImageUrl) {
-      inventarioPayload.image_url = finalImageUrl;
-      inventarioPayload.imagen = finalImageUrl;
-    }
-
     if (id) {
       // Actualizar en productos_web
       const { error } = await client.from('productos_web').update(payload).eq('id', id);
       if (error) throw error;
 
-      // Sincronizar actualización en la tabla 'productos'
-      await client.from('productos').upsert({ id, ...inventarioPayload });
-
       safeShowToastWeb("Producto web actualizado correctamente.");
     } else {
       const ref = 'CUP-' + Math.floor(1000 + Math.random() * 9000);
       payload.referencia = ref;
-      inventarioPayload.referencia = ref;
-
-      // Insertar en productos_web y obtener el ID generado
+      // Insertar únicamente en productos_web
       const { data: insertedData, error } = await client.from('productos_web').insert([payload]).select().single();
       if (error) throw error;
-
-      // Sincronizar inserción en la tabla 'productos' usando el mismo ID
-      if (insertedData && insertedData.id) {
-        await client.from('productos').insert([{ id: insertedData.id, ...inventarioPayload }]);
-      } else {
-        await client.from('productos').insert([inventarioPayload]);
-      }
 
       safeShowToastWeb("¡Producto creado y publicado en la tienda web!");
     }
