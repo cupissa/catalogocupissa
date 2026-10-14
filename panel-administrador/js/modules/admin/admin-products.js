@@ -1,6 +1,6 @@
 /**
  * js/modules/admin/admin-products.js
- * Carga Inteligente de Productos en la tabla 'productos' (Inventario Interno) y sincronización web
+ * Carga y gestión de productos de la tabla 'productos' (inventario interno)
  */
 
 window.webCropperInstance = null;
@@ -163,7 +163,7 @@ window.filtrarInventarioAdmin = function() {
 };
 
 /**
- * Elimina un producto permanentemente de la tabla 'productos' y de 'productos_web'
+ * Elimina un producto únicamente de la tabla 'productos' del inventario interno
  */
 window.eliminarProductoAdmin = async function(id) {
   if (!confirm("¿Deseas eliminar este producto del inventario interno y de la web?")) return;
@@ -174,10 +174,7 @@ window.eliminarProductoAdmin = async function(id) {
     const { error } = await client.from('productos').delete().eq('id', id);
     if (error) throw error;
 
-    // Intentar eliminar también de productos_web si coincide el ID o referencia
-    await client.from('productos_web').delete().eq('id', id);
-
-    safeShowToastWeb("Producto eliminado del inventario y de la web.");
+    safeShowToastWeb("Producto eliminado del inventario interno.");
     window.cargarInventarioAdmin();
   } catch (err) {
     console.error("Error al eliminar producto del inventario:", err);
@@ -276,11 +273,6 @@ window.confirmarSumarLote = async function() {
 
     if (error) throw error;
 
-    // Sincronizar el stock en productos_web también
-    await client
-      .from('productos_web')
-      .update({ stock: nuevoStock })
-      .eq('id', id);
 
     safeShowToastWeb(`Stock actualizado: +${cantSumar} unidades.`);
     window.cerrarModalLote();
@@ -328,16 +320,6 @@ window.initAdminProductsForm = function() {
       is_active: true
     };
 
-    // Payload adaptado para la tabla de clientes (productos_web)
-    const webPayload = {
-      title: nombre,
-      description: `Mundo: ${mundo} | Origen: ${origen}`,
-      price: precio_detal,
-      category: mundo,
-      stock: stock,
-      is_active: true
-    };
-
     try {
       const client = window.supabaseClient || window.supabase;
       if (!client) throw new Error("Supabase no disponible.");
@@ -347,10 +329,7 @@ window.initAdminProductsForm = function() {
         const { error } = await client.from('productos').update(payload).eq('id', id);
         if (error) throw error;
 
-        // Actualizar o insertar en productos_web para la página de clientes
-        await client.from('productos_web').upsert({ id, ...webPayload });
-
-        safeShowToastWeb("Producto actualizado en el inventario y en la web.");
+        safeShowToastWeb("Producto actualizado en el inventario interno.");
       } else {
         const ref = 'CUP-' + Math.floor(1000 + Math.random() * 9000);
         payload.referencia = ref;
@@ -359,14 +338,7 @@ window.initAdminProductsForm = function() {
         const { data: insertedData, error } = await client.from('productos').insert([payload]).select().single();
         if (error) throw error;
 
-        // Insertar también en productos_web para clientes usando el mismo ID generado
-        if (insertedData && insertedData.id) {
-          await client.from('productos_web').insert([{ id: insertedData.id, ...webPayload }]);
-        } else {
-          await client.from('productos_web').insert([webPayload]);
-        }
-
-        safeShowToastWeb("Nuevo producto registrado y publicado en la web.");
+        safeShowToastWeb("Nuevo producto registrado en el inventario interno.");
       }
 
       window.cancelarEdicionProd();
