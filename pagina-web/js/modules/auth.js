@@ -223,6 +223,7 @@ window.loginWithGoogle = async function() {
  */
 window.updateUserAuthUI = async function() {
   const authContainer = document.getElementById('userAuthSection');
+  const paymentsLink = document.getElementById('portalPaymentsNav');
   if (!authContainer) return;
 
   try {
@@ -241,6 +242,7 @@ window.updateUserAuthUI = async function() {
       localStorage.removeItem('cupissa_client_user');
     }
 
+    if (paymentsLink) paymentsLink.classList.toggle('hidden', !verifiedUser);
     if (verifiedUser) {
       session.user = verifiedUser;
       let displayName = session.user.user_metadata?.first_name 
