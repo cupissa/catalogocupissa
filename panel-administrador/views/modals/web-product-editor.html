@@ -53,7 +53,7 @@
                         <input type="number" id="prod-web-cant-mayor" value="6" min="1" class="p-2.5 border rounded-xl w-full mt-1 bg-white font-bold">
                     </div>
                     <div>
-                        <label class="font-bold text-slate-700">% Anticipo Requerido</label>
+                        <label class="font-bold text-slate-700">% Anticipo Requerido (venta/alquiler)</label>
                         <input type="number" id="prod-web-porcentaje-anticipo" value="30" min="0" max="100" placeholder="30" class="p-2.5 border rounded-xl w-full mt-1 bg-white font-bold text-emerald-700">
                     </div>
                 </div>
@@ -83,9 +83,35 @@
                         <span>Alquiler</span>
                     </label>
                     <label class="flex items-center gap-1.5 font-bold text-slate-700 cursor-pointer">
-                        <input type="checkbox" id="prod-web-check-credito" class="rounded text-pink-600">
+                        <input type="checkbox" id="prod-web-check-credito" onchange="toggleSeccionCreditoAdmin(this.checked)" class="rounded text-pink-600">
                         <span>Crédito</span>
                     </label>
+                </div>
+
+                <div id="seccion-credito-admin-box" class="hidden rounded-2xl border border-amber-200 bg-amber-50 p-4 space-y-3">
+                    <h4 class="font-black text-amber-950">Configuración del crédito</h4>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                            <label class="font-bold text-amber-950">Porcentaje de cuota inicial (%) *</label>
+                            <input type="number" id="prod-web-porcentaje-cuota-inicial" value="30" min="0" max="100" step="0.01" required class="mt-1 w-full rounded-xl border p-2.5 bg-white">
+                        </div>
+                        <div>
+                            <label class="font-bold text-amber-950">Máximo de cuotas diarias</label>
+                            <input type="number" id="prod-web-max-cuotas-diario" min="1" max="365" value="30" required class="mt-1 w-full rounded-xl border p-2.5 bg-white">
+                        </div>
+                        <div>
+                            <label class="font-bold text-amber-950">Máximo de cuotas semanales</label>
+                            <input type="number" id="prod-web-max-cuotas-semanal" min="1" max="104" value="12" required class="mt-1 w-full rounded-xl border p-2.5 bg-white">
+                        </div>
+                        <div>
+                            <label class="font-bold text-amber-950">Máximo de cuotas quincenales</label>
+                            <input type="number" id="prod-web-max-cuotas-quincenal" min="1" max="60" value="12" required class="mt-1 w-full rounded-xl border p-2.5 bg-white">
+                        </div>
+                        <div>
+                            <label class="font-bold text-amber-950">Máximo de cuotas mensuales</label>
+                            <input type="number" id="prod-web-max-cuotas-mensual" min="1" max="60" value="24" required class="mt-1 w-full rounded-xl border p-2.5 bg-white">
+                        </div>
+                    </div>
                 </div>
 
                 <!-- VALORES EXCLUSIVOS PARA ALQUILER DE VESTUARIO O MOBILIARIO -->
